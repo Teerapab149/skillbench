@@ -9,10 +9,14 @@
     "check": "node src/check-arms.mjs && node scripts/check-spec.mjs",
     "check:arms": "node src/check-arms.mjs",
     "check:spec": "node scripts/check-spec.mjs",
-    "pilot": "node src/runner.mjs --adapter mock --reps 20 && node src/analyze.mjs",
-    "real": "node src/runner.mjs --adapter claude-cli --reps 19 && node src/analyze.mjs",
+    "power": "node src/stats.mjs --power",
+    "pilot": "node src/runner.mjs --adapter mock --reps 12 && node src/analyze.mjs",
+    "calibrate": "node src/runner.mjs --adapter claude-cli --arms A1 --reps 5 && node scripts/calibrate.mjs",
+    "real": "node src/runner.mjs --adapter claude-cli --reps 11 && node src/analyze.mjs",
+    "dilution:make": "node scripts/make-dilution-arms.mjs",
+    "dilution": "node src/runner.mjs --adapter claude-cli --config config/dilution.json --scenarios S08,S09 --reps 15 && node scripts/dilution-report.mjs",
     "analyze": "node src/analyze.mjs",
-    "power": "node src/stats.mjs --power"
+    "fixture:test": "node --test \"fixtures/gpu-booking/tests/*.test.ts\""
   },
   "engines": { "node": ">=18" }
 }

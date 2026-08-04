@@ -1,0 +1,71 @@
+{
+  "_note": "การทดลอง Rule Dilution — ตัวแปรเดียวที่ต่างคือจำนวนกฎที่โหลดพร้อมกัน",
+  "_readAs": "ถ้าอัตราการทำตามกฎเป้าหมายลดลงตามจำนวนกฎที่เพิ่ม แสดงว่ากฎเจือจางกันเอง",
+  "arms": [
+    {
+      "id": "D000",
+      "name": "Dilution +0 rules",
+      "role": "reference",
+      "desc": "กฎเป้าหมาย 1 ข้อ + กฎประกอบที่ไม่เกี่ยวข้อง 0 ข้อ",
+      "contextFiles": [
+        "arms/dilution/D000/CLAUDE.md"
+      ],
+      "skillsEnabled": false,
+      "ruleCount": 1
+    },
+    {
+      "id": "D010",
+      "name": "Dilution +10 rules",
+      "role": "dilution",
+      "desc": "กฎเป้าหมาย 1 ข้อ + กฎประกอบที่ไม่เกี่ยวข้อง 10 ข้อ",
+      "contextFiles": [
+        "arms/dilution/D010/CLAUDE.md"
+      ],
+      "skillsEnabled": false,
+      "ruleCount": 11
+    },
+    {
+      "id": "D020",
+      "name": "Dilution +20 rules",
+      "role": "dilution",
+      "desc": "กฎเป้าหมาย 1 ข้อ + กฎประกอบที่ไม่เกี่ยวข้อง 20 ข้อ",
+      "contextFiles": [
+        "arms/dilution/D020/CLAUDE.md"
+      ],
+      "skillsEnabled": false,
+      "ruleCount": 21
+    },
+    {
+      "id": "D040",
+      "name": "Dilution +40 rules",
+      "role": "dilution",
+      "desc": "กฎเป้าหมาย 1 ข้อ + กฎประกอบที่ไม่เกี่ยวข้อง 40 ข้อ",
+      "contextFiles": [
+        "arms/dilution/D040/CLAUDE.md"
+      ],
+      "skillsEnabled": false,
+      "ruleCount": 41
+    },
+    {
+      "id": "D080",
+      "name": "Dilution +80 rules",
+      "role": "dilution",
+      "desc": "กฎเป้าหมาย 1 ข้อ + กฎประกอบที่ไม่เกี่ยวข้อง 80 ข้อ",
+      "contextFiles": [
+        "arms/dilution/D080/CLAUDE.md"
+      ],
+      "skillsEnabled": false,
+      "ruleCount": 81
+    }
+  ],
+  "fixedFactors": {
+    "model": "claude-opus-5",
+    "temperature": 1,
+    "maxTurns": 25,
+    "_note": "ใช้เฉพาะ scenario ตระกูล hidden_impact เพราะกฎเป้าหมายเกี่ยวกับผลกระทบย้อนหลัง"
+  },
+  "primaryEndpoint": {
+    "metric": "IM (กลุ่มกฎผลกระทบย้อนหลัง)",
+    "comparison": "D000 vs D080"
+  }
+}

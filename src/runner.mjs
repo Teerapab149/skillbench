@@ -40,11 +40,18 @@ async function main() {
   const armFilter = argv('--arms', '').split(',').filter(Boolean);
   const masterSeed = parseInt(argv('--seed', '20260804'), 10);
 
-  const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
+  const configPath = argv('--config', 'config/arms.json');
+  const scenFilter = argv('--scenarios', '').split(',').filter(Boolean);
+
+  const config = JSON.parse(fs.readFileSync(path.join(ROOT, configPath), 'utf8'));
   const arms = config.arms.filter((a) => !armFilter.length || armFilter.includes(a.id));
   const scenarios = fs.readdirSync(path.join(ROOT, 'scenarios'))
     .filter((f) => f.endsWith('.json'))
-    .map((f) => JSON.parse(fs.readFileSync(path.join(ROOT, 'scenarios', f), 'utf8')));
+    .map((f) => JSON.parse(fs.readFileSync(path.join(ROOT, 'scenarios', f), 'utf8')))
+    .filter((s) => !scenFilter.length || scenFilter.some((p) => s.id.startsWith(p)));
+
+  if (!arms.length) throw new Error('ไม่มี arm ที่ตรงกับตัวกรอง');
+  if (!scenarios.length) throw new Error('ไม่มี scenario ที่ตรงกับตัวกรอง');
 
   let runAgent;
   if (adapterName === 'mock') runAgent = runMock;
@@ -88,7 +95,9 @@ async function main() {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
   const meta = { stamp, adapter: adapterName, simulated: adapterName === 'mock', reps, masterSeed,
+                 configPath,
                  arms: arms.map((a) => a.id), scenarios: scenarios.map((s) => s.id),
+                 armMeta: Object.fromEntries(arms.map((a) => [a.id, { name: a.name, role: a.role, ruleCount: a.ruleCount ?? null }])),
                  fixedFactors: config.fixedFactors, primaryEndpoint: config.primaryEndpoint };
 
   fs.writeFileSync(path.join(outDir, `graded-${stamp}.json`), JSON.stringify({ meta, graded }, null, 2));

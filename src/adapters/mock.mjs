@@ -57,9 +57,24 @@ function splitCatalogue(scenario) {
 
 const RETRO_FILES = ['src/lib/duration.ts', 'src/projections/billing.ts', 'src/domain/policy.ts'];
 
+/**
+ * arm ของการทดลอง dilution ไม่ได้อยู่ในตาราง PROFILES
+ * จำลองเป็นการเสื่อมแบบลอการิทึมตามจำนวนกฎที่โหลดพร้อมกัน — สมมติฐานที่จะไปพิสูจน์ด้วยข้อมูลจริง
+ */
+function dilutionProfile(arm) {
+  const rules = arm.ruleCount ?? 1;
+  const decay = 1 / (1 + 0.30 * Math.log2(rules));
+  return {
+    scope: 0.75 * decay + 0.15, gold: 0.75 * decay + 0.15, trace: 0.6 * decay + 0.15,
+    flag: 0.6 * decay + 0.1, impact: 0.85 * decay + 0.05, verify: 0.7 * decay + 0.2,
+    readSpec: 0.7 * decay + 0.2, trigger: 0, fpTrigger: 0,
+    churn: 1.5, tokIn: 4000 + rules * 40,
+  };
+}
+
 export async function runMock({ scenario, arm, repIndex, seed }) {
   const t0 = Date.now();
-  const p = PROFILES[arm.id] ?? PROFILES.A0;
+  const p = PROFILES[arm.id] ?? (arm.role === 'dilution' || arm.role === 'reference' ? dilutionProfile(arm) : PROFILES.A0);
   const rnd = makeRng(seed);
   const { inScope, outOfScope } = splitCatalogue(scenario);
   const reqs = scenario.reqs ?? [];

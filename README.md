@@ -264,20 +264,26 @@ node src/stats.mjs --power
 
 รัน pilot 400 runs ด้วย mock ผ่านครบวงจรแล้ว สร้าง `results/report.md` ได้จริง
 
+| ไฟล์ | ทำอะไร | สถานะ |
+|---|---|---|
+| `spec/` | 43 ข้อกำหนด + AC + OpenAPI 11 endpoints + แผนที่กับดัก | เสร็จ |
+| `fixtures/gpu-booking/` | ระบบจอง GPU แบบ event-sourced 15 ไฟล์ + 34 เทส + ประวัติ 3 เดือน | เสร็จ |
+| `scenarios/` | 11 โจทย์ครบทุกตระกูลกับดัก | เสร็จ |
+| `arms/` | A0–A4 + skill 4 ตัว (กฎ A1/A2 เท่ากันครบ 20 ข้อ ยืนยันด้วย `check-arms`) | เสร็จ |
+| `scripts/calibrate.mjs` | ตรวจว่าโจทย์ยากพอดีก่อนเก็บข้อมูลจริง | เสร็จ |
+| `scripts/make-dilution-arms.mjs` + `dilution-report.mjs` | เส้นโค้ง Rule Dilution + Cochran–Armitage trend test | เสร็จ |
+
 ### ที่ยังต้องทำ
 
-| ส่วน | สถานะปัจจุบัน | ต้องทำ |
-|---|---|---|
-| `fixtures/` | ยังเป็นโปรเจกต์ Next.js จำลอง | **ทิ้ง** สร้างระบบจอง GPU แบบ event-sourced แทน |
-| `scenarios/` | 4 ข้อเป็น Next.js ใช้ทดสอบท่อเท่านั้น | **เขียนใหม่ 11 ข้อ** ตามตระกูลกับดัก |
-| `arms/` | โครง 5 arms ถูกแล้ว แต่เนื้อกฎอิงเว็บ | เขียนกฎใหม่ให้เข้าโดเมน GPU |
-| `spec/` | **เสร็จแล้ว** — 43 ข้อกำหนด + AC + OpenAPI 11 endpoints + แผนที่กับดัก | ให้คนนอกรีวิวก่อนเก็บข้อมูล |
-| skill ใหม่ 3 ตัว | ยังไม่มี | `trace-to-requirement`, `impact-analysis`, `acceptance-first` |
-| ตัวตรวจ RTM ใน `graders.mjs` | ยังไม่มี | map การเปลี่ยนแปลง → REQ-ID |
+| ส่วน | ต้องทำ |
+|---|---|
+| **รีวิวชุดกฎโดยคนนอก** | ให้อาจารย์ที่ปรึกษาหรือเพื่อนดู `spec/` ก่อนเก็บข้อมูล ← ลดอคติจากการให้คะแนน skill ตัวเอง |
+| **Calibration 55 runs** | `npm run calibrate` แล้วดูว่าทุกโจทย์อยู่ในช่วง 0.15–0.85 |
+| **เก็บข้อมูลจริง** | `npm run real` (605 runs) + `npm run dilution` (150 runs) |
+| **วิเคราะห์และเขียนเล่ม** | สัปดาห์ที่ 4 |
 
-> ⚠️ **ไฟล์ใน `scenarios/` และ `fixtures/` ตอนนี้เป็นของชั่วคราวจากการทดสอบ pipeline** เก็บไว้เพื่อให้ `npm run pilot` ยังรันได้ (ใช้โชว์ตอนส่ง progress) แต่จะถูกแทนที่ทั้งหมดในสัปดาห์ที่ 2
->
-> ตัวเลขใน `results/report.md` ตอนนี้เป็นของ **mock ทั้งหมด** — ตัวรายงานจะติดป้ายเตือนไว้บนหัวไฟล์ให้อัตโนมัติ **ห้ามเอาไปใส่รายงาน**
+> ⚠️ ตัวเลขใน `results/` ตอนนี้เป็นของ **mock ทั้งหมด** — ตัวรายงานติดป้ายเตือนไว้บนหัวไฟล์ให้อัตโนมัติ
+> **ห้ามเอาไปใส่รายงาน** ต้องรันด้วย `--adapter claude-cli` แล้วสร้างใหม่
 
 ---
 
@@ -290,21 +296,25 @@ node src/stats.mjs --power
 - [x] เขียน **OpenAPI spec** ของระบบจอง GPU → [spec/openapi.yaml](spec/openapi.yaml)
 - [x] เขียน **requirement list** พร้อม REQ-ID และ AC ที่ทดสอบได้ → [spec/REQUIREMENTS.md](spec/REQUIREMENTS.md)
 - [x] วาง **แผนที่กับดัก + แผนผัง scenario → REQ** → [spec/REQUIREMENTS-ANNOTATED.md](spec/REQUIREMENTS-ANNOTATED.md)
-- [ ] เขียน **11 scenario จริง** เป็นไฟล์ JSON ใน `scenarios/` (ตอนนี้มีแค่แผนผัง ยังไม่มีตัวโจทย์)
-- [ ] เขียน **ตารางการอ่านผล** ก่อนเห็นข้อมูล
-- [ ] ให้คนนอก (อาจารย์ที่ปรึกษา / เพื่อน) รีวิวชุดกฎ **ก่อน** เก็บข้อมูล ← สำคัญ ดูข้อ 11
+- [x] เขียน **11 scenario** เป็นไฟล์ JSON ใน `scenarios/`
+- [x] เขียน **ตารางการอ่านผล** ก่อนเห็นข้อมูล → [METRICS.md](METRICS.md) หัวข้อ 8
+- [ ] **อ่านทวน 11 scenario ว่าคำสั่งชัดพอไหม** — จุดที่ต้องใช้สายตา SA มากที่สุด
+- [ ] **ให้คนนอกรีวิวชุดกฎก่อนเก็บข้อมูล** ← สำคัญที่สุดที่ยังไม่ได้ทำ ดูข้อ 11
+- [ ] ตรวจว่า S07 กับ S11 (ทั้งคู่อ้าง REQ-14/REQ-15) วัดคนละเรื่องจริง ไม่ซ้ำกัน
 
 ### สาย B — ระบบและการวัด (สาย dev)
 
-- [ ] สร้าง **fixture ระบบจอง GPU** แบบ event-sourced (~10–15 ไฟล์)
-- [ ] เขียน **skill 3 ตัวใหม่** + เนื้อกฎของ arm A1/A2/A3
-- [ ] เพิ่ม **ตัวตรวจแนว RTM** ใน `graders.mjs`
-- [ ] เพิ่ม **ตาราง RTM** ใน `analyze.mjs`
-- [ ] รัน **calibration 55 runs** แล้วรายงานว่า scenario ไหนต้องปรับ
+- [x] สร้าง **fixture ระบบจอง GPU** แบบ event-sourced → [fixtures/gpu-booking/](fixtures/gpu-booking/README.md)
+- [x] เขียน **skill 4 ตัว** + เนื้อกฎของ arm A1/A2/A3
+- [x] เพิ่ม **ตัวตรวจแนว RTM** ใน `graders.mjs` (probe, การอ้าง REQ-ID, gold-plating)
+- [x] เพิ่ม **ตาราง RTM + โจทย์ธรรมดา vs กับดัก + Requirement Drift** ใน `analyze.mjs`
+- [x] เขียน **ตัว calibrate** และ **การทดลอง dilution**
+- [ ] รัน **calibration 55 runs จริง** แล้วรายงานว่า scenario ไหนต้องปรับ
+- [ ] ทดสอบ `claude-cli` adapter กับ 1 scenario ก่อนรันเต็ม ← ยังไม่เคยรันจริงเลยสักครั้ง
 
 ### ทำร่วมกัน
 
-- [ ] รันเก็บข้อมูลจริง (สัปดาห์ 3)
+- [ ] รันเก็บข้อมูลจริง 605 + dilution 150 (สัปดาห์ 3)
 - [ ] วิเคราะห์ผล + เขียนเล่ม + สไลด์ (สัปดาห์ 4)
 
 ---
@@ -361,10 +371,25 @@ node src/stats.mjs --power
 ตารางบอกว่าต้องเก็บกี่ run ถึงจะสรุปได้
 
 ```bash
+node src/runner.mjs --adapter claude-cli --arms A1 --reps 5 && node scripts/calibrate.mjs
+```
+
+**Calibration — 55 runs ที่คุ้มที่สุดในงานทั้งหมด** รัน A1 อย่างเดียวเพื่อดูว่าโจทย์ยากพอดีไหม
+ถ้าโจทย์ไหนอยู่นอกช่วง 0.15–0.85 ต้องแก้ก่อน มิฉะนั้นการทดลองจะแยกความต่างไม่ออก
+
+```bash
 node src/runner.mjs --adapter claude-cli --reps 11 && node src/analyze.mjs
 ```
 
-เก็บข้อมูลจริง — **ต้องรันใน VM หรือ container** เพราะ adapter ใช้โหมดข้ามการขออนุญาต
+เก็บข้อมูลจริง 605 runs — **ต้องรันใน VM หรือ container** เพราะ adapter ใช้โหมดข้ามการขออนุญาต
+
+```bash
+node scripts/make-dilution-arms.mjs && node src/runner.mjs --adapter claude-cli --config config/dilution.json --scenarios S08,S09 --reps 15 && node scripts/dilution-report.mjs
+```
+
+**การทดลอง Rule Dilution** 150 runs — ตรึงกฎเป้าหมาย 1 ข้อ แล้วเจือจางด้วยกฎอื่น 0/10/20/40/80 ข้อ
+ได้เส้นโค้งพร้อม Cochran–Armitage trend test → `results/dilution.md`
+**นี่คือรูปที่ควรอยู่หน้าแรกของสไลด์**
 
 ## 13. โครงสร้าง repo
 
@@ -378,23 +403,29 @@ skillbench/
 │   ├─ REQUIREMENTS-ANNOTATED.md เฉลยกับดัก + แผนผัง scenario  ⚠️ ห้ามเอเจนต์เห็น
 │   └─ openapi.yaml              สัญญา API 11 endpoints
 ├─ scripts/
-│   ├─ setup-fixtures.mjs เตรียม fixture หลัง clone (รันครั้งเดียว)
-│   └─ check-spec.mjs     ตรวจ REQ-ID, AC, และการรั่วของเฉลยกับดัก
-├─ config/arms.json       5 arms + ตัวแปรควบคุม + endpoint ที่ประกาศล่วงหน้า
-├─ scenarios/             โจทย์ (ชั่วคราว → เขียนใหม่ 11 ข้อ)
+│   ├─ setup-fixtures.mjs      เตรียม fixture หลัง clone (รันครั้งเดียว)
+│   ├─ check-spec.mjs          ตรวจ REQ-ID, AC, และการรั่วของเฉลยกับดัก
+│   ├─ calibrate.mjs           ตรวจว่าโจทย์ยากพอดี (item difficulty)
+│   ├─ make-dilution-arms.mjs  สร้าง arm สำหรับเส้นโค้ง Rule Dilution
+│   └─ dilution-report.mjs     เส้นโค้ง + Cochran–Armitage trend test
+├─ config/
+│   ├─ arms.json          5 arms + ตัวแปรควบคุม + endpoint ที่ประกาศล่วงหน้า
+│   └─ dilution.json      arm สำหรับการทดลองเจือจางกฎ (สร้างอัตโนมัติ)
+├─ scenarios/             11 โจทย์ ครบทุกตระกูลกับดัก
 ├─ arms/
-│   ├─ A1/CLAUDE.md       กฎทั้งหมดในไฟล์เดียว
-│   ├─ A2/CLAUDE.md       + skills/ กฎชุดเดียวกันแยกเป็น skill
-│   └─ A3/CLAUDE.md       placebo ความยาวจับคู่กับ A1
-├─ fixtures/              ระบบจำลอง (ชั่วคราว → ระบบจอง GPU)
+│   ├─ A1/CLAUDE.md       กฎทั้งหมดในไฟล์เดียว (~1,435 tok)
+│   ├─ A2/CLAUDE.md       + skills/ กฎชุดเดียวกันแยกเป็น 4 skill (~928 tok เสมอ)
+│   ├─ A3/CLAUDE.md       placebo ความยาวจับคู่กับ A1 (อัตราส่วน 1.098)
+│   └─ dilution/          D000–D080 สำหรับการทดลองเจือจาง
+├─ fixtures/gpu-booking/  ระบบจอง GPU แบบ event-sourced (ไม่มี dependency)
 ├─ src/
 │   ├─ stats.mjs          สถิติทั้งหมด เขียนเอง ไม่มี dependency
-│   ├─ graders.mjs        ตัวตรวจกฎ
+│   ├─ graders.mjs        ตัวตรวจกฎ 20 ชนิด + RTM + trigger matrix
 │   ├─ runner.mjs         randomized block design
 │   ├─ analyze.mjs        สร้างรายงาน
 │   ├─ check-arms.mjs     ตรวจการออกแบบ
 │   └─ adapters/          mock (ทดสอบท่อ) + claude-cli (ของจริง)
-└─ results/               report.md, summary.csv, rules-long.csv, transcript ดิบ
+└─ results/               report.md, dilution.md, CSV, transcript ดิบ
 ```
 
 ---
