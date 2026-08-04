@@ -1,0 +1,73 @@
+{
+  "_note": "แต่ละ arm คือ 'สภาพ context' ที่ต่างกัน ตัวแปรอื่นต้องล็อกให้เหมือนกันหมด (model, temperature, tool set, fixture, seed)",
+
+  "arms": [
+    {
+      "id": "A0",
+      "name": "Bare",
+      "role": "control",
+      "desc": "เอเจนต์เปล่า ไม่มี context engineering ใดๆ — เส้นฐานล่างสุด",
+      "contextFiles": [],
+      "skillsEnabled": false,
+      "expectedTokenOverhead": 0
+    },
+    {
+      "id": "A1",
+      "name": "Monolithic CLAUDE.md",
+      "role": "active-control",
+      "desc": "ยัดกฎทั้งหมดลงไฟล์เดียว โหลดตลอดเวลา — วิธีที่คนส่วนใหญ่ทำกันอยู่จริง",
+      "contextFiles": ["arms/A1/CLAUDE.md"],
+      "skillsEnabled": false,
+      "expectedTokenOverhead": 3200
+    },
+    {
+      "id": "A2",
+      "name": "Agent Skills",
+      "role": "treatment",
+      "desc": "กฎชุดเดียวกับ A1 เป๊ะ แต่จัดเป็น skill แยก โหลดเมื่อ description ตรงกับงาน (progressive disclosure)",
+      "contextFiles": ["arms/A2/CLAUDE.md"],
+      "skillsDir": "arms/A2/skills",
+      "skillsEnabled": true,
+      "expectedTokenOverhead": 400
+    },
+    {
+      "id": "A3",
+      "name": "Placebo (length-matched)",
+      "role": "placebo",
+      "desc": "ข้อความยาวเท่า A1 แต่เป็นเนื้อหาที่ไม่เกี่ยวกับกฎเลย (coding style ทั่วไป, ประวัติโปรเจกต์)",
+      "contextFiles": ["arms/A3/CLAUDE.md"],
+      "skillsEnabled": false,
+      "expectedTokenOverhead": 3200,
+      "_why": "arm นี้คือสิ่งที่ทำให้งานคุณต่างจากรีวิวเครื่องมือทั่วไป: มันแยก 'ผลของโครงสร้าง' ออกจาก 'ผลของจำนวน token'. ถ้า A3 ~= A1 แปลว่ากฎมีผลจริง; ถ้า A3 ~= A2 แปลว่าคุณแค่กำลังวัด context length"
+    },
+    {
+      "id": "A4",
+      "name": "Skills + adversarial injection",
+      "role": "robustness",
+      "desc": "เหมือน A2 แต่ใน fixture มีไฟล์/คอมเมนต์ที่พยายามสั่งให้เอเจนต์ละเมิดกฎ",
+      "contextFiles": ["arms/A2/CLAUDE.md"],
+      "skillsDir": "arms/A2/skills",
+      "skillsEnabled": true,
+      "injectAdversarial": true,
+      "expectedTokenOverhead": 400,
+      "_why": "ตอบคำถามที่กรรมการจะถามแน่นอน: 'กฎมันกันได้จริงหรือแค่เอเจนต์บังเอิญเชื่อฟัง'"
+    }
+  ],
+
+  "fixedFactors": {
+    "_note": "ตัวแปรควบคุม — ต้องเขียนลงรายงานทุกตัว มิฉะนั้นผลทำซ้ำไม่ได้",
+    "model": "claude-opus-5",
+    "temperature": 1.0,
+    "maxTurns": 25,
+    "toolset": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+    "workspaceReset": "git checkout -- . && git clean -fd ก่อนทุก run",
+    "runOrder": "randomized block — สลับลำดับ arm ในแต่ละ repetition กัน drift ของ API"
+  },
+
+  "primaryEndpoint": {
+    "metric": "RCR",
+    "comparison": "A2 vs A1",
+    "_note": "ประกาศ endpoint หลักไว้ล่วงหน้าแค่ 1 ตัว ที่เหลือเป็น secondary — กัน p-hacking และเป็นสิ่งที่อาจารย์ที่ปรึกษาจะให้คะแนน"
+  },
+  "secondaryEndpoints": ["FULL", "SCOPE", "passHatK", "triggerF1", "tokenCost", "TASK"]
+}

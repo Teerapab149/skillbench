@@ -1,0 +1,9 @@
+node_modules/
+
+# ผลการรันสร้างใหม่ได้เสมอด้วย `npm run pilot` และไฟล์ artifact ใหญ่ (transcript ดิบ)
+# ตอนเก็บข้อมูลจริง ให้ commit เฉพาะ results/ ของ run จริงเข้ามาเป็นชุดข้อมูลแนบรายงาน
+results/
+
+# fixture แต่ละตัวมี git repo ของตัวเองตอนรัน (ใช้ reset workspace ก่อนทุก run)
+# สร้างด้วย `node scripts/setup-fixtures.mjs` — ไม่ต้อง commit
+fixtures/*/.git/
