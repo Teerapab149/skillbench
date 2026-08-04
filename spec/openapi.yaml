@@ -1,0 +1,283 @@
+openapi: 3.1.0
+
+# สัญญา API ของระบบจองทรัพยากร GPU
+#
+# เอกสารนี้ทำหน้าที่ 3 อย่างพร้อมกัน (contract-first):
+#   1. ข้อกำหนดที่ส่งให้ผู้พัฒนา (ในการทดลองคือเอเจนต์)
+#   2. แหล่งที่มาของ Requirements Traceability Matrix — ทุก operation ผูกกับ REQ-ID
+#   3. เกณฑ์ตรวจว่า implementation ตรงกับที่ตกลงไว้หรือไม่
+#
+# ข้อกำหนดฉบับเต็มพร้อม acceptance criteria อยู่ใน REQUIREMENTS.md
+
+info:
+  title: GPU Resource Booking API
+  version: 1.0.0
+  description: |
+    ระบบจองเครื่อง GPU ของศูนย์คอมพิวเตอร์
+    เวลาทั้งหมดเป็น ISO 8601 พร้อม timezone offset (REQ-50)
+
+servers:
+  - url: http://localhost:3000
+
+security:
+  - UserHeaders: []
+
+paths:
+  /bookings:
+    post:
+      summary: สร้างคำขอจอง
+      # เขียน REQ-ID แบบเต็มทุกข้อ ห้ามย่อเป็นช่วง (REQ-10..REQ-14)
+      # เพราะ RTM สืบย้อนจากการจับคู่ ID ตรงตัว การย่อทำให้ข้อกลางๆ หายไปเงียบๆ
+      description: 'REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06, REQ-07, REQ-08, REQ-10, REQ-11, REQ-12, REQ-13, REQ-14, REQ-16'
+      operationId: createBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBookingRequest' }
+      responses:
+        '201': { description: สร้างคำขอสำเร็จ สถานะ REQUESTED, content: { application/json: { schema: { $ref: '#/components/schemas/Booking' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: ช่วงเวลาซ้อนทับกับการจองที่มีอยู่ (REQ-05), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: เกินโควตาที่กำหนด (REQ-10..REQ-14), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+    get:
+      summary: ค้นหาการจอง
+      operationId: listBookings
+      parameters:
+        - { name: userId, in: query, schema: { type: string } }
+        - { name: resourceId, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/BookingStatus' } }
+        - { name: from, in: query, schema: { type: string, format: date-time } }
+        - { name: to, in: query, schema: { type: string, format: date-time } }
+      responses:
+        '200': { description: รายการการจอง, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Booking' } } } } }
+
+  /bookings/{bookingId}:
+    get:
+      summary: ดูรายละเอียดการจอง
+      description: 'REQ-22, REQ-30 — สถานะที่คืนต้องสะท้อนการหมดเวลาอนุมัติและการไม่มาใช้งานแล้ว'
+      operationId: getBooking
+      parameters: [ { $ref: '#/components/parameters/BookingId' } ]
+      responses:
+        '200': { description: รายละเอียดการจอง, content: { application/json: { schema: { $ref: '#/components/schemas/Booking' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /bookings/{bookingId}/history:
+    get:
+      summary: ดูประวัติเหตุการณ์ทั้งหมดของการจอง
+      description: 'REQ-39, REQ-41 — เรียงตามเวลาที่เกิดเหตุการณ์'
+      operationId: getBookingHistory
+      parameters: [ { $ref: '#/components/parameters/BookingId' } ]
+      responses:
+        '200': { description: ประวัติเหตุการณ์, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/DomainEvent' } } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /bookings/{bookingId}/approve:
+    post:
+      summary: อนุมัติคำขอจอง
+      description: 'REQ-17, REQ-18, REQ-19, REQ-20 — ผู้ขอจองอนุมัติของตัวเองไม่ได้แม้เป็น LAB_ADMIN'
+      operationId: approveBooking
+      parameters: [ { $ref: '#/components/parameters/BookingId' } ]
+      responses:
+        '200': { description: อนุมัติสำเร็จ, content: { application/json: { schema: { $ref: '#/components/schemas/Booking' } } } }
+        '403': { description: 'ไม่มีสิทธิ์อนุมัติ หรือเป็นผู้ขอจองเอง (REQ-18, REQ-19)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: สถานะไม่ใช่ REQUESTED (REQ-20), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bookings/{bookingId}/reject:
+    post:
+      summary: ปฏิเสธคำขอจอง
+      description: 'REQ-18, REQ-21 — ต้องระบุเหตุผล'
+      operationId: rejectBooking
+      parameters: [ { $ref: '#/components/parameters/BookingId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1 }
+      responses:
+        '200': { description: ปฏิเสธสำเร็จ, content: { application/json: { schema: { $ref: '#/components/schemas/Booking' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { description: ไม่มีสิทธิ์, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bookings/{bookingId}/cancel:
+    post:
+      summary: ยกเลิกการจอง
+      description: 'REQ-24, REQ-25, REQ-26, REQ-27, REQ-28'
+      operationId: cancelBooking
+      parameters: [ { $ref: '#/components/parameters/BookingId' } ]
+      responses:
+        '200': { description: ยกเลิกสำเร็จ, content: { application/json: { schema: { $ref: '#/components/schemas/Booking' } } } }
+        '403': { description: ไม่ใช่เจ้าของการจองและไม่ใช่ LAB_ADMIN (REQ-25), content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: 'ยกเลิกไม่ได้ในสถานะปัจจุบัน (REQ-26, REQ-27)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bookings/{bookingId}/start:
+    post:
+      summary: เริ่มใช้งานจริง
+      description: 'REQ-23, REQ-29 — การจองเกิน 8 ชม. ต้องผ่านการอนุมัติก่อน (REQ-17)'
+      operationId: startBooking
+      parameters: [ { $ref: '#/components/parameters/BookingId' } ]
+      responses:
+        '200': { description: เริ่มใช้งานแล้ว สถานะ ACTIVE, content: { application/json: { schema: { $ref: '#/components/schemas/Booking' } } } }
+        '409': { description: 'สถานะไม่พร้อมเริ่มใช้งาน (REQ-17, REQ-29)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /bookings/{bookingId}/complete:
+    post:
+      summary: สิ้นสุดการใช้งาน
+      description: 'REQ-31, REQ-32 — actualEndAt เกิน endAt ได้ไม่เกิน 15 นาที'
+      operationId: completeBooking
+      parameters: [ { $ref: '#/components/parameters/BookingId' } ]
+      responses:
+        '200': { description: สิ้นสุดการใช้งาน สถานะ COMPLETED, content: { application/json: { schema: { $ref: '#/components/schemas/Booking' } } } }
+        '409': { description: สถานะไม่ใช่ ACTIVE, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /resources:
+    get:
+      summary: รายการเครื่องทั้งหมด
+      operationId: listResources
+      responses:
+        '200': { description: รายการเครื่อง, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Resource' } } } } }
+
+  /resources/{resourceId}/availability:
+    get:
+      summary: ช่วงเวลาที่เครื่องถูกจองไว้แล้ว
+      description: 'REQ-05 — ใช้ตรวจการซ้อนทับก่อนจอง'
+      operationId: getAvailability
+      parameters:
+        - { name: resourceId, in: path, required: true, schema: { type: string } }
+        - { name: from, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: true, schema: { type: string, format: date-time } }
+      responses:
+        '200':
+          description: ช่วงเวลาที่ไม่ว่าง
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    startAt: { type: string, format: date-time }
+                    endAt: { type: string, format: date-time }
+                    bookingId: { type: string }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /billing/invoices:
+    get:
+      summary: ใบแจ้งหนี้รายเดือน
+      description: 'REQ-33, REQ-34, REQ-35, REQ-36, REQ-37, REQ-38 — ยอดเงินคำนวณจากเหตุการณ์ ไม่ได้เก็บไว้ล่วงหน้า'
+      operationId: getInvoice
+      parameters:
+        - { name: userId, in: query, required: true, schema: { type: string } }
+        - { name: month, in: query, required: true, schema: { type: string, pattern: '^\d{4}-\d{2}$' }, example: '2026-05' }
+      responses:
+        '200': { description: ใบแจ้งหนี้, content: { application/json: { schema: { $ref: '#/components/schemas/Invoice' } } } }
+
+components:
+  securitySchemes:
+    UserHeaders:
+      type: apiKey
+      in: header
+      name: X-User-Id
+      description: 'ระบบยืนยันตัวตนภายนอกส่ง X-User-Id และ X-User-Role มาให้ (นอกขอบเขตระบบนี้)'
+
+  parameters:
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema: { type: string }
+
+  responses:
+    BadRequest:
+      description: ข้อมูลนำเข้าไม่ถูกต้อง
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: ไม่พบข้อมูล
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    Role:
+      type: string
+      enum: [STUDENT, PHD_STUDENT, LECTURER, LAB_ADMIN]
+
+    BookingStatus:
+      type: string
+      enum: [REQUESTED, APPROVED, REJECTED, ACTIVE, COMPLETED, CANCELLED, NO_SHOW]
+
+    CreateBookingRequest:
+      type: object
+      required: [resourceId, startAt, endAt]
+      properties:
+        resourceId: { type: string, example: gpu-a100-01 }
+        startAt: { type: string, format: date-time, example: '2026-08-05T09:00:00+07:00' }
+        endAt: { type: string, format: date-time, example: '2026-08-05T13:00:00+07:00' }
+
+    Booking:
+      type: object
+      required: [id, userId, resourceId, startAt, endAt, status]
+      properties:
+        id: { type: string }
+        userId: { type: string }
+        resourceId: { type: string }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/BookingStatus' }
+        requiresApproval: { type: boolean, description: 'true เมื่อระยะเวลาเกิน 8 ชม. (REQ-17)' }
+        approvedBy: { type: [string, 'null'] }
+        rejectionReason: { type: [string, 'null'] }
+        actualStartAt: { type: [string, 'null'], format: date-time }
+        actualEndAt: { type: [string, 'null'], format: date-time }
+
+    Resource:
+      type: object
+      properties:
+        id: { type: string, example: gpu-a100-01 }
+        tier: { type: string, enum: [A100, V100] }
+        hourlyRate: { type: number, description: 'บาทต่อชั่วโมง (REQ-34)' }
+
+    DomainEvent:
+      type: object
+      required: [type, occurredAt, actorId]
+      description: 'เหตุการณ์ที่บันทึกแล้วห้ามแก้หรือลบ (REQ-40)'
+      properties:
+        type:
+          type: string
+          enum: [BookingRequested, BookingApproved, BookingRejected, BookingCancelled, BookingStarted, BookingCompleted, NoShowRecorded]
+        occurredAt: { type: string, format: date-time }
+        actorId: { type: string }
+        payload: { type: object, additionalProperties: true }
+
+    Invoice:
+      type: object
+      properties:
+        userId: { type: string }
+        month: { type: string, example: '2026-05' }
+        totalBaht: { type: number }
+        lines:
+          type: array
+          items:
+            type: object
+            properties:
+              bookingId: { type: string }
+              resourceId: { type: string }
+              billableMinutes: { type: integer, description: 'ปัดขึ้นเป็นจำนวนเท่าของ 15 นาที (REQ-35)' }
+              amountBaht: { type: number }
+              note: { type: string, description: 'เช่น no-show คิด 50% (REQ-36)' }
+
+    Error:
+      type: object
+      description: 'รูปแบบข้อผิดพลาดเดียวกันทุกกรณี (REQ-52)'
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string, example: QUOTA_EXCEEDED }
+            message: { type: string }

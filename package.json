@@ -6,7 +6,9 @@
   "private": true,
   "scripts": {
     "setup": "node scripts/setup-fixtures.mjs",
-    "check": "node src/check-arms.mjs",
+    "check": "node src/check-arms.mjs && node scripts/check-spec.mjs",
+    "check:arms": "node src/check-arms.mjs",
+    "check:spec": "node scripts/check-spec.mjs",
     "pilot": "node src/runner.mjs --adapter mock --reps 20 && node src/analyze.mjs",
     "real": "node src/runner.mjs --adapter claude-cli --reps 19 && node src/analyze.mjs",
     "analyze": "node src/analyze.mjs",
