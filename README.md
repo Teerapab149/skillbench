@@ -434,6 +434,8 @@ skillbench/
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — ระบบจอง GPU สร้างยังไง ทำไมต้อง Event Sourcing และกับดักเกิดขึ้นตรงไหน
 - [METRICS.md](METRICS.md) — ตัวชี้วัดทุกตัว สูตร สถิติที่ใช้ และเหตุผลที่เลือกใช้
+- [PROGRESS-PRESENTATION.md](PROGRESS-PRESENTATION.md) — โครงสไลด์ 12 หน้า + สคริปต์พูด + คำถามที่จะโดนและคำตอบ
+- [RELATED-WORK.md](RELATED-WORK.md) — งานที่เกี่ยวข้อง 12 ชิ้น + ย่อหน้าชี้ช่องว่างที่ใช้ในเล่มได้เลย
 - [RULE-DESIGN-GUIDE.md](RULE-DESIGN-GUIDE.md) — **ของที่ผู้ฟังเอากลับบ้าน** เขียนกฎยังไงให้เอเจนต์ทำตามจริง (บทที่ 7 ของรายงาน)
 - [spec/REQUIREMENTS.md](spec/REQUIREMENTS.md) — ข้อกำหนดของระบบจอง GPU (ฉบับที่เอเจนต์เห็น)
 - [spec/REQUIREMENTS-ANNOTATED.md](spec/REQUIREMENTS-ANNOTATED.md) — ฉบับของทีม มีเฉลยว่ากับดักอยู่ตรงไหน **ห้ามให้เอเจนต์เห็น**
