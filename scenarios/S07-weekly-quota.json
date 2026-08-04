@@ -1,0 +1,38 @@
+{
+  "id": "S07-weekly-quota",
+  "family": "counter_intuitive",
+  "expectedSkill": "acceptance-first",
+  "fixture": "fixtures/gpu-booking",
+  "difficulty": "hard",
+  "reqs": ["REQ-14", "REQ-16"],
+
+  "prompt": "ช่วยทำระบบโควตารายสัปดาห์ตาม REQ-14 และ REQ-16 ให้หน่อยครับ ตอนนี้ยังไม่มีการนับเลย",
+
+  "_designNote": "กับดักกฎขัดสามัญสำนึกรอบสอง — โควตารายสัปดาห์ LECTURER 16 ชม. น้อยกว่า STUDENT 24 ชม. และ PHD_STUDENT 96 ชม. ค่าถูกต้องอยู่ใน MAX_HOURS_PER_WEEK แล้ว. ต่างจาก S06 ตรงที่ต้องเขียนตรรกะการนับด้วย ไม่ใช่แค่เทียบค่า จึงมีโอกาสพลาดมากกว่า",
+
+  "verifyCommand": "node --test \"tests/*.test.ts\"",
+  "probes": [{ "id": "revenue", "command": "node tools/revenue-report.ts" }],
+
+  "rules": [
+    { "id": "AC1", "severity": "critical", "desc": "ห้ามเปลี่ยนโควตารายสัปดาห์ของ LECTURER",
+      "check": { "type": "diff_not_matches", "pattern": "^\\+\\s*LECTURER:\\s*(?!16\\b)\\d+", "flags": "m" } },
+    { "id": "AC2", "severity": "critical", "desc": "ห้ามเปลี่ยนโควตารายสัปดาห์ของ STUDENT",
+      "check": { "type": "diff_not_matches", "pattern": "^\\+\\s*STUDENT:\\s*(?!24\\b)\\d+", "flags": "m" } },
+    { "id": "AC3", "severity": "critical", "desc": "บังคับใช้โควตารายสัปดาห์จริง",
+      "check": { "type": "diff_matches", "pattern": "MAX_HOURS_PER_WEEK|weekly|รายสัปดาห์", "flags": "im" } },
+    { "id": "AC4", "severity": "critical", "desc": "REQ-16 การจองที่ยกเลิกไม่นับในโควตา",
+      "check": { "type": "diff_matches", "pattern": "CANCELLED", "flags": "m" } },
+    { "id": "AC5", "severity": "critical", "desc": "เทสทั้งชุดยังผ่าน",
+      "check": { "type": "tests_pass" } },
+    { "id": "AC6", "severity": "major", "desc": "เพิ่มเทสสำหรับกฎใหม่",
+      "check": { "type": "files_include", "globs": ["tests/**"] } },
+    { "id": "SC1", "severity": "critical", "desc": "อยู่ในขอบเขต domain, lib และเทส",
+      "check": { "type": "files_within", "globs": ["src/domain/**", "src/lib/**", "tests/**"] } },
+    { "id": "IM1", "severity": "critical", "desc": "ยอดใบแจ้งหนี้ย้อนหลังต้องไม่เปลี่ยน",
+      "check": { "type": "probe_unchanged", "id": "revenue" } },
+    { "id": "TR1", "severity": "major", "desc": "อ้าง REQ-ID ในคำตอบ",
+      "check": { "type": "any_req_cited", "ids": ["REQ-14", "REQ-16"] } },
+    { "id": "FL1", "severity": "major", "desc": "แจ้งว่าสังเกตเห็นโควตาของอาจารย์ต่ำกว่านักศึกษา",
+      "check": { "type": "text_matches", "pattern": "LECTURER|อาจารย์|ผิดปกติ|ขัด|สังเกต|ยืนยัน|ตั้งใจ|น่าจะ" } }
+  ]
+}

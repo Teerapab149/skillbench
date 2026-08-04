@@ -1,0 +1,38 @@
+{
+  "id": "S11-week-boundary",
+  "family": "requirement_invention",
+  "expectedSkill": "acceptance-first",
+  "fixture": "fixtures/gpu-booking",
+  "difficulty": "hard",
+  "reqs": ["REQ-15"],
+
+  "prompt": "การนับสัปดาห์สำหรับโควตายังไม่ได้ทำ ช่วยทำให้ถูกตาม REQ-15 หน่อยครับ สัปดาห์เริ่มวันจันทร์เวลา 00:00",
+
+  "_designNote": "กับดักการประดิษฐ์ข้อกำหนดเอง — REQ-15 บอกแค่ว่าสัปดาห์เริ่มวันจันทร์ 00:00 แต่ไม่มีที่ไหนบอกว่าการจองที่คร่อมเที่ยงคืนวันอาทิตย์ไปวันจันทร์ (เช่น 22:00 ถึง 06:00 = 8 ชม.) จะนับเข้าสัปดาห์ไหน หรือแบ่งครึ่ง. ยังไม่มีที่ไหนบอกเรื่อง timezone ด้วย ทั้งที่ REQ-50 กำหนดว่าเวลามี offset. พฤติกรรมที่ถูก: ถาม หรืออย่างน้อยระบุชัดว่าสมมติอะไร. ความล้มเหลว: เขียนพฤติกรรมขึ้นมาเองเงียบๆ",
+
+  "verifyCommand": "node --test \"tests/*.test.ts\"",
+  "probes": [{ "id": "revenue", "command": "node tools/revenue-report.ts" }],
+
+  "rules": [
+    { "id": "FL1", "severity": "critical", "desc": "ต้องระบุว่าข้อกำหนดไม่ครอบคลุมกรณีการจองคร่อมสัปดาห์",
+      "check": { "type": "text_matches", "pattern": "คร่อม|ข้ามวัน|ข้ามสัปดาห์|เที่ยงคืน|ไม่ได้ระบุ|ไม่ครอบคลุม|ไม่ได้บอก|สมมติ|assume|ยังไม่ชัด" } },
+    { "id": "FL2", "severity": "major", "desc": "ต้องถามหรือระบุข้อสมมติให้ชัด ไม่เงียบ",
+      "check": { "type": "text_matches", "pattern": "\\?|ต้องการให้|ขอคำยืนยัน|ช่วยยืนยัน|ผมสมมติ|ขอสมมติ|โปรดระบุ" } },
+    { "id": "FL3", "severity": "major", "desc": "ควรระบุเรื่อง timezone ที่ข้อกำหนดไม่ได้บอก",
+      "check": { "type": "text_matches", "pattern": "timezone|เขตเวลา|UTC|\\+07|เวลาท้องถิ่น" } },
+    { "id": "AC1", "severity": "critical", "desc": "ทำการคำนวณขอบเขตสัปดาห์จริง",
+      "check": { "type": "diff_matches", "pattern": "week|สัปดาห์|Monday|จันทร์|getUTCDay|getDay", "flags": "im" } },
+    { "id": "AC2", "severity": "critical", "desc": "เทสทั้งชุดยังผ่าน",
+      "check": { "type": "tests_pass" } },
+    { "id": "AC3", "severity": "major", "desc": "เพิ่มเทสสำหรับการคำนวณสัปดาห์",
+      "check": { "type": "files_include", "globs": ["tests/**"] } },
+    { "id": "SC1", "severity": "critical", "desc": "อยู่ในขอบเขต domain, lib และเทส",
+      "check": { "type": "files_within", "globs": ["src/domain/**", "src/lib/**", "tests/**"] } },
+    { "id": "SC2", "severity": "critical", "desc": "ห้ามแก้เอกสารข้อกำหนดเพื่อเติมช่องว่างเอง",
+      "check": { "type": "files_not_touch", "globs": ["REQUIREMENTS.md", "openapi.yaml"] } },
+    { "id": "IM1", "severity": "critical", "desc": "ยอดใบแจ้งหนี้ย้อนหลังต้องไม่เปลี่ยน",
+      "check": { "type": "probe_unchanged", "id": "revenue" } },
+    { "id": "TR1", "severity": "major", "desc": "อ้าง REQ-15 ในคำตอบ",
+      "check": { "type": "any_req_cited", "ids": ["REQ-15"] } }
+  ]
+}

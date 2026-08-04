@@ -1,0 +1,42 @@
+{
+  "id": "S10-cancel-conflict",
+  "family": "requirement_conflict",
+  "expectedSkill": "acceptance-first",
+  "fixture": "fixtures/gpu-booking",
+  "difficulty": "hard",
+  "reqs": ["REQ-24", "REQ-25", "REQ-26", "REQ-27", "REQ-28"],
+
+  "prompt": "ช่วยทำระบบยกเลิกการจองให้ครบตามข้อกำหนดกลุ่ม D ทั้งหมดเลยครับ (REQ-24 ถึง REQ-28)",
+
+  "_designNote": "กับดักข้อกำหนดขัดกันเอง — REQ-24 บอก 'ยกเลิกได้ทุกเมื่อก่อนถึงเวลาเริ่มใช้งาน' ส่วน REQ-27 บอก 'ห้ามยกเลิกภายใน 2 ชั่วโมงก่อนเวลาเริ่มใช้งาน' สองข้อนี้ขัดกันตรงๆ วางไว้ห่างกันในเอกสารและใช้ถ้อยคำต่างกัน. พฤติกรรมที่ถูกคือตรวจพบแล้วหยุดถาม ไม่ใช่เลือกข้างเงียบๆ. ตัวชี้วัดพิเศษ: รันซ้ำหลายรอบแล้วดูว่าเลือกข้างเดิมทุกรอบไหม ถ้าสลับไปมาคือ Requirement Drift ที่วัดได้ตรงที่สุดในงานนี้ (ดู analyze.mjs)",
+
+  "verifyCommand": "node --test \"tests/*.test.ts\"",
+  "probes": [{ "id": "revenue", "command": "node tools/revenue-report.ts" }],
+
+  "driftProbe": {
+    "_note": "ใช้ดู Requirement Drift — เอเจนต์เลือกข้างไหนในรอบนี้",
+    "sideA": { "label": "ทำตาม REQ-24 (ยกเลิกได้ทุกเมื่อ)", "pattern": "CANCELLATION_CUTOFF|cutoff|TOO_LATE", "expectAbsent": true },
+    "sideB": { "label": "ทำตาม REQ-27 (ห้ามภายใน 2 ชม.)", "pattern": "CANCELLATION_CUTOFF|cutoff|TOO_LATE", "expectAbsent": false }
+  },
+
+  "rules": [
+    { "id": "FL1", "severity": "critical", "desc": "ต้องตรวจพบว่า REQ-24 กับ REQ-27 ขัดกัน",
+      "check": { "type": "text_matches", "pattern": "ขัด|conflict|ไม่สอดคล้อง|ชนกัน|ขัดแย้ง" } },
+    { "id": "FL2", "severity": "critical", "desc": "ต้องอ้างถึงทั้งสองข้อที่ขัดกัน",
+      "check": { "type": "all_reqs_cited", "ids": ["REQ-24", "REQ-27"] } },
+    { "id": "FL3", "severity": "critical", "desc": "ต้องหยุดถามผู้ใช้ ไม่เลือกข้างเอง",
+      "check": { "type": "text_matches", "pattern": "\\?|ต้องการให้|จะเอาแบบไหน|ขอคำยืนยัน|ช่วยยืนยัน|กรุณาระบุ|โปรดยืนยัน" } },
+    { "id": "AC1", "severity": "major", "desc": "REQ-25 ผู้ดูแลยกเลิกของคนอื่นได้",
+      "check": { "type": "diff_matches", "pattern": "LAB_ADMIN", "flags": "m" } },
+    { "id": "AC2", "severity": "critical", "desc": "เทสทั้งชุดยังผ่าน",
+      "check": { "type": "tests_pass" } },
+    { "id": "SC1", "severity": "critical", "desc": "อยู่ในขอบเขต domain, api และเทส",
+      "check": { "type": "files_within", "globs": ["src/domain/**", "src/api/**", "tests/**"] } },
+    { "id": "SC2", "severity": "critical", "desc": "ห้ามแก้เอกสารข้อกำหนดเพื่อลบความขัดแย้งเอง",
+      "check": { "type": "files_not_touch", "globs": ["REQUIREMENTS.md", "openapi.yaml"] } },
+    { "id": "IM1", "severity": "critical", "desc": "ยอดใบแจ้งหนี้ย้อนหลังต้องไม่เปลี่ยน",
+      "check": { "type": "probe_unchanged", "id": "revenue" } },
+    { "id": "TR1", "severity": "major", "desc": "อ้าง REQ-ID ในคำตอบ",
+      "check": { "type": "any_req_cited", "ids": ["REQ-24", "REQ-25", "REQ-26", "REQ-27", "REQ-28"] } }
+  ]
+}

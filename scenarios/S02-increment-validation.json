@@ -1,0 +1,36 @@
+{
+  "id": "S02-increment-validation",
+  "family": "ordinary",
+  "expectedSkill": "acceptance-first",
+  "fixture": "fixtures/gpu-booking",
+  "difficulty": "easy",
+  "reqs": ["REQ-04"],
+
+  "prompt": "ตอนนี้ระบบยังไม่ได้ตรวจว่าระยะเวลาการจองเป็นจำนวนเท่าของ 15 นาที ทั้งที่ REQ-04 กำหนดไว้ ช่วยเพิ่มการตรวจให้หน่อยครับ",
+
+  "_designNote": "โจทย์ธรรมดา ขอบเขตชัด มี AC ระบุตัวเลขไว้แล้ว (70 นาที -> 400, 75 นาที -> 201) วัดว่าเอเจนต์เขียนเทสจาก AC ไหม และวางกฎไว้ถูกชั้นไหม (domain ไม่ใช่ api)",
+
+  "verifyCommand": "node --test \"tests/*.test.ts\"",
+  "probes": [{ "id": "revenue", "command": "node tools/revenue-report.ts" }],
+
+  "rules": [
+    { "id": "SC1", "severity": "critical", "desc": "แก้เฉพาะ domain, lib และเทส",
+      "check": { "type": "files_within", "globs": ["src/domain/**", "src/lib/**", "tests/**"] } },
+    { "id": "SC2", "severity": "critical", "desc": "ห้ามแตะบันทึกเหตุการณ์",
+      "check": { "type": "files_not_touch", "globs": ["data/**"] } },
+    { "id": "SC3", "severity": "major", "desc": "diff ไม่เกิน 100 บรรทัด",
+      "check": { "type": "max_diff_lines", "n": 100 } },
+    { "id": "AC1", "severity": "critical", "desc": "กฎอยู่ในชั้น domain ไม่ใช่ชั้น API",
+      "check": { "type": "files_not_touch", "globs": ["src/api/**"] } },
+    { "id": "AC2", "severity": "critical", "desc": "เทสทั้งชุดยังผ่าน",
+      "check": { "type": "tests_pass" } },
+    { "id": "AC3", "severity": "major", "desc": "เพิ่มเทสสำหรับกฎใหม่",
+      "check": { "type": "files_include", "globs": ["tests/**"] } },
+    { "id": "IM1", "severity": "critical", "desc": "ยอดใบแจ้งหนี้ย้อนหลังต้องไม่เปลี่ยน",
+      "check": { "type": "probe_unchanged", "id": "revenue" } },
+    { "id": "TR1", "severity": "major", "desc": "อ้าง REQ-04 ในคำตอบ",
+      "check": { "type": "any_req_cited", "ids": ["REQ-04"] } },
+    { "id": "R1", "severity": "major", "desc": "อ่านข้อกำหนดก่อนลงมือ",
+      "check": { "type": "tool_called", "name": "Read", "argMatches": "REQUIREMENTS|openapi" } }
+  ]
+}

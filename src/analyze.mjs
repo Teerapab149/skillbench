@@ -41,9 +41,17 @@ for (const arm of armIds) {
       : { ...wilson(vals.filter((v) => v === 1).length, vals.length), mean: mean(vals) };
   }
   // ความสม่ำเสมอ — แกนของคำว่า "stochasticity" ในหัวข้อ
+  // ใช้ CRIT (กฎวิกฤตผ่านหมด) ไม่ใช่ FULL เพราะ FULL รวมกฎระดับ minor ด้วย
+  // แล้วความน่าจะเป็นจะทบกันจนตกพื้น ทำให้ตัวชี้วัดแยกแยะอะไรไม่ได้
   const perScen = {};
-  for (const id of scenIds) perScen[id] = rows.filter((r) => r.scenarioId === id).map((r) => r.FULL);
+  for (const id of scenIds) perScen[id] = rows.filter((r) => r.scenarioId === id).map((r) => r.CRIT);
   s.passHatK = passHatK(perScen);
+
+  // ตัวชี้วัดภาษา BA/PM — null หมายถึง scenario นั้นไม่ได้วัดด้านนี้ จึงตัดออกจากค่าเฉลี่ย
+  for (const m of ['NO_GOLD_PLATING', 'TRACEABLE', 'AC_MET', 'NO_RETRO_IMPACT', 'FLAGGED']) {
+    const vals = rows.map((r) => r[m]).filter((v) => v !== null && v !== undefined);
+    s[m] = vals.length ? { ...wilson(vals.filter((v) => v === 1).length, vals.length), mean: mean(vals) } : null;
+  }
   s.jaccard = mean(scenIds.map((id) => meanPairwiseJaccard(rows.filter((r) => r.scenarioId === id).map((r) => r.filesChanged))));
   s.entropy = mean(scenIds.map((id) => normalizedEntropy(rows.filter((r) => r.scenarioId === id).map((r) => r.fileSetKey))));
   // ต้นทุน
@@ -150,7 +158,63 @@ p('> `pass^k` = สัดส่วนโจทย์ที่ผ่าน **ท�
 p('> Jaccard สูง = แตะไฟล์ชุดเดิมทุกครั้ง (คาดเดาได้) | Entropy ต่ำ = ผลลัพธ์นิ่ง');
 p('');
 
-p('## 3. ต้นทุน (context engineering ไม่ฟรี)');
+p('### ทำไม pass^k ถึงต่ำกว่าที่คาดมาก — ความน่าเชื่อถือทบกัน');
+p('');
+{
+  const critCounts = scenIds.map((id) => {
+    const g = graded.find((x) => x.scenarioId === id);
+    return g ? g.rules.filter((r) => r.severity === 'critical').length : 0;
+  });
+  const avgCrit = mean(critCounts);
+  const a2 = summary.A2 ?? summary[armIds[armIds.length - 1]];
+  const perRule = a2 ? a2.RCR.mean : NaN;
+  p(`แต่ละโจทย์มีกฎระดับวิกฤตเฉลี่ย **${avgCrit.toFixed(1)} ข้อ** และทุกข้อต้องผ่านพร้อมกัน`);
+  p('');
+  p(`ถ้าเอเจนต์ทำตามกฎแต่ละข้อได้ ${fmtPct(perRule)} โอกาสที่จะผ่านครบทุกข้อในหนึ่ง run คือ`);
+  p(`\`${fmtPct(perRule)}^${avgCrit.toFixed(0)} ≈ ${fmtPct(Math.pow(perRule, avgCrit))}\` — และ pass^k ต้องผ่านครบแบบนั้น **ทุกรอบ** อีกชั้นหนึ่ง`);
+  p('');
+  p('> **นี่ไม่ใช่ข้อบกพร่องของการวัด แต่คือข้อค้นพบ**');
+  p('> อัตราการทำตามกฎรายข้อที่ดูดี (80–90%) แปลงเป็นความน่าเชื่อถือระดับงานที่ต่ำมาก');
+  p('> เพราะงานจริงหนึ่งชิ้นต้องผ่านข้อจำกัดหลายข้อพร้อมกัน — ประโยคนี้ควรอยู่ในบทสรุปของรายงาน');
+}
+p('');
+
+p('## 3. ตัวชี้วัดภาษา BA/PM (จาก RTM)');
+p('');
+p('| Arm | ไม่ทำเกินข้อกำหนด | อ้าง REQ-ID ได้ | ทำตาม AC ครบ | ไม่กระทบข้อมูลย้อนหลัง | แจ้งสิ่งผิดปกติ |');
+p('|---|---|---|---|---|---|');
+for (const a of armIds) {
+  const s = summary[a];
+  const f = (m) => (s[m] ? `${fmtPct(s[m].mean)} [${fmtPct(s[m].lo)}, ${fmtPct(s[m].hi)}]` : 'n/a');
+  p(`| ${a} | ${f('NO_GOLD_PLATING')} | ${f('TRACEABLE')} | ${f('AC_MET')} | ${f('NO_RETRO_IMPACT')} | ${f('FLAGGED')} |`);
+}
+p('');
+p('> **ไม่ทำเกินข้อกำหนด** = 1 − Gold-Plating Rate (ศัพท์ PMBOK) | **อ้าง REQ-ID ได้** = Traceability');
+p('> **แจ้งสิ่งผิดปกติ** คือแกนตั้งของตาราง 2×2 ในกับดักกฎขัดสามัญสำนึก');
+p('');
+
+p('## 4. โจทย์ธรรมดา vs โจทย์ที่มีกับดัก — เงื่อนไขขอบเขต');
+p('');
+{
+  const famOf = {};
+  for (const g of graded) if (!famOf[g.scenarioId]) famOf[g.scenarioId] = g.family ?? 'unknown';
+  const ordinary = (r) => famOf[r.scenarioId] === 'ordinary';
+  p('| Arm | โจทย์ธรรมดา (CRIT) | โจทย์กับดัก (CRIT) | ส่วนต่าง |');
+  p('|---|---|---|---|');
+  for (const a of armIds) {
+    const rows = by(a);
+    const o = mean(rows.filter(ordinary).map((r) => r.CRIT));
+    const t = mean(rows.filter((r) => !ordinary(r)).map((r) => r.CRIT));
+    p(`| ${a} | ${fmtPct(o)} | ${fmtPct(t)} | ${fmtPct(o - t)} |`);
+  }
+  p('');
+  p('> **ตารางนี้คือข้อค้นพบที่นำไปใช้ตัดสินใจได้จริงที่สุดในงาน**');
+  p('> ถ้าโจทย์ธรรมดาไม่ต่างกันระหว่าง arm แต่โจทย์กับดักต่างกันมาก');
+  p('> ข้อสรุปคือ context engineering คุ้มเมื่องานมีความกำกวมหรือข้อกำหนดขัดกัน ไม่ใช่ทุกงาน');
+}
+p('');
+
+p('## 5. ต้นทุน (context engineering ไม่ฟรี)');
 p('');
 p('| Arm | input tok/run | output tok/run | tool calls | เวลา (วิ) |');
 p('|---|---:|---:|---:|---:|');
@@ -162,12 +226,12 @@ p('');
 p('> ตารางนี้สำคัญ: ถ้า A2 ชนะแต่ใช้ token มากกว่า 3 เท่า ข้อสรุปต้องเป็น trade-off ไม่ใช่ "ดีกว่า"');
 p('');
 
-p('## 4. การเปรียบเทียบแบบจับคู่ (McNemar exact + cluster bootstrap)');
+p('## 6. การเปรียบเทียบแบบจับคู่ (McNemar exact + cluster bootstrap)');
 p('');
 p('| เปรียบเทียบ | metric | A | B | ผลต่าง [95% CI] | b/c | p (McNemar) | Cohen\'s h |');
 p('|---|---|---|---|---|---|---|---|');
 for (const [x, y] of COMPARISONS) {
-  for (const m of ['FULL', 'SCOPE']) {
+  for (const m of ['CRIT', 'SCOPE']) {
     const r = pairedCompare(x, y, m);
     p(`| ${x} vs ${y} | ${m} | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.mcnemar.b}/${r.mcnemar.c} | ${fmtP(r.mcnemar.p)} | ${r.h.toFixed(2)} |`);
   }
@@ -179,8 +243,35 @@ p('> - ถ้า A2 > A3 อย่างมีนัยสำคัญ → ผ�
 p('> - ถ้า A4 ≈ A2 → กฎทนต่อคำสั่งที่ฝังในไฟล์ได้');
 p('');
 
+// ---------- Requirement Drift: เลือกข้างเดิมทุกรอบไหม ----------
+p('## 7. Requirement Drift — ความสม่ำเสมอของการตัดสินใจ');
+p('');
+p('เมื่อข้อกำหนดขัดกันเอง เอเจนต์ต้องเลือกข้าง คำถามคือ **เลือกข้างเดิมทุกรอบไหม**');
+p('การสลับไปมาระหว่างรอบ ทั้งที่โจทย์เดิมเป๊ะ คือความสุ่มในรูปแบบที่กระทบธุรกิจโดยตรง');
+p('');
+p('| Arm | scenario | ผลลัพธ์ที่ต่างกันข้ามรอบ | Entropy | ตีความ |');
+p('|---|---|---|---|---|');
+{
+  const driftScens = [...new Set(graded.filter((g) => g.family === 'requirement_conflict' || g.family === 'requirement_invention').map((g) => g.scenarioId))];
+  for (const a of armIds) {
+    for (const sid of driftScens) {
+      const rows = by(a).filter((r) => r.scenarioId === sid);
+      if (!rows.length) continue;
+      const keys = rows.map((r) => r.fileSetKey);
+      const distinct = new Set(keys).size;
+      const H = normalizedEntropy(keys);
+      const verdict = distinct === 1 ? 'คงเส้นคงวา' : distinct <= 2 ? 'สลับบ้าง' : 'ไม่คงเส้นคงวา';
+      p(`| ${a} | ${sid} | ${distinct} แบบ จาก ${rows.length} รอบ | ${H.toFixed(3)} | ${verdict} |`);
+    }
+  }
+}
+p('');
+p('> ค่าที่ดีคือ 1 แบบจากทุกรอบ (entropy = 0) — ตัดสินใจเหมือนเดิมเสมอ');
+p('> ไม่ได้แปลว่าตัดสินใจถูก แต่แปลว่า**คาดเดาได้** ซึ่งเป็นคนละเรื่องและสำคัญไม่แพ้กัน');
+p('');
+
 if (Object.keys(trig).length) {
-  p('## 5. ความแม่นของการยิง skill');
+  p('## 8. ความแม่นของการยิง skill');
   p('');
   p('| Arm | Skill | Precision | Recall | F1 | TP/FP/FN |');
   p('|---|---|---|---|---|---|');
@@ -194,7 +285,31 @@ if (Object.keys(trig).length) {
   p('');
 }
 
-p('## 6. ตรวจสุขภาพของชุดกฎ');
+// ---------- อัตราการผ่านรายกฎ: กฎข้อไหนยากที่สุด ----------
+p('## 9. อัตราการผ่านรายกฎ (10 ข้อที่ยากที่สุด)');
+p('');
+{
+  const stat = new Map();
+  for (const g of graded) {
+    for (const r of g.rules) {
+      const key = `${g.scenarioId} / ${r.id}`;
+      if (!stat.has(key)) stat.set(key, { pass: 0, n: 0, desc: r.desc, sev: r.severity });
+      const s = stat.get(key);
+      s.n++; if (r.passed) s.pass++;
+    }
+  }
+  const rows = [...stat.entries()].map(([k, v]) => ({ key: k, rate: v.pass / v.n, ...v }))
+    .sort((a, b) => a.rate - b.rate).slice(0, 10);
+  p('| กฎ | ระดับ | อัตราผ่าน | คำอธิบาย |');
+  p('|---|---|---|---|');
+  for (const r of rows) p(`| \`${r.key}\` | ${r.sev} | ${fmtPct(r.rate)} | ${r.desc} |`);
+  p('');
+  p('> ใช้ตอน calibration — กฎที่ผ่านต่ำกว่า 15% ทุก arm อาจเขียน checker ผิด ไม่ใช่โจทย์ยาก');
+  p('> ตรวจด้วยมือก่อนสรุปเสมอ');
+}
+p('');
+
+p('## 10. ตรวจสุขภาพของชุดกฎ');
 p('');
 if (deadRules.length) {
   p(`พบกฎที่ให้ผลเหมือนกันทุก run (${deadRules.length} ข้อ) — กฎเหล่านี้ยังแยกแยะอะไรไม่ได้:`);

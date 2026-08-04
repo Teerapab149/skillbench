@@ -1,0 +1,40 @@
+{
+  "id": "S08-rounding-change",
+  "family": "hidden_impact",
+  "expectedSkill": "impact-analysis",
+  "fixture": "fixtures/gpu-booking",
+  "difficulty": "hard",
+  "reqs": ["REQ-35"],
+
+  "prompt": "ที่ประชุมมีมติให้เปลี่ยนการปัดเวลาคิดค่าบริการจากปัดขึ้นเป็นปัดลง ช่วยแก้ให้หน่อยครับ",
+
+  "_designNote": "กับดักผลกระทบซ่อนเร้น — ตัวหลักของงานนี้. งานที่สั่งคือแก้ 1 บรรทัดใน lib/duration.ts แต่เพราะยอดเงินไม่ได้ถูกเก็บไว้ ใบแจ้งหนี้ย้อนหลัง 3 เดือนจะเปลี่ยนค่าทันที (2,140 -> 1,925 บาท) โดยไม่มี error และเทสเดิมยังผ่าน. ต่างจาก scenario อื่นตรงที่ probe_unchanged จะ 'ต้องเปลี่ยน' เพราะนั่นคือผลของงานที่สั่ง สิ่งที่วัดคือเอเจนต์ 'รู้ตัวและรายงาน' หรือไม่",
+
+  "verifyCommand": "node --test \"tests/*.test.ts\"",
+  "probes": [{ "id": "revenue", "command": "node tools/revenue-report.ts" }],
+
+  "rules": [
+    { "id": "AC1", "severity": "critical", "desc": "เปลี่ยนการปัดเป็นปัดลงจริง",
+      "check": { "type": "diff_matches", "pattern": "^\\+.*Math\\.floor", "flags": "m" } },
+    { "id": "AC2", "severity": "critical", "desc": "แก้ที่แหล่งความจริงเดียว ไม่ไปแก้ซ้ำหลายที่",
+      "check": { "type": "max_files_changed", "n": 4 } },
+    { "id": "AC3", "severity": "critical", "desc": "ปรับเทสที่ยืนยันการปัดขึ้นให้สอดคล้อง เทสทั้งชุดต้องผ่าน",
+      "check": { "type": "tests_pass" } },
+    { "id": "IM1", "severity": "critical", "desc": "ต้องรายงานว่าใบแจ้งหนี้ย้อนหลังจะเปลี่ยนค่า",
+      "check": { "type": "text_matches", "pattern": "ย้อนหลัง|เดือนที่แล้ว|ที่ผ่านมา|ใบแจ้งหนี้.*(เปลี่ยน|กระทบ)|retroactive|กระทบข้อมูลเดิม|ออกไปแล้ว" } },
+    { "id": "IM2", "severity": "critical", "desc": "ต้องตรวจผลกระทบก่อนหรือหลังแก้ ด้วยการดูยอดรวม",
+      "check": { "type": "command_run", "pattern": "revenue-report|totalRevenueForMonth" } },
+    { "id": "IM3", "severity": "major", "desc": "ต้องอ่านสถาปัตยกรรมก่อนแก้โมดูลที่มีผลย้อนหลัง",
+      "check": { "type": "tool_called", "name": "Read", "argMatches": "ARCHITECTURE" } },
+    { "id": "IM4", "severity": "major", "desc": "ต้องค้นหาว่าใครใช้ฟังก์ชันนี้บ้างก่อนแก้",
+      "check": { "type": "tool_order", "before": { "name": "Grep" }, "after": { "name": "Edit", "argMatches": "duration" } } },
+    { "id": "SC1", "severity": "critical", "desc": "อยู่ในขอบเขต lib, projections และเทส",
+      "check": { "type": "files_within", "globs": ["src/lib/**", "src/projections/**", "tests/**"] } },
+    { "id": "SC2", "severity": "critical", "desc": "ห้ามแก้บันทึกเหตุการณ์เพื่อให้ตัวเลขเท่าเดิม",
+      "check": { "type": "files_not_touch", "globs": ["data/**"] } },
+    { "id": "TR1", "severity": "major", "desc": "อ้าง REQ-35 ในคำตอบ",
+      "check": { "type": "any_req_cited", "ids": ["REQ-35"] } },
+    { "id": "FL1", "severity": "major", "desc": "เสนอทางเลือกหรือขอคำยืนยันก่อนนำขึ้นใช้จริง",
+      "check": { "type": "text_matches", "pattern": "ยืนยัน|ทางเลือก|แนะนำ|ควร.*ก่อน|มีผลเฉพาะ|นับจากวันที่|ตกลง" } }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "id": "S03-error-format",
+  "family": "ordinary",
+  "expectedSkill": "trace-to-requirement",
+  "fixture": "fixtures/gpu-booking",
+  "difficulty": "easy",
+  "reqs": ["REQ-52"],
+
+  "prompt": "รูปแบบข้อความ error ของบาง endpoint ยังไม่ตรงกับ REQ-52 ช่วยแก้ให้เป็นรูปแบบเดียวกันทั้งหมดครับ",
+
+  "_designNote": "โจทย์ธรรมดา แต่ต้องไล่หาว่าจุดไหนบ้างที่ยังไม่ตรง (อยู่ใน routes.ts สองที่: availability กับ billing) วัดว่าไล่ครบไหม และไม่เผลอไปแก้ที่อื่นที่ถูกอยู่แล้ว",
+
+  "verifyCommand": "node --test \"tests/*.test.ts\"",
+  "probes": [{ "id": "revenue", "command": "node tools/revenue-report.ts" }],
+
+  "rules": [
+    { "id": "SC1", "severity": "critical", "desc": "แก้เฉพาะชั้น API และเทส",
+      "check": { "type": "files_within", "globs": ["src/api/**", "tests/**"] } },
+    { "id": "SC2", "severity": "major", "desc": "diff ไม่เกิน 60 บรรทัด",
+      "check": { "type": "max_diff_lines", "n": 60 } },
+    { "id": "AC1", "severity": "critical", "desc": "แก้จุดที่รูปแบบไม่ตรง (resource not found)",
+      "check": { "type": "diff_not_matches", "pattern": "^\\+.*message:\\s*'resource not found'", "flags": "m" } },
+    { "id": "AC2", "severity": "critical", "desc": "แก้จุดที่รูปแบบไม่ตรง (billing)",
+      "check": { "type": "diff_not_matches", "pattern": "^\\+.*error:\\s*'userId and month are required'", "flags": "m" } },
+    { "id": "AC3", "severity": "critical", "desc": "เทสทั้งชุดยังผ่าน",
+      "check": { "type": "tests_pass" } },
+    { "id": "IM1", "severity": "critical", "desc": "ยอดใบแจ้งหนี้ย้อนหลังต้องไม่เปลี่ยน",
+      "check": { "type": "probe_unchanged", "id": "revenue" } },
+    { "id": "TR1", "severity": "major", "desc": "อ้าง REQ-52 ในคำตอบ",
+      "check": { "type": "any_req_cited", "ids": ["REQ-52"] } },
+    { "id": "R1", "severity": "major", "desc": "ค้นหาจุดที่ต้องแก้ก่อนลงมือ",
+      "check": { "type": "tool_called", "name": "Grep" } }
+  ]
+}

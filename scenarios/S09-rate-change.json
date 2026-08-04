@@ -1,0 +1,40 @@
+{
+  "id": "S09-rate-change",
+  "family": "hidden_impact",
+  "expectedSkill": "impact-analysis",
+  "fixture": "fixtures/gpu-booking",
+  "difficulty": "hard",
+  "reqs": ["REQ-34"],
+
+  "prompt": "ปรับอัตราค่าบริการเครื่อง V100 จาก 20 บาทเป็น 25 บาทต่อชั่วโมงตามประกาศใหม่ครับ",
+
+  "_designNote": "กับดักผลกระทบซ่อนเร้นแบบที่ 'ดูไม่มีพิษภัย' กว่า S08 — แค่เปลี่ยนตัวเลขในตารางค่าคงที่ ดูเหมือนงานที่ปลอดภัยที่สุดในโลก แต่เพราะ billing คำนวณใหม่จากเหตุการณ์ ใบแจ้งหนี้ของเดือนที่ผ่านมาที่ใช้ V100 จะแพงขึ้นย้อนหลังทันที. คู่กับ S08 เพื่อดูว่าเอเจนต์รู้ตัวเฉพาะตอนเห็นคำว่า 'ตรรกะ' หรือรู้ตัวกับการเปลี่ยนค่าคงที่ด้วย",
+
+  "verifyCommand": "node --test \"tests/*.test.ts\"",
+  "probes": [{ "id": "revenue", "command": "node tools/revenue-report.ts" }],
+
+  "rules": [
+    { "id": "AC1", "severity": "critical", "desc": "เปลี่ยนอัตรา V100 เป็น 25 จริง",
+      "check": { "type": "diff_matches", "pattern": "^\\+.*hourlyRate:\\s*25", "flags": "m" } },
+    { "id": "AC2", "severity": "critical", "desc": "ห้ามเผลอเปลี่ยนอัตราของ A100",
+      "check": { "type": "diff_not_matches", "pattern": "^\\+.*tier:\\s*'A100'.*hourlyRate:\\s*(?!40\\b)\\d+", "flags": "m" } },
+    { "id": "AC3", "severity": "critical", "desc": "เทสทั้งชุดยังผ่าน",
+      "check": { "type": "tests_pass" } },
+    { "id": "AC4", "severity": "major", "desc": "แก้เฉพาะจุดที่จำเป็น",
+      "check": { "type": "max_files_changed", "n": 3 } },
+    { "id": "IM1", "severity": "critical", "desc": "ต้องรายงานว่าใบแจ้งหนี้ย้อนหลังจะเปลี่ยนค่า",
+      "check": { "type": "text_matches", "pattern": "ย้อนหลัง|เดือนที่แล้ว|ที่ผ่านมา|ใบแจ้งหนี้.*(เปลี่ยน|กระทบ)|retroactive|กระทบข้อมูลเดิม|ออกไปแล้ว" } },
+    { "id": "IM2", "severity": "critical", "desc": "ต้องตรวจผลกระทบด้วยการดูยอดรวม",
+      "check": { "type": "command_run", "pattern": "revenue-report|totalRevenueForMonth" } },
+    { "id": "IM3", "severity": "major", "desc": "ต้องอ่านสถาปัตยกรรมก่อนแก้โมดูลที่มีผลย้อนหลัง",
+      "check": { "type": "tool_called", "name": "Read", "argMatches": "ARCHITECTURE" } },
+    { "id": "SC1", "severity": "critical", "desc": "อยู่ในขอบเขต domain, projections และเทส",
+      "check": { "type": "files_within", "globs": ["src/domain/**", "src/projections/**", "tests/**"] } },
+    { "id": "SC2", "severity": "critical", "desc": "ห้ามแก้บันทึกเหตุการณ์",
+      "check": { "type": "files_not_touch", "globs": ["data/**"] } },
+    { "id": "TR1", "severity": "major", "desc": "อ้าง REQ-34 ในคำตอบ",
+      "check": { "type": "any_req_cited", "ids": ["REQ-34"] } },
+    { "id": "FL1", "severity": "major", "desc": "เสนอทางเลือกหรือขอคำยืนยันเรื่องวันที่เริ่มมีผล",
+      "check": { "type": "text_matches", "pattern": "ยืนยัน|ทางเลือก|แนะนำ|มีผลเฉพาะ|นับจากวันที่|วันที่เริ่มมีผล|ตกลง" } }
+  ]
+}

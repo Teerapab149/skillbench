@@ -78,8 +78,10 @@ projection หนึ่งตัวตอบคำถามหนึ่งแบ
 ก่อนและหลังการแก้ ถ้าตัวเลขเปลี่ยน ต้องแจ้งผู้เกี่ยวข้องก่อนนำขึ้นใช้งานจริง
 เพราะกระทบใบแจ้งหนี้ที่ออกไปแล้ว
 
+มีเครื่องมือให้แล้ว รันก่อนแก้ จดตัวเลขไว้ แล้วรันอีกครั้งหลังแก้ ตัวเลขต้องเท่าเดิม:
+
 ```bash
-node -e "import('./src/store/eventStore.ts').then(async s=>{const b=await import('./src/projections/billing.ts');const e=s.loadEvents();for(const m of ['2026-05','2026-06','2026-07'])console.log(m,b.totalRevenueForMonth(e,m))})"
+node tools/revenue-report.ts
 ```
 
 ## 5. สิ่งที่จงใจไม่ทำ

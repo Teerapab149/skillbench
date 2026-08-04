@@ -24,9 +24,32 @@ export function resetWorkspace(cwd) {
   git(cwd, ['clean', '-fdq']);
 }
 
+/**
+ * รันคำสั่ง probe แล้วเก็บผลไว้เทียบก่อน-หลัง
+ *
+ * ใช้วัดผลกระทบที่มองไม่เห็นจาก diff เช่น ยอดใบแจ้งหนี้ย้อนหลังเปลี่ยนไหม
+ * ต้องรันทั้งก่อนและหลังการทำงานของเอเจนต์ ด้วยคำสั่งเดียวกันเป๊ะ
+ */
+function runProbes(cwd, probes) {
+  const out = {};
+  for (const probe of probes ?? []) {
+    try {
+      out[probe.id] = execFileSync(probe.command, {
+        cwd, shell: true, encoding: 'utf8', timeout: 60000, stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim();
+    } catch (e) {
+      out[probe.id] = `PROBE_FAILED: ${String(e.message ?? e).slice(0, 200)}`;
+    }
+  }
+  return out;
+}
+
 export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, timeoutMs = 300000, model = 'claude-opus-5' }) {
   const cwd = path.resolve(workspace);
   resetWorkspace(cwd);
+
+  // วัดค่าตั้งต้นก่อนเอเจนต์เริ่มทำงาน — ต้องอยู่หลัง reset เพื่อให้เป็นสถานะสะอาดเสมอ
+  const probesBefore = runProbes(cwd, scenario.probes);
 
   const args = [
     '-p', scenario.prompt,
@@ -95,11 +118,14 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, t
     catch { testsPassed = false; }
   }
 
+  const probesAfter = runProbes(cwd, scenario.probes);
+
   const artifact = {
     runId: `${scenario.id}__${arm.id}__r${repIndex}`,
     scenarioId: scenario.id, armId: arm.id, repIndex, seed,
     adapter: 'claude-cli', simulated: false, model,
     toolCalls, commands, filesChanged, diff, finalMessage, loadedSkills, testsPassed,
+    probes: { before: probesBefore, after: probesAfter },
     usage: { inputTokens, outputTokens, turns: events.filter((e) => e.type === 'assistant').length, wallMs: Date.now() - t0 },
     error: events.length === 0 ? (stderr.slice(0, 500) || 'no events from CLI') : null,
     rawEvents: events,   // เก็บ transcript ดิบไว้ เพื่อให้ตรวจซ้ำย้อนหลังได้
