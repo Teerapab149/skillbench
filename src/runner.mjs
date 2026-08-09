@@ -148,7 +148,13 @@ async function main() {
       const runId = `${s.id}__${a.id}__r${rep}`;
       if (doneIds.has(runId)) continue;   // ทำไปแล้วใน checkpoint
 
-      // seed ผูกกับ (scenario, rep) เท่านั้น -> paired ข้าม arm
+      /*
+       * seed นี้เป็น "ป้ายกำกับ" ไม่ใช่ตัวคุมความสุ่มของเอเจนต์
+       * (claude-cli ไม่รับ seed — ดู adapters/claude-cli.mjs ที่เก็บลง artifact เฉยๆ)
+       *
+       * การจับคู่ข้าม arm ทำที่ analyze.mjs ด้วยคีย์ scenarioId#rep ไม่ใช่ค่า seed
+       * จึงจงใจใส่ hash(a.id) ให้ค่าต่างกันรายก arm เพื่อไม่ให้ใครเผลอเอา seed ไปใช้จับคู่
+       */
       const seed = (masterSeed + rep * 7919 + hash(s.id) * 31 + hash(a.id)) >>> 0;
       const workspace = path.join(ROOT, s.fixture ?? 'fixtures/next-mini');
 

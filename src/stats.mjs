@@ -213,6 +213,76 @@ export function cohensKappa(raterA, raterB) {
  * ต้องคำนวณ "ก่อน" เก็บข้อมูล แล้วเขียนลงระเบียบวิธีวิจัย
  * ถ้าไม่ทำ แล้วผลออกมา "ไม่มีนัยสำคัญ" จะแยกไม่ออกว่าเพราะไม่มีผลจริง หรือเพราะ n น้อยเกิน
  */
+/**
+ * ICC แบบ one-way random effects ประมาณด้วย ANOVA
+ *
+ * clusters = { clusterId: [ค่า, ค่า, ...] } — ใช้กับ 0/1 ได้ (ตัวประมาณมาตรฐานสำหรับ binary)
+ *
+ * ทำไมต้องมี: designEffect ที่ใช้อยู่เดิมเป็นค่าคงที่ 1.5 ซึ่งเดาเอา
+ * DE = 1 + (m-1)*ICC ดังนั้นที่ m = 10-14 ค่า 1.5 แปลว่า ICC ~ 0.04
+ * ถ้า ICC จริงสูงกว่านั้น n ที่คำนวณไว้จะน้อยเกินจริงหลายเท่า
+ */
+export function iccOneWay(clusters) {
+  const groups = Object.values(clusters).filter((v) => v && v.length);
+  const k = groups.length;
+  if (k < 2) return { icc: NaN, k, N: 0, note: 'ต้องมีอย่างน้อย 2 cluster' };
+  const N = groups.reduce((s, g) => s + g.length, 0);
+  if (N <= k) return { icc: NaN, k, N, note: 'ทุก cluster มีข้อมูลตัวเดียว แยก within/between ไม่ได้' };
+
+  const grand = groups.flat().reduce((s, v) => s + v, 0) / N;
+  let ssb = 0, ssw = 0;
+  for (const g of groups) {
+    const m = g.reduce((s, v) => s + v, 0) / g.length;
+    ssb += g.length * (m - grand) ** 2;
+    for (const v of g) ssw += (v - m) ** 2;
+  }
+  const msb = ssb / (k - 1);
+  const msw = ssw / (N - k);
+  // n0 = ขนาด cluster เฉลี่ยแบบถ่วงน้ำหนัก ใช้แทน m เมื่อ cluster ไม่เท่ากัน
+  const n0 = (N - groups.reduce((s, g) => s + g.length ** 2, 0) / N) / (k - 1);
+  const raw = (msb - msw) / (msb + (n0 - 1) * msw);
+  return { icc: Math.max(0, Math.min(1, raw)), iccRaw: raw, k, N, n0, msb, msw, grand };
+}
+
+/** design effect จาก ICC ที่วัดได้จริง — แทนค่าคงที่ที่เดาเอา */
+export function designEffect(m, icc) { return 1 + (m - 1) * icc; }
+
+/**
+ * effective n และ "เพดาน" ของการเพิ่มจำนวนรอบ
+ *
+ * n_eff = k*m / (1 + (m-1)*ICC)  →  เมื่อ m → ∞ จะได้ n_eff → k/ICC
+ * แปลว่าถ้าออกแบบถูกจำกัดด้วยจำนวน cluster การเพิ่มรอบ "แก้ไม่ได้"
+ */
+export function effectiveN(k, m, icc) {
+  const de = designEffect(m, icc);
+  return { nTotal: k * m, de, nEff: (k * m) / de, ceiling: icc > 0 ? k / icc : Infinity };
+}
+
+/**
+ * จำนวน "คู่" ที่ต้องใช้สำหรับ McNemar — ตรงกับ test ที่ประกาศไว้ใน METRICS.md §7
+ *
+ * pi01 = สัดส่วนคู่ที่ A ผ่าน B ตก, pi10 = ตรงข้าม (สัดส่วนต่อคู่ทั้งหมด ไม่ใช่ต่อคู่ที่ไม่ตรงกัน)
+ *
+ * ต่างจาก requiredNPerArm() ตรงที่อันนั้นเป็นสูตร two-proportion แบบ "ไม่จับคู่"
+ * ซึ่งทิ้งข้อมูลการจับคู่ไป → ประเมิน n สูงเกินจริงราว 35-50%
+ * เก็บของเดิมไว้ใช้เป็น sensitivity analysis ไม่ใช่ตัวตัดสิน
+ */
+export function requiredPairsMcNemar(pi01, pi10, { alpha = 0.05, power = 0.8, icc = 0, m = 1 } = {}) {
+  const pd = pi01 + pi10;             // สัดส่วนคู่ที่ผลไม่ตรงกัน
+  const delta = pi10 - pi01;          // ผลต่าง marginal
+  if (delta === 0) return { pairs: Infinity, pd, delta, note: 'ไม่มีผลต่าง marginal — n ไม่จำกัด' };
+  const zA = normQuantile(1 - alpha / 2);
+  const zB = normQuantile(power);
+  const inner = pd - delta * delta;
+  const num = zA * Math.sqrt(pd) + zB * Math.sqrt(Math.max(0, inner));
+  const raw = (num * num) / (delta * delta);
+  const de = designEffect(m, icc);
+  return {
+    pairs: Math.ceil(raw), pairsAdjusted: Math.ceil(raw * de),
+    pd, delta, de, discordantNeeded: Math.ceil(raw * pd),
+  };
+}
+
 export function requiredNPerArm(p1, p2, { alpha = 0.05, power = 0.8, designEffect = 1.5 } = {}) {
   const zA = normQuantile(1 - alpha / 2);
   const zB = normQuantile(power);

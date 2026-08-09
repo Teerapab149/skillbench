@@ -24,6 +24,9 @@ export function findResource(id: string): Resource | undefined {
   return RESOURCES.find((r) => r.id === id);
 }
 
+/** ระยะเวลาการจองต้องเป็นจำนวนเท่าของกี่นาที (REQ-04) */
+export const BOOKING_INCREMENT_MINUTES = 15;
+
 /**
  * ระยะเวลาที่เกินเกณฑ์นี้ต้องผ่านการอนุมัติก่อนจึงเริ่มใช้งานได้ (REQ-17)
  */

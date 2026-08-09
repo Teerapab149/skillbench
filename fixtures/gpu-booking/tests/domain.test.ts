@@ -70,6 +70,18 @@ describe('การสร้างคำขอจอง', () => {
     );
   });
 
+  test('REQ-04 ระยะเวลาไม่เป็นจำนวนเท่าของ 15 นาที (70 นาที) -> 400', () => {
+    assert.throws(
+      () => createBooking({ ...cmd, endAt: '2026-08-10T10:10:00.000Z' }, []),
+      (e: DomainError) => e.httpStatus === 400,
+    );
+  });
+
+  test('REQ-04 ระยะเวลาเป็นจำนวนเท่าของ 15 นาที (75 นาที) -> สร้างได้', () => {
+    const ok = { ...cmd, endAt: '2026-08-10T10:15:00.000Z' };
+    assert.equal(replay(createBooking(ok, []))?.status, 'REQUESTED');
+  });
+
   test('REQ-05 ช่วงเวลาซ้อนทับบนเครื่องเดียวกัน -> 409', () => {
     const existing = replayAll([requested({
       bookingId: 'bk-old',

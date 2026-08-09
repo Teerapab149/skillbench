@@ -6,8 +6,8 @@
  */
 
 import type { BookingStatus, DomainEvent, Role } from './events.ts';
-import { findResource, requiresApproval, OVERRUN_ALLOWANCE_MINUTES } from './policy.ts';
-import { bookedHours } from '../lib/duration.ts';
+import { findResource, requiresApproval, BOOKING_INCREMENT_MINUTES, OVERRUN_ALLOWANCE_MINUTES } from './policy.ts';
+import { bookedHours, bookedMinutes } from '../lib/duration.ts';
 import { nowIso } from '../lib/clock.ts';
 
 export class DomainError extends Error {
@@ -99,7 +99,7 @@ export interface CreateBookingCommand {
 /**
  * สร้างคำขอจอง
  *
- * บังคับใช้แล้ว: REQ-01, REQ-02, REQ-03, REQ-05, REQ-06, REQ-07, REQ-08, REQ-17
+ * บังคับใช้แล้ว: REQ-01, REQ-02, REQ-03, REQ-04, REQ-05, REQ-06, REQ-07, REQ-08, REQ-17
  */
 export function createBooking(cmd: CreateBookingCommand, existing: BookingState[]): DomainEvent[] {
   if (!cmd.resourceId || !cmd.startAt || !cmd.endAt) {
@@ -114,6 +114,13 @@ export function createBooking(cmd: CreateBookingCommand, existing: BookingState[
   }
   if (new Date(cmd.endAt) <= new Date(cmd.startAt)) {
     throw new DomainError('INVALID_RANGE', 'endAt ต้องอยู่หลัง startAt', 400);
+  }
+  if (bookedMinutes(cmd.startAt, cmd.endAt) % BOOKING_INCREMENT_MINUTES !== 0) {
+    throw new DomainError(
+      'INVALID_DURATION',
+      `ระยะเวลาการจองต้องเป็นจำนวนเท่าของ ${BOOKING_INCREMENT_MINUTES} นาที`,
+      400,
+    );
   }
 
   const clash = existing.find(

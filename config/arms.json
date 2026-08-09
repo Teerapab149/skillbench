@@ -82,7 +82,7 @@
   "primaryEndpoint": {
     "metric": "CRIT",
     "comparison": "A2 vs A1",
-    "test": "McNemar exact (paired by seed)",
+    "test": "McNemar exact (จับคู่ด้วย scenarioId#rep ไม่ใช่ค่า seed — ดู analyze.mjs pairedCompare)",
     "declaredOn": "2026-08-09",
     "supersedes": "RCR",
     "_see": "PRE-REGISTRATION.md — ลำดับชั้นแบบ fixed-sequence: CRIT -> RCR (gated) -> passHatK",

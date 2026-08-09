@@ -196,7 +196,17 @@ console.log('');
 console.log('6) ขนาดตัวอย่าง');
 const nScen = fs.readdirSync(scDir).filter((x) => x.endsWith('.json')).length;
 console.log(`   scenario ปัจจุบัน = ${nScen}`);
-console.log(`   ต้องการ n>=74 run/arm (เพื่อจับผลต่าง 60%->85%) => ${Math.ceil(74 / nScen)} repetition ต่อ scenario`);
+/*
+ * ตัวเลขเดิมที่นี่ (74 run/arm จาก 60%->85%) มาจาก requiredNPerArm() ซึ่งเป็นสูตร
+ * two-proportion แบบ "ไม่จับคู่" — ไม่ตรงกับ McNemar ที่ประกาศไว้เป็น test จริง
+ * และใช้ designEffect = 1.5 ซึ่งแปลว่า ICC ~ 0.04 ขณะที่วัดจากข้อมูลจริงได้ 0.335
+ *
+ * ไม่พิมพ์ตัวเลขที่คำนวณผิดสูตรอีก เพราะตัวเลขที่ดูน่าเชื่อถือแต่ผิด อันตรายกว่าไม่มีตัวเลข
+ * ให้ชี้ไปที่สคริปต์ที่คำนวณจากข้อมูลจริงแทน
+ */
+console.log(`   ขนาดตัวอย่าง: คำนวณจากข้อมูลจริงด้วย  node scripts/estimate-icc.mjs`);
+console.log(`   (McNemar + ICC ที่วัดได้ — ไม่ใช่สูตร unpaired กับ designEffect ที่เดาไว้)`);
+console.log(`   เพดานที่เพิ่มจำนวนรอบแก้ไม่ได้: n_eff -> k/ICC = ${nScen}/0.335 = ${Math.round(nScen / 0.335)} run/arm`);
 if (nScen < 8) console.log(`   คำแนะนำ: เพิ่มเป็น 8-12 scenario จะดีกว่าเพิ่ม repetition เพราะ CI ถูกจำกัดด้วยจำนวน cluster ไม่ใช่จำนวน run`);
 console.log('');
 
