@@ -126,12 +126,25 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
   const tools = toolList(fixedFactors);
   const claudeBin = resolveClaudeBin();
 
+  /*
+   * เพดาน turn ต้องอ่านจาก fixedFactors ไม่ใช่ฝังตายไว้ตรงนี้
+   *
+   * config/arms.json ประกาศ maxTurns ไว้เป็นตัวแปรควบคุมตั้งแต่ต้น แต่ไม่มีโค้ดอ่านไปใช้
+   * (รูปแบบเดียวกับข้อบกพร่องที่ 1) ค่าที่บังคับจริงคือเลขที่ฝังอยู่ในบรรทัดล่าง
+   * แปลว่าถ้าใครแก้ค่าใน config จะไม่มีอะไรเกิดขึ้นและไม่มีข้อความเตือน
+   *
+   * และเพดานนี้ไม่ใช่ค่าที่เป็นกลาง — pilot พบว่า A2 ชน error_max_turns 2 ใน 3 run
+   * ขณะที่ A1 ชน 2 ใน 55 run เนื่องจาก run ที่ error ถูกตัดออกก่อนวิเคราะห์
+   * เพดานจึงเลือกตัดเฉพาะ run ที่ arm ทดลองทำงานละเอียดที่สุด
+   */
+  const maxTurns = String(fixedFactors?.maxTurns ?? 25);
+
   const args = [
     '-p', scenario.prompt,
     '--output-format', 'stream-json',
     '--verbose',
     '--model', model,
-    '--max-turns', '25',
+    '--max-turns', maxTurns,
     '--permission-mode', 'bypassPermissions',  // ต้องรันใน sandbox/VM เท่านั้น
     // ล็อกให้เท่ากันทุก arm: อ่านเฉพาะ setting ของโปรเจกต์ ไม่เอาของผู้ใช้
     // สำคัญ 2 อย่าง (1) skill ส่วนตัวในเครื่องคนรันจะไม่รั่วเข้าไปเป็นตัวแปรกวน
@@ -263,7 +276,11 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
       toolsRequested: tools.split(','),
       toolsGranted: events.find((e) => e.type === 'system' && e.subtype === 'init')?.tools ?? null,
       settingSources: 'project',
-      maxTurns: 25,
+      maxTurns: Number(maxTurns),
+      // subtype ของ event สุดท้าย — error_max_turns คือการชนเพดาน ซึ่งต้องแยกออกจาก
+      // ความล้มเหลวชนิดอื่นตอนวิเคราะห์ ไม่ใช่เหมารวมเป็น "run ที่ใช้ไม่ได้"
+      resultSubtype: events.find((e) => e.type === 'result')?.subtype ?? null,
+      numTurns: events.find((e) => e.type === 'result')?.num_turns ?? null,
       spawnMode: claudeBin.mode,        // direct = ไม่ผ่าน shell, shell = ทางถอย
       promptLength: scenario.prompt.length,   // เทียบกับความยาวจริงใน scenario ได้
       timeoutMs,

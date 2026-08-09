@@ -44,8 +44,12 @@ async function main() {
   const scenFilter = argv('--scenarios', '').split(',').filter(Boolean);
   const resume = process.argv.includes('--resume');
   const maxRetries = parseInt(argv('--max-retries', '5'), 10);
+  const maxTurnsOverride = argv('--max-turns', '');
 
   const config = JSON.parse(fs.readFileSync(path.join(ROOT, configPath), 'utf8'));
+  // เพดาน turn เป็นตัวแปรควบคุม การเปลี่ยนค่าทำให้ข้อมูลเทียบกับชุดเดิมไม่ได้
+  // จึงต้องเข้าไปอยู่ใน signature ของ checkpoint ด้วย ไม่งั้นจะรันต่อข้ามค่าที่ต่างกันโดยเงียบ
+  if (maxTurnsOverride) config.fixedFactors = { ...config.fixedFactors, maxTurns: parseInt(maxTurnsOverride, 10) };
   const arms = config.arms.filter((a) => !armFilter.length || armFilter.includes(a.id));
   const scenarios = fs.readdirSync(path.join(ROOT, 'scenarios'))
     .filter((f) => f.endsWith('.json'))
@@ -78,6 +82,7 @@ async function main() {
   const total = reps * scenarios.length * arms.length;
   // ลายเซ็นของการทดลอง — ใช้กัน checkpoint ของคนละชุดมาปนกัน
   const signature = JSON.stringify({ adapterName, reps, masterSeed, configPath,
+                                     maxTurns: config.fixedFactors?.maxTurns ?? 25,
                                      arms: arms.map((a) => a.id), scenarios: scenarios.map((s) => s.id) });
   console.log(`\nSkillBench — ${adapterName}`);
   console.log(`  ${scenarios.length} scenarios x ${arms.length} arms x ${reps} reps = ${total} runs`);
