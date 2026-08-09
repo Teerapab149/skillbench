@@ -7,3 +7,8 @@ results/
 # fixture แต่ละตัวมี git repo ของตัวเองตอนรัน (ใช้ reset workspace ก่อนทุก run)
 # สร้างด้วย `node scripts/setup-fixtures.mjs` — ไม่ต้อง commit
 fixtures/*/.git/
+
+# ไฟล์ที่ arm เป็นเจ้าของ — ถูกติดตั้งลง fixture ระหว่างรันแล้วล้างทิ้ง
+# ห้าม track เด็ดขาด: ถ้า commit ติดไปตอนรันค้าง install-arm จะ throw ทุก run ถัดไป
+fixtures/*/CLAUDE.md
+fixtures/*/.claude/
