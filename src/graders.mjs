@@ -40,6 +40,20 @@ const CHECKS = {
   /** ห้ามเรียก tool นี้เลย */
   tool_not_called: (a, c) => !CHECKS.tool_called(a, c),
 
+  /**
+   * ผ่านถ้าข้อย่อยอย่างน้อยหนึ่งข้อผ่าน
+   *
+   * จำเป็นเพราะพฤติกรรมเดียวกันทำได้หลายทาง และการบังคับทางเดียวคือการวัดผิด
+   * เคสจริง: กฎ "ค้นหาก่อนลงมือ" ของ S03 เดิมบังคับว่าต้องเรียก tool ชื่อ Grep
+   * แต่เอเจนต์เลือกใช้ Bash + grep ซึ่งเป็นพฤติกรรมเดียวกันทุกประการ
+   * กฎจึงตก 100% ทั้งที่เอเจนต์ทำสิ่งที่เราต้องการแล้ว = วัดเครื่องมือ ไม่ได้วัดพฤติกรรม
+   */
+  any_of: (a, c) => (c.checks ?? []).some((sub) => {
+    const fn = CHECKS[sub.type];
+    if (!fn) throw new Error(`unknown check type: ${sub.type}`);
+    return Boolean(fn(a, sub));
+  }),
+
   /** ต้องเรียก before ก่อน after (ลำดับสำคัญ เช่น อ่าน schema ก่อนเขียน migration) */
   tool_order: (a, c) => {
     const idx = (spec) => a.toolCalls.findIndex((t) =>
@@ -184,10 +198,18 @@ export function gradeRun(artifact, scenario) {
     inputTokens: artifact.usage?.inputTokens ?? 0,
     outputTokens: artifact.usage?.outputTokens ?? 0,
     wallMs: artifact.usage?.wallMs ?? 0,
+    // ต้นทุนเป็นเงิน — เข้าใจง่ายกว่าจำนวน token และเป็นตัวที่ตัดสินว่าเก็บข้อมูลได้แค่ไหน
+    costUsd: artifact.usage?.costUsd ?? null,
+    // แยกส่วน context: cacheRead คือส่วนที่ถูกอ่านซ้ำทุก turn
+    // ซึ่งเป็นที่ที่ผลของ progressive disclosure จะโผล่ ไม่ใช่ที่ input_tokens
+    tokCacheRead: artifact.usage?.tokenBreakdown?.cacheRead ?? 0,
+    tokCacheCreation: artifact.usage?.tokenBreakdown?.cacheCreation ?? 0,
+    tokFreshInput: artifact.usage?.tokenBreakdown?.input ?? 0,
 
     expectedSkill: scenario.expectedSkill ?? null,
     loadedSkills: artifact.loadedSkills ?? [],
     error: artifact.error ?? null,
+    apiKeySource: artifact.control?.apiKeySource ?? null,
   };
 }
 

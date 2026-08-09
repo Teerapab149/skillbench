@@ -6,7 +6,8 @@
   "private": true,
   "scripts": {
     "setup": "node scripts/setup-fixtures.mjs",
-    "check": "node src/check-arms.mjs && node scripts/check-spec.mjs",
+    "check": "node src/check-arms.mjs && node scripts/check-spec.mjs && node scripts/check-spawn.mjs",
+    "check:spawn": "node scripts/check-spawn.mjs",
     "check:arms": "node src/check-arms.mjs",
     "check:spec": "node scripts/check-spec.mjs",
     "power": "node src/stats.mjs --power",
@@ -16,6 +17,7 @@
     "dilution:make": "node scripts/make-dilution-arms.mjs",
     "dilution": "node src/runner.mjs --adapter claude-cli --config config/dilution.json --scenarios S08,S09 --reps 15 && node scripts/dilution-report.mjs",
     "analyze": "node src/analyze.mjs",
+    "regrade": "node scripts/regrade.mjs",
     "fixture:test": "node --test \"fixtures/gpu-booking/tests/*.test.ts\""
   },
   "engines": { "node": ">=18" }

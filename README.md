@@ -137,7 +137,26 @@ LLM มีความสุ่ม (stochasticity) — สั่งงานเ�
 
 model version, temperature, ชุด tool, max turns, fixture, และ **reset workspace ด้วย git ก่อนทุกครั้ง**
 
+ชุด tool ถูกบังคับด้วย `--tools` ตอนเรียก CLI ให้เหลือ 6 ตัวตามที่ประกาศ + `Skill`
+(ถ้าไม่บังคับ CLI จะเปิดให้ 31 ตัวรวม `Task`/`WebSearch`/`Workflow` → คนอื่นทำซ้ำไม่ได้)
+`Skill` ให้ทุก arm เท่ากันแม้ arm ที่ไม่มีไฟล์ skill — ถ้าให้เฉพาะ A2/A4 ชุด tool จะกลายเป็นตัวแปรที่ต่างกันอีกตัว
+แล้วเราจะแยกไม่ออกว่าผลมาจาก *โครงสร้างกฎ* หรือจาก *การมี tool มากกว่า*
+
 การรันใช้ **randomized block design** — ในแต่ละรอบ สลับลำดับ arm แบบสุ่ม เพื่อไม่ให้ความผันผวนของ API ไปกองที่ arm ใด arm หนึ่ง และ seed ผูกกับ (scenario, รอบ) ไม่ผูกกับ arm → ทุก arm เจอเงื่อนไขเดียวกัน ทำให้ข้อมูล**จับคู่กันได้**
+
+### arm ถูกใส่เข้า workspace ยังไง
+
+`config/arms.json` บอกว่า arm ไหนได้ context อะไร แต่ต้องมีโค้ดพามันไปวางในที่ที่เอเจนต์เห็นจริง — [src/install-arm.mjs](src/install-arm.mjs) ทำหน้าที่นี้ และต้องรักษาข้อกำหนด 3 ข้อพร้อมกัน
+
+| ข้อกำหนด | ทำยังไง |
+|---|---|
+| ไฟล์ต้องอยู่ในที่ที่เอเจนต์เห็น | `CLAUDE.md` ที่ราก + skill ที่ `.claude/skills/<name>/SKILL.md` |
+| ไฟล์ของเรา**ห้าม**ถูกนับเป็นผลงานของเอเจนต์ | ติดตั้งแล้ว `git commit` ทับ → `git status` สะอาดตอนเอเจนต์เริ่ม ทุกอย่างที่โผล่หลังจากนั้นเป็นของเอเจนต์ล้วน |
+| ต้องล้างให้หมดก่อน arm ถัดไป | `git reset --hard` ไปที่ tag `skillbench-baseline` |
+
+**ทำไม reset ต้องผูกกับ tag ไม่ใช่ HEAD:** กฎข้อหนึ่งที่เราวัดคือ *"ห้าม git commit เอง"* แปลว่าเอเจนต์อาจ commit จริง ถ้า reset ไปที่ HEAD เฉยๆ commit ของเอเจนต์จะค้างและปนเปื้อนทุก run ที่เหลือ
+
+> **บทเรียนที่ควรอยู่ในเล่ม:** ก่อนหน้านี้ `config/arms.json` ประกาศ `contextFiles`/`skillsDir` ไว้ครบ แต่ไม่มีโค้ดตัวไหนอ่านไปใช้ — ทุก arm จึงเจอ workspace เหมือนกันหมด การทดลองยังให้ผลออกมาครบถ้วน มี CI มีค่า p เหมือนเดิม **โดยไม่มีอะไรเตือนเลย** นี่คือความล้มเหลวเงียบที่อันตรายที่สุดของงานทดลอง จึงเพิ่มข้อ 5 ใน `check-arms.mjs` ที่ *ติดตั้งจริงกับ fixture จริงแล้วล้างทิ้ง* ไม่ใช่แค่เช็คว่าไฟล์ต้นทางมีอยู่
 
 ## 6. เราทดสอบอะไร: กับดัก 5 ตระกูล
 
@@ -258,9 +277,10 @@ node src/stats.mjs --power
 | `src/graders.mjs` | ตัวตรวจ 16 ชนิด + trigger confusion matrix | เสร็จ ต้องเพิ่มตัวตรวจแนว RTM |
 | `src/runner.mjs` | randomized block design, จัดการ seed, เขียนผลลง `results/` | เสร็จ |
 | `src/analyze.mjs` | สร้าง `report.md` + CSV พร้อม CI ทุกตัว | เสร็จ ต้องเพิ่มตาราง RTM |
-| `src/check-arms.mjs` | ตรวจการออกแบบก่อนเก็บข้อมูล | เสร็จ |
+| `src/check-arms.mjs` | ตรวจการออกแบบก่อนเก็บข้อมูล + ติดตั้ง arm จริงแล้วตรวจ | เสร็จ |
+| `src/install-arm.mjs` | ติดตั้ง context ของ arm ลง workspace แล้วล้างทิ้ง | เสร็จ |
 | `src/adapters/mock.mjs` | เอเจนต์จำลองสำหรับทดสอบท่อ | เสร็จ |
-| `src/adapters/claude-cli.mjs` | adapter ตัวจริง | เสร็จ ยังไม่เคยรันจริง |
+| `src/adapters/claude-cli.mjs` | adapter ตัวจริง | เสร็จ ท่อต่อครบแล้ว รอ auth |
 
 รัน pilot 400 runs ด้วย mock ผ่านครบวงจรแล้ว สร้าง `results/report.md` ได้จริง
 
@@ -310,7 +330,10 @@ node src/stats.mjs --power
 - [x] เพิ่ม **ตาราง RTM + โจทย์ธรรมดา vs กับดัก + Requirement Drift** ใน `analyze.mjs`
 - [x] เขียน **ตัว calibrate** และ **การทดลอง dilution**
 - [ ] รัน **calibration 55 runs จริง** แล้วรายงานว่า scenario ไหนต้องปรับ
-- [ ] ทดสอบ `claude-cli` adapter กับ 1 scenario ก่อนรันเต็ม ← ยังไม่เคยรันจริงเลยสักครั้ง
+- [x] เขียน **ตัวติดตั้ง context ของ arm** (`install-arm.mjs`) — ก่อนหน้านี้ `config/arms.json` ประกาศ `contextFiles`/`skillsDir` ไว้ครบ แต่ไม่มีโค้ดตัวไหนอ่านไปใช้ ทุก arm จึงเจอ workspace เหมือนกันหมด
+- [x] ล็อกชุด tool ด้วย `--tools` ให้ตรงกับ `fixedFactors.toolset` (CLI เปิดให้ 31 ตัวถ้าไม่บังคับ)
+- [x] แยก "run ที่ล้มเหลวเชิงโครงสร้าง" ออกจาก "เอเจนต์เลือกไม่ทำ" — ตัดออกก่อนคำนวณและรายงานว่าตัดอะไรไปบ้าง
+- [ ] **login CLI แล้วรัน smoke test** ← ติดอยู่ตรงนี้อย่างเดียว (OAuth หมดอายุ)
 
 ### ทำร่วมกัน
 
@@ -416,6 +439,7 @@ skillbench/
 │   ├─ A1/CLAUDE.md       กฎทั้งหมดในไฟล์เดียว (~1,435 tok)
 │   ├─ A2/CLAUDE.md       + skills/ กฎชุดเดียวกันแยกเป็น 4 skill (~928 tok เสมอ)
 │   ├─ A3/CLAUDE.md       placebo ความยาวจับคู่กับ A1 (อัตราส่วน 1.098)
+│   ├─ A4/adversarial/    ข้อความล่อ 2 จุด สำหรับทดสอบความทนทาน
 │   └─ dilution/          D000–D080 สำหรับการทดลองเจือจาง
 ├─ fixtures/gpu-booking/  ระบบจอง GPU แบบ event-sourced (ไม่มี dependency)
 ├─ src/
@@ -423,7 +447,8 @@ skillbench/
 │   ├─ graders.mjs        ตัวตรวจกฎ 20 ชนิด + RTM + trigger matrix
 │   ├─ runner.mjs         randomized block design
 │   ├─ analyze.mjs        สร้างรายงาน
-│   ├─ check-arms.mjs     ตรวจการออกแบบ
+│   ├─ check-arms.mjs     ตรวจการออกแบบ + ติดตั้ง arm จริงแล้วตรวจว่าลงถูกที่
+│   ├─ install-arm.mjs    ติดตั้ง/ล้าง context ของ arm ลง workspace
 │   └─ adapters/          mock (ทดสอบท่อ) + claude-cli (ของจริง)
 └─ results/               report.md, dilution.md, CSV, transcript ดิบ
 ```

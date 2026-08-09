@@ -15,7 +15,29 @@ import {
 import { triggerMetrics } from './graders.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const { meta, graded } = JSON.parse(fs.readFileSync(path.join(ROOT, 'results/latest.json'), 'utf8'));
+const raw = JSON.parse(fs.readFileSync(path.join(ROOT, 'results/latest.json'), 'utf8'));
+const meta = raw.meta;
+
+/*
+ * ตัด run ที่ล้มเหลวเพราะโครงสร้างพื้นฐานออกก่อนคำนวณทุกตัวเลข
+ *
+ * run พวกนี้ (auth หมดอายุ / เน็ตหลุด / timeout / token หมดกลางคัน) หน้าตาเหมือน
+ * "เอเจนต์เลือกที่จะไม่ทำอะไรเลย" ทุกประการ คือ 0 tool call แล้วกฎตกเกือบหมด
+ * ถ้าปล่อยให้ปนเข้าไป มันจะดึงค่าเฉลี่ยของ arm ที่ซวยลงโดยไม่เกี่ยวกับ context เลย
+ * และเนื่องจากเรารันแบบสลับลำดับ ความซวยจะไม่กระจายเท่ากันเสมอไปในกลุ่มตัวอย่างเล็ก
+ *
+ * ต้องรายงานจำนวนที่ตัดทิ้งเสมอ — การตัดข้อมูลโดยไม่บอกคือสิ่งที่กรรมการควรจับได้
+ */
+const excluded = raw.graded.filter((g) => g.error);
+const graded = raw.graded.filter((g) => !g.error);
+if (excluded.length) {
+  console.log(`  ตัด ${excluded.length} run ที่ล้มเหลวเชิงโครงสร้างออกจากการวิเคราะห์ (เหลือ ${graded.length})`);
+}
+if (!graded.length) {
+  console.error('\n  ไม่เหลือ run ที่ใช้ได้เลย — ทุก run ล้มเหลวเชิงโครงสร้าง');
+  console.error(`  สาเหตุแรกที่พบ: ${excluded[0]?.error}\n`);
+  process.exit(1);
+}
 
 const armIds = meta.arms;
 const scenIds = meta.scenarios;
@@ -59,6 +81,12 @@ for (const arm of armIds) {
   s.tokOut = mean(rows.map((r) => r.outputTokens));
   s.tools = mean(rows.map((r) => r.toolCalls));
   s.wallS = mean(rows.map((r) => r.wallMs)) / 1000;
+  // ต้นทุนเป็นเงิน — หน่วยที่อ่านแล้วเข้าใจทันทีว่าแพงแค่ไหน ต่างจากตัวเลข token
+  const costs = rows.map((r) => r.costUsd).filter((v) => typeof v === 'number');
+  s.costUsd = costs.length ? mean(costs) : null;
+  s.costTotal = costs.length ? costs.reduce((a, b) => a + b, 0) : null;
+  s.tokCacheRead = mean(rows.map((r) => r.tokCacheRead ?? 0));
+  s.tokFresh = mean(rows.map((r) => r.tokFreshInput ?? 0));
   summary[arm] = s;
 }
 
@@ -216,15 +244,46 @@ p('');
 
 p('## 5. ต้นทุน (context engineering ไม่ฟรี)');
 p('');
-p('| Arm | input tok/run | output tok/run | tool calls | เวลา (วิ) |');
-p('|---|---:|---:|---:|---:|');
+p('| Arm | $ / run | input รวม tok/run | ในนั้นเป็น cache read | output tok/run | tool calls | เวลา (วิ) |');
+p('|---|---:|---:|---:|---:|---:|---:|');
 for (const a of armIds) {
   const s = summary[a];
-  p(`| ${a} | ${Math.round(s.tokIn)} | ${Math.round(s.tokOut)} | ${s.tools.toFixed(1)} | ${s.wallS.toFixed(1)} |`);
+  const cost = s.costUsd === null ? '—' : `$${s.costUsd.toFixed(2)}`;
+  p(`| ${a} | ${cost} | ${Math.round(s.tokIn).toLocaleString()} | ${Math.round(s.tokCacheRead).toLocaleString()} | ${Math.round(s.tokOut).toLocaleString()} | ${s.tools.toFixed(1)} | ${s.wallS.toFixed(1)} |`);
 }
 p('');
 p('> ตารางนี้สำคัญ: ถ้า A2 ชนะแต่ใช้ token มากกว่า 3 เท่า ข้อสรุปต้องเป็น trade-off ไม่ใช่ "ดีกว่า"');
 p('');
+p('**อ่านคอลัมน์ token ยังไง** — `input รวม` = fresh input + cache creation + cache read');
+p('ส่วนที่ใหญ่ที่สุดคือ **cache read** ซึ่งคือ context ที่ถูกอ่านซ้ำทุก turn');
+p('นี่คือคอลัมน์ที่ผลของ progressive disclosure จะโผล่ ไม่ใช่ `input_tokens` ซึ่งเล็กจนไม่มีความหมาย');
+p('');
+
+// ต้นทุนรวมของชุดข้อมูลนี้ — ใช้ประเมินว่าจะเก็บต่อได้อีกแค่ไหน
+const grandTotal = armIds.map((a) => summary[a].costTotal).filter((v) => typeof v === 'number');
+if (grandTotal.length) {
+  const total = grandTotal.reduce((x, y) => x + y, 0);
+  const perRun = total / graded.length;
+  p(`**ต้นทุนของชุดข้อมูลนี้: $${total.toFixed(2)} จาก ${graded.length} run (เฉลี่ย $${perRun.toFixed(2)}/run)**`);
+  p('');
+  p('| ถ้าจะเก็บต่อ | runs | ประมาณการ |');
+  p('|---|---:|---:|');
+  for (const [name, n] of [['calibration (A1 x 11 โจทย์ x 5)', 55], ['การทดลองหลัก (11 x 5 arm x 11)', 605], ['dilution (5 ระดับ x 2 โจทย์ x 15)', 150]]) {
+    p(`| ${name} | ${n} | $${(perRun * n).toFixed(0)} |`);
+  }
+  p('');
+  // ระบุให้ชัดว่าตัวเลขนี้เป็นเงินจริงหรือแค่ราคาอ้างอิง — ต่างกันคนละเรื่อง
+  const keySources = [...new Set(raw.graded.map((g) => g.apiKeySource).filter(Boolean))];
+  const onSubscription = keySources.length === 0 || keySources.every((k) => k === 'none');
+  p(onSubscription
+    ? '> **ตัวเลขนี้ไม่ใช่เงินที่ถูกตัดจริง** — เก็บข้อมูลผ่านการ login ด้วย subscription (`apiKeySource: none`)'
+    : `> **⚠ ตัวเลขนี้คือเงินจริง** — เก็บข้อมูลผ่าน API key (\`${keySources.join(', ')}\`)`);
+  p('> `total_cost_usd` คือราคาเทียบเท่าถ้าจ่ายตามอัตรา API ใช้ประเมินขนาดของงานได้ทั้งสองกรณี');
+  p(onSubscription
+    ? '> ข้อจำกัดจริงของแผนนี้คือ **โควตาการใช้งานและเวลารัน** ไม่ใช่งบประมาณ'
+    : '> ควรตรวจงบก่อนรันชุดถัดไป');
+  p('');
+}
 
 p('## 6. การเปรียบเทียบแบบจับคู่ (McNemar exact + cluster bootstrap)');
 p('');
@@ -323,16 +382,39 @@ if (deadRules.length) {
 }
 p('');
 
-const errs = graded.filter((g) => g.error);
-if (errs.length) p(`## หมายเหตุ: มี ${errs.length} run ที่ error (${fmtPct(errs.length / graded.length)})`);
+// รายงานการตัดข้อมูลอย่างละเอียด — ต้องมีในเล่ม ไม่ใช่ซ่อนไว้
+if (excluded.length) {
+  const total = excluded.length + graded.length;
+  p(`## run ที่ถูกตัดออก: ${excluded.length}/${total} (${fmtPct(excluded.length / total)})`);
+  p('');
+  p('ล้มเหลวเชิงโครงสร้าง ไม่ใช่พฤติกรรมของเอเจนต์ จึงไม่นำมาคำนวณ');
+  p('');
+  const byReason = {};
+  for (const g of excluded) {
+    const key = String(g.error).slice(0, 60);
+    byReason[key] ??= {};
+    byReason[key][g.armId] = (byReason[key][g.armId] ?? 0) + 1;
+  }
+  p('| สาเหตุ | จำนวน | กระจายตาม arm |');
+  p('|---|---|---|');
+  for (const [reason, arms] of Object.entries(byReason)) {
+    const n = Object.values(arms).reduce((s, v) => s + v, 0);
+    p(`| ${reason} | ${n} | ${Object.entries(arms).map(([a, c]) => `${a}:${c}`).join(' ')} |`);
+  }
+  p('');
+  p('> ถ้าการตัดทิ้งกองอยู่ที่ arm ใด arm หนึ่งผิดสัดส่วน อย่าเพิ่งเชื่อผลของ arm นั้น');
+  p('> ให้รันซ่อมเฉพาะ cell ที่หายไปก่อน แล้ววิเคราะห์ใหม่');
+  p('');
+}
 
 fs.writeFileSync(path.join(ROOT, 'results/report.md'), L.join('\n'));
 
-const csv = ['arm,n,RCR,RCR_lo,RCR_hi,FULL,FULL_lo,FULL_hi,SCOPE,passHatK,jaccard,entropy,tok_in,tok_out,tools,wall_s'];
+const csv = ['arm,n,RCR,RCR_lo,RCR_hi,FULL,FULL_lo,FULL_hi,SCOPE,passHatK,jaccard,entropy,tok_in,tok_cache_read,tok_out,cost_usd,tools,wall_s'];
 for (const a of armIds) {
   const s = summary[a];
   csv.push([a, s.n, s.RCR.mean, s.RCR.lo, s.RCR.hi, s.FULL.mean, s.FULL.lo, s.FULL.hi, s.SCOPE.mean,
-            s.passHatK.value, s.jaccard, s.entropy, s.tokIn, s.tokOut, s.tools, s.wallS]
+            s.passHatK.value, s.jaccard, s.entropy, s.tokIn, s.tokCacheRead, s.tokOut,
+            s.costUsd ?? '', s.tools, s.wallS]
            .map((v) => (typeof v === 'number' ? v.toFixed(4) : v)).join(','));
 }
 fs.writeFileSync(path.join(ROOT, 'results/summary.csv'), csv.join('\n'));

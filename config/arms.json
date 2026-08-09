@@ -60,6 +60,9 @@
     "temperature": 1.0,
     "maxTurns": 25,
     "toolset": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+    "_toolsetNote": "บังคับจริงด้วย --tools ตอนเรียก CLI (ไม่ใช่ --allowed-tools ซึ่งคุมแค่การขออนุญาต และไม่มีผลภายใต้ bypassPermissions) ถ้าไม่บังคับ CLI จะเปิดให้ 31 ตัวรวม Task/WebSearch/Workflow ซึ่งทำให้คนอื่นทำซ้ำไม่ได้",
+    "_skillToolNote": "ตัว Skill ถูกเติมเข้าไปให้ทุก arm เท่ากัน แม้ arm ที่ไม่มีไฟล์ skill — ถ้าให้เฉพาะ A2/A4 ชุด tool จะกลายเป็นตัวแปรที่ต่างกันอีกตัว แล้วแยกไม่ออกว่าผลมาจากโครงสร้างกฎหรือจากการมี tool มากกว่า",
+    "settingSources": "project (ล็อกเท่ากันทุก arm — กัน skill ส่วนตัวในเครื่องคนรันรั่วเข้ามาเป็นตัวแปรกวน)",
     "workspaceReset": "git checkout -- . && git clean -fd ก่อนทุก run",
     "runOrder": "randomized block — สลับลำดับ arm ในแต่ละ repetition กัน drift ของ API"
   },
@@ -69,5 +72,18 @@
     "comparison": "A2 vs A1",
     "_note": "ประกาศ endpoint หลักไว้ล่วงหน้าแค่ 1 ตัว ที่เหลือเป็น secondary — กัน p-hacking และเป็นสิ่งที่อาจารย์ที่ปรึกษาจะให้คะแนน"
   },
-  "secondaryEndpoints": ["FULL", "SCOPE", "passHatK", "triggerF1", "tokenCost", "TASK"]
+  "secondaryEndpoints": ["FULL", "SCOPE", "passHatK", "triggerF1", "tokenCost", "TASK"],
+
+  "preRegisteredHypotheses": [
+    {
+      "id": "H4",
+      "declaredOn": "2026-08-08",
+      "claim": "A1 และ A2 ใช้ token รวมต่องาน น้อยกว่า A0",
+      "metric": "tok_in (fresh input + cache creation + cache read) เทียบแบบจับคู่ตาม (scenario, rep)",
+      "basis": "การรันนำร่อง S01 วันที่ 2026-08-07 จำนวน 1 run ต่อ arm: A0 ใช้ 1,603,223 tok / A1 ใช้ 961,916 tok (1.67 เท่า)",
+      "mechanism": "เอเจนต์ที่ไม่มีขอบเขตต้องสำรวจ repo เองว่าต้องแก้ตรงไหน แต่ละ turn ที่สำรวจเพิ่มคือ context ที่ถูกอ่านซ้ำทั้งก้อนใน turn ถัดไป",
+      "_why": "เห็นจาก n=1 ซึ่งพิสูจน์อะไรไม่ได้ ต้องประกาศก่อนเก็บข้อมูลจริงพร้อมวันที่ มิฉะนั้นแยกไม่ออกจากการเลือกเล่าเฉพาะผลที่ออกมาสวย",
+      "reportRegardlessOfOutcome": true
+    }
+  ]
 }

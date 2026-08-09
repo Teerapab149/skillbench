@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { verifyInstall } from './install-arm.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
@@ -123,8 +124,76 @@ for (const f of fs.readdirSync(scDir).filter((x) => x.endsWith('.json'))) {
 }
 console.log('');
 
-// --- 5. เตือนเรื่องขนาดตัวอย่าง ---
-console.log('5) ขนาดตัวอย่าง');
+// --- 4b. ทุก regex ในทุกกฎต้อง compile ผ่าน ---
+//
+// เพิ่มหลังเจอของจริง: กฎ AC0 ที่เพิ่งเพิ่มเข้าไปมี regex "^+.*\b15\b" ซึ่ง compile ไม่ผ่าน
+// (backslash หาย) gradeRun จับ exception แล้วตั้ง passed=false เงียบๆ
+// ผลคือ S02 กับ S03 ได้ CRIT = 0% ทุก run และ calibration รายงานว่า "โจทย์ยากเกิน"
+// ทั้งที่เอเจนต์ทำงานถูกต้องทุกครั้ง — checker ที่พังหน้าตาเหมือนโจทย์ที่ยากมาก แยกไม่ออกเลย
+console.log('4b) ความถูกต้องของ regex ในกฎ');
+let reBad = 0;
+for (const f of fs.readdirSync(scDir).filter((x) => x.endsWith('.json'))) {
+  const s = JSON.parse(fs.readFileSync(path.join(scDir, f), 'utf8'));
+  for (const r of s.rules) {
+    if (!r.check?.pattern) continue;
+    try {
+      new RegExp(r.check.pattern, r.check.flags);
+    } catch (e) {
+      reBad++; fail++;
+      console.log(`   FAIL  ${s.id} ${r.id} [${r.severity}] ${JSON.stringify(r.check.pattern)}`);
+      console.log(`         ${e.message}`);
+    }
+  }
+}
+if (!reBad) console.log('   PASS  ทุก regex compile ผ่าน');
+console.log('   > regex ที่พังจะทำให้กฎนั้นตกทุก run และอ่านผลออกมาเป็น "โจทย์ยากเกิน"');
+console.log('');
+
+// --- 5. ตัวแปรต้นถูกใส่เข้า workspace จริงไหม ---
+//
+// ข้อนี้เพิ่มเข้ามาหลังเจอบั๊กที่ config ประกาศ contextFiles/skillsDir ไว้ครบ
+// แต่ไม่มีโค้ดตัวไหนอ่านไปใช้ -> ทุก arm เจอ workspace เหมือนกันหมด
+// การทดลองยังให้ผลออกมาครบถ้วนมี CI มีค่า p เหมือนเดิม โดยไม่มีอะไรเตือนเลย
+// จึงต้องติดตั้งจริงแล้วตรวจของจริง ไม่ใช่แค่เช็คว่าไฟล์ต้นทางมีอยู่
+console.log('5) การติดตั้ง context ลง workspace (ติดตั้งจริงแล้วล้างทิ้ง)');
+const fixtureForInstall = path.join(ROOT, 'fixtures/gpu-booking');
+if (!fs.existsSync(path.join(fixtureForInstall, '.git'))) {
+  fail++;
+  console.log('   FAIL  fixture ยังไม่ใช่ git repo -> รัน node scripts/setup-fixtures.mjs ก่อน');
+} else {
+  for (const arm of config.arms) {
+    const r = verifyInstall({ workspace: fixtureForInstall, arm });
+    const wantClaude = (arm.contextFiles ?? []).length > 0;
+    const wantSkills = arm.skillsDir ? 1 : 0;
+    const ok = r.ok && r.clean
+      && r.claudeMd === wantClaude
+      && (wantSkills ? r.skillFiles > 0 : r.skillFiles === 0);
+    if (!ok) fail++;
+    const detail = r.ok
+      ? `CLAUDE.md=${r.claudeMd ? 'มี' : '--'} skills=${r.skillFiles} สะอาด=${r.clean ? 'ใช่' : 'ไม่'}`
+      : r.error.split('\n')[0];
+    console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${arm.id} ${String(arm.name).padEnd(28)} ${detail}`);
+  }
+  console.log('   > "สะอาด" = git status ว่างหลังติดตั้ง ถ้าไม่ว่าง ไฟล์ของ arm จะถูกนับเป็นผลงานของเอเจนต์');
+  console.log('   > แล้ว gold-plating rate จะเป็นบวกปลอมทุก run ทุก arm');
+}
+
+// ชุด tool ที่จะถูกบังคับจริง — ต้องตรงกับที่เขียนในเล่ม มิฉะนั้นคนอื่นทำซ้ำไม่ได้
+const declaredTools = config.fixedFactors?.toolset ?? [];
+const effectiveTools = [...new Set([...declaredTools, 'Skill'])];
+const needed = ['Read', 'Edit', 'Bash'];
+const missing = needed.filter((t) => !effectiveTools.includes(t));
+if (missing.length) {
+  fail++;
+  console.log(`   FAIL  ชุด tool ขาดตัวที่จำเป็นต่อการทำโจทย์: ${missing.join(', ')}`);
+} else {
+  console.log(`   PASS  ชุด tool ที่จะบังคับด้วย --tools: ${effectiveTools.join(',')}`);
+  console.log('   > Skill ถูกเติมให้ทุก arm เท่ากัน ตัวแปรต้นคือ "มีโฟลเดอร์ .claude/skills ไหม" เท่านั้น');
+}
+console.log('');
+
+// --- 6. เตือนเรื่องขนาดตัวอย่าง ---
+console.log('6) ขนาดตัวอย่าง');
 const nScen = fs.readdirSync(scDir).filter((x) => x.endsWith('.json')).length;
 console.log(`   scenario ปัจจุบัน = ${nScen}`);
 console.log(`   ต้องการ n>=74 run/arm (เพื่อจับผลต่าง 60%->85%) => ${Math.ceil(74 / nScen)} repetition ต่อ scenario`);
