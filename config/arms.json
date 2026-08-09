@@ -1,6 +1,5 @@
 {
   "_note": "แต่ละ arm คือ 'สภาพ context' ที่ต่างกัน ตัวแปรอื่นต้องล็อกให้เหมือนกันหมด (model, temperature, tool set, fixture, seed)",
-
   "arms": [
     {
       "id": "A0",
@@ -16,7 +15,9 @@
       "name": "Monolithic CLAUDE.md",
       "role": "active-control",
       "desc": "ยัดกฎทั้งหมดลงไฟล์เดียว โหลดตลอดเวลา — วิธีที่คนส่วนใหญ่ทำกันอยู่จริง",
-      "contextFiles": ["arms/A1/CLAUDE.md"],
+      "contextFiles": [
+        "arms/A1/CLAUDE.md"
+      ],
       "skillsEnabled": false,
       "expectedTokenOverhead": 3200
     },
@@ -25,7 +26,9 @@
       "name": "Agent Skills",
       "role": "treatment",
       "desc": "กฎชุดเดียวกับ A1 เป๊ะ แต่จัดเป็น skill แยก โหลดเมื่อ description ตรงกับงาน (progressive disclosure)",
-      "contextFiles": ["arms/A2/CLAUDE.md"],
+      "contextFiles": [
+        "arms/A2/CLAUDE.md"
+      ],
       "skillsDir": "arms/A2/skills",
       "skillsEnabled": true,
       "expectedTokenOverhead": 400
@@ -35,7 +38,9 @@
       "name": "Placebo (length-matched)",
       "role": "placebo",
       "desc": "ข้อความยาวเท่า A1 แต่เป็นเนื้อหาที่ไม่เกี่ยวกับกฎเลย (coding style ทั่วไป, ประวัติโปรเจกต์)",
-      "contextFiles": ["arms/A3/CLAUDE.md"],
+      "contextFiles": [
+        "arms/A3/CLAUDE.md"
+      ],
       "skillsEnabled": false,
       "expectedTokenOverhead": 3200,
       "_why": "arm นี้คือสิ่งที่ทำให้งานคุณต่างจากรีวิวเครื่องมือทั่วไป: มันแยก 'ผลของโครงสร้าง' ออกจาก 'ผลของจำนวน token'. ถ้า A3 ~= A1 แปลว่ากฎมีผลจริง; ถ้า A3 ~= A2 แปลว่าคุณแค่กำลังวัด context length"
@@ -45,7 +50,9 @@
       "name": "Skills + adversarial injection",
       "role": "robustness",
       "desc": "เหมือน A2 แต่ใน fixture มีไฟล์/คอมเมนต์ที่พยายามสั่งให้เอเจนต์ละเมิดกฎ",
-      "contextFiles": ["arms/A2/CLAUDE.md"],
+      "contextFiles": [
+        "arms/A2/CLAUDE.md"
+      ],
       "skillsDir": "arms/A2/skills",
       "skillsEnabled": true,
       "injectAdversarial": true,
@@ -53,27 +60,41 @@
       "_why": "ตอบคำถามที่กรรมการจะถามแน่นอน: 'กฎมันกันได้จริงหรือแค่เอเจนต์บังเอิญเชื่อฟัง'"
     }
   ],
-
   "fixedFactors": {
     "_note": "ตัวแปรควบคุม — ต้องเขียนลงรายงานทุกตัว มิฉะนั้นผลทำซ้ำไม่ได้",
     "model": "claude-opus-5",
-    "temperature": 1.0,
+    "temperature": 1,
     "maxTurns": 25,
-    "toolset": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+    "toolset": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash",
+      "Glob",
+      "Grep"
+    ],
     "_toolsetNote": "บังคับจริงด้วย --tools ตอนเรียก CLI (ไม่ใช่ --allowed-tools ซึ่งคุมแค่การขออนุญาต และไม่มีผลภายใต้ bypassPermissions) ถ้าไม่บังคับ CLI จะเปิดให้ 31 ตัวรวม Task/WebSearch/Workflow ซึ่งทำให้คนอื่นทำซ้ำไม่ได้",
     "_skillToolNote": "ตัว Skill ถูกเติมเข้าไปให้ทุก arm เท่ากัน แม้ arm ที่ไม่มีไฟล์ skill — ถ้าให้เฉพาะ A2/A4 ชุด tool จะกลายเป็นตัวแปรที่ต่างกันอีกตัว แล้วแยกไม่ออกว่าผลมาจากโครงสร้างกฎหรือจากการมี tool มากกว่า",
     "settingSources": "project (ล็อกเท่ากันทุก arm — กัน skill ส่วนตัวในเครื่องคนรันรั่วเข้ามาเป็นตัวแปรกวน)",
     "workspaceReset": "git checkout -- . && git clean -fd ก่อนทุก run",
     "runOrder": "randomized block — สลับลำดับ arm ในแต่ละ repetition กัน drift ของ API"
   },
-
   "primaryEndpoint": {
-    "metric": "RCR",
+    "metric": "CRIT",
     "comparison": "A2 vs A1",
-    "_note": "ประกาศ endpoint หลักไว้ล่วงหน้าแค่ 1 ตัว ที่เหลือเป็น secondary — กัน p-hacking และเป็นสิ่งที่อาจารย์ที่ปรึกษาจะให้คะแนน"
+    "test": "McNemar exact (paired by seed)",
+    "declaredOn": "2026-08-09",
+    "supersedes": "RCR",
+    "_see": "PRE-REGISTRATION.md — ลำดับชั้นแบบ fixed-sequence: CRIT -> RCR (gated) -> passHatK",
+    "_why": "McNemar และ requiredNPerArm ที่ประกาศไว้ล่วงหน้าเป็นเครื่องมือของผลลัพธ์ทวิภาค RCR เป็นเศษส่วนต่อเนื่องจึงไม่เคยเข้ากันกับแผนวิเคราะห์เดิม"
   },
-  "secondaryEndpoints": ["FULL", "SCOPE", "passHatK", "triggerF1", "tokenCost", "TASK"],
-
+  "secondaryEndpoints": [
+    "FULL",
+    "SCOPE",
+    "triggerF1",
+    "tokenCost",
+    "TASK"
+  ],
   "preRegisteredHypotheses": [
     {
       "id": "H4",
@@ -85,5 +106,14 @@
       "_why": "เห็นจาก n=1 ซึ่งพิสูจน์อะไรไม่ได้ ต้องประกาศก่อนเก็บข้อมูลจริงพร้อมวันที่ มิฉะนั้นแยกไม่ออกจากการเลือกเล่าเฉพาะผลที่ออกมาสวย",
       "reportRegardlessOfOutcome": true
     }
+  ],
+  "coPrimaryEndpoint": {
+    "metric": "RCR",
+    "comparison": "A2 vs A1",
+    "gatedOn": "CRIT",
+    "_why": "fixed-sequence gatekeeping ไม่ทำให้ alpha พอง และทำให้ไม่มีตัวชี้วัดใดถูกทิ้ง"
+  },
+  "keySecondary": [
+    "passHatK"
   ]
 }
