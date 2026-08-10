@@ -16,6 +16,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { makeRng } from './stats.mjs';
 import { gradeRun } from './graders.mjs';
@@ -91,7 +92,32 @@ async function main() {
 
   const outDirEarly = path.join(ROOT, 'results');
   fs.mkdirSync(outDirEarly, { recursive: true });
-  const ckptPath = path.join(outDirEarly, 'checkpoint.json');
+
+  /*
+   * ชื่อไฟล์ checkpoint ต้องผูกกับ signature — ข้อบกพร่องที่ 23
+   *
+   * เดิมใช้พาธเดียวตายตัว `results/checkpoint.json` ทุกการทดลอง ผลคือเมื่อรันชุดใหม่
+   * ที่ signature ไม่ตรง โค้ดจะพิมพ์ว่า "เริ่มใหม่" แล้ว *เขียนทับ* checkpoint ของชุดเดิมทิ้ง
+   * ซึ่งกินหลักฐานของ run ที่ถูกขัดจังหวะไปทั้งชุด
+   *
+   * เกิดขึ้นจริงแล้วหนึ่งครั้ง: pilot A2 ที่เพดาน 25 ชน error_max_turns 2 ใน 3 run
+   * ซึ่งเป็นจุดตั้งต้นของ Amendment 1 — พอรันชุดที่เพดาน 50 ทับ หลักฐานนั้นหายทั้งหมด
+   * ตอนนี้ไม่มี run ที่ชนเพดานของ A2 เหลือในชุดข้อมูลเลย และตัวเลขนั้นยืนยันซ้ำไม่ได้อีก
+   *
+   * checkpoint ถูกออกแบบมาเพื่อ "รันต่อได้เมื่อถูกขัดจังหวะ" แต่ถูกใช้เป็น
+   * "หลักฐานของการรันที่ถูกขัดจังหวะ" ด้วย — สองอย่างนี้ต้องการอายุของไฟล์คนละแบบ
+   */
+  const sigHash = crypto.createHash('sha256').update(signature).digest('hex').slice(0, 12);
+  const ckptPath = path.join(outDirEarly, `checkpoint-${sigHash}.json`);
+
+  // ย้ายของเดิม: ถ้ายังไม่มีไฟล์ตาม signature แต่มี checkpoint.json เก่าที่ signature ตรงกัน
+  // ให้ใช้ต่อได้ตามปกติ — อ่านอย่างเดียว ไม่เขียนทับพาธเก่าอีกต่อไป
+  const legacyPath = path.join(outDirEarly, 'checkpoint.json');
+  const readFrom = fs.existsSync(ckptPath) ? ckptPath
+    : (fs.existsSync(legacyPath) ? legacyPath : null);
+  if (resume && readFrom === legacyPath) {
+    console.log('  พบ checkpoint.json รูปแบบเก่า — จะอ่านต่อแต่บันทึกลงไฟล์ใหม่ตาม signature');
+  }
 
   /*
    * เก็บผลทีละ run ไม่รอจนจบ
@@ -101,13 +127,14 @@ async function main() {
    * และการรันยาวขนาดนี้ "จะ" ถูกขัดจังหวะ ไม่ใช่ "อาจจะ" (โควตาหมด เน็ตหลุด เครื่อง sleep)
    */
   let artifacts = [], graded = [];
-  if (resume && fs.existsSync(ckptPath)) {
-    const ck = JSON.parse(fs.readFileSync(ckptPath, 'utf8'));
+  if (resume && readFrom) {
+    const ck = JSON.parse(fs.readFileSync(readFrom, 'utf8'));
     if (ck.signature === signature) {
       artifacts = ck.artifacts; graded = ck.graded;
       console.log(`  ทำต่อจาก checkpoint: มีอยู่แล้ว ${artifacts.length}/${total} run\n`);
     } else {
-      console.log('  checkpoint ที่มีเป็นของการทดลองคนละชุด — เริ่มใหม่\n');
+      // ไม่ใช่ชุดเดียวกัน — ของเดิมยังอยู่ครบ เพราะเราจะเขียนลงไฟล์คนละชื่อ
+      console.log(`  checkpoint ที่พบเป็นของการทดลองคนละชุด — เริ่มใหม่ (ของเดิมเก็บไว้ที่ ${path.basename(readFrom)})\n`);
     }
   }
   /*
