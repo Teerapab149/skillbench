@@ -93,6 +93,47 @@ for (const sid of scen) {
 
 console.log(`\n  ${TREAT} ใช้ turn มากกว่าใน ${hi} จาก ${paired} โจทย์ (น้อยกว่า ${lo})`);
 
+/*
+ * สถิติที่ใช้ตัดสินคือ "อัตราการชนเพดาน" ไม่ใช่ค่ามัธยฐาน turn
+ *
+ * เพราะกลไกของอคติคือการที่ run ที่ชนเพดานถูกตัดออกก่อนวิเคราะห์
+ * ค่ามัธยฐานของ turn เป็นเพียงสาเหตุเบื้องหลัง ไม่ใช่ตัวความเสียหาย
+ * และ sign test บนโจทย์ไม่กี่ข้อมี power ต่ำเกินกว่าจะตัดสินอะไรได้
+ */
+const lgam = (n) => { let s = 0; for (let i = 2; i <= n; i++) s += Math.log(i); return s; };
+const lchoose = (n, k) => lgam(n) - lgam(k) - lgam(n - k);
+function fisherExact(a, b, c, d) {
+  const N = a + b + c + d, row1 = a + b, col1 = a + c;
+  const obs = Math.exp(lchoose(col1, a) + lchoose(N - col1, b) - lchoose(N, row1));
+  let p = 0;
+  for (let i = Math.max(0, row1 - (N - col1)); i <= Math.min(row1, col1); i++) {
+    const pi = Math.exp(lchoose(col1, i) + lchoose(N - col1, row1 - i) - lchoose(N, row1));
+    if (pi <= obs * 1.000001) p += pi;
+  }
+  return Math.min(1, p);
+}
+
+/** เทียบอัตราชนเพดานเฉพาะ run ที่รันภายใต้เพดานเดียวกันเท่านั้น */
+const atCap = (arm, cap) => [...runs.get(arm).values()].filter((x) => x.cap === cap);
+const capsShared = [...new Set([...runs.get(CTRL).values()].map((x) => x.cap))]
+  .filter((cap) => atCap(TREAT, cap).length);
+
+console.log('\nอัตราการชนเพดาน — สถิติที่ใช้ตัดสิน\n');
+for (const cap of capsShared) {
+  const t = atCap(TREAT, cap), c = atCap(CTRL, cap);
+  const tc = t.filter((x) => x.capped).length, cc = c.filter((x) => x.capped).length;
+  const pf = fisherExact(tc, t.length - tc, cc, c.length - cc);
+  console.log(`  ที่เพดาน ${cap}:  ${CTRL} ${cc}/${c.length} (${(100 * cc / c.length).toFixed(1)}%)`
+    + `  vs  ${TREAT} ${tc}/${t.length} (${(100 * tc / t.length).toFixed(1)}%)`
+    + `  — Fisher exact p = ${pf < 0.001 ? '<0.001' : pf.toFixed(4)}`);
+}
+for (const cap of [...new Set([...runs.get(TREAT).values()].map((x) => x.cap))].filter((c) => !capsShared.includes(c))) {
+  const t = atCap(TREAT, cap);
+  console.log(`  ที่เพดาน ${cap}:  ${TREAT} ${t.filter((x) => x.capped).length}/${t.length}`
+    + ` (turn ที่ใช้: ${t.map((x) => x.turns).sort((a, b) => a - b).join(', ')})`
+    + ` — ยังไม่มีข้อมูล ${CTRL} ที่เพดานนี้`);
+}
+
 /** sign test แบบสองด้าน — จับคู่รายโจทย์ ไม่สมมติการแจกแจง */
 const lc = (n, k) => { let s = 0; for (let i = 0; i < k; i++) s += Math.log(n - i) - Math.log(i + 1); return s; };
 const nEff = hi + lo;
