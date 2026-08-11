@@ -169,7 +169,8 @@ const config = {
   fixedFactors: {
     model: 'claude-opus-5',
     temperature: 1.0,
-    maxTurns: 25,
+    // 50 ไม่ใช่ 25 — ต้องตรงกับ Amendment 1 ของการทดลองหลัก ไม่งั้นสร้างไฟล์ทับแล้วเพดานเด้งกลับ
+    maxTurns: 50,
     _note: 'ใช้เฉพาะ scenario ตระกูล hidden_impact เพราะกฎเป้าหมายเกี่ยวกับผลกระทบย้อนหลัง',
   },
   primaryEndpoint: {
