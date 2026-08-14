@@ -46,11 +46,15 @@ async function main() {
   const resume = process.argv.includes('--resume');
   const maxRetries = parseInt(argv('--max-retries', '5'), 10);
   const maxTurnsOverride = argv('--max-turns', '');
+  const modelOverride = argv('--model', '');
 
   const config = JSON.parse(fs.readFileSync(path.join(ROOT, configPath), 'utf8'));
   // เพดาน turn เป็นตัวแปรควบคุม การเปลี่ยนค่าทำให้ข้อมูลเทียบกับชุดเดิมไม่ได้
   // จึงต้องเข้าไปอยู่ใน signature ของ checkpoint ด้วย ไม่งั้นจะรันต่อข้ามค่าที่ต่างกันโดยเงียบ
   if (maxTurnsOverride) config.fixedFactors = { ...config.fixedFactors, maxTurns: parseInt(maxTurnsOverride, 10) };
+  // โมเดลก็เป็นตัวแปรควบคุมด้วยเหตุผลเดียวกันเป๊ะ — override ได้เพื่อรัน calibration
+  // ข้ามโมเดลโดยไม่ต้องแก้ config แต่ค่าที่ใช้จริงต้องเข้า signature เสมอ
+  if (modelOverride) config.fixedFactors = { ...config.fixedFactors, model: modelOverride };
   const arms = config.arms.filter((a) => !armFilter.length || armFilter.includes(a.id));
   const scenarios = fs.readdirSync(path.join(ROOT, 'scenarios'))
     .filter((f) => f.endsWith('.json'))
@@ -84,6 +88,9 @@ async function main() {
   // ลายเซ็นของการทดลอง — ใช้กัน checkpoint ของคนละชุดมาปนกัน
   const signature = JSON.stringify({ adapterName, reps, masterSeed, configPath,
                                      maxTurns: config.fixedFactors?.maxTurns ?? 25,
+                                     // โมเดลต้องอยู่ใน signature — ไม่งั้น resume ข้ามโมเดลจะนับ
+                                     // run ของคนละโมเดลรวมเป็นชุดเดียวกันโดยเงียบ (ตระกูลเดียวกับข้อบกพร่องที่ 23)
+                                     model: config.fixedFactors?.model ?? 'claude-opus-5',
                                      arms: arms.map((a) => a.id), scenarios: scenarios.map((s) => s.id) });
   console.log(`\nSkillBench — ${adapterName}`);
   console.log(`  ${scenarios.length} scenarios x ${arms.length} arms x ${reps} reps = ${total} runs`);

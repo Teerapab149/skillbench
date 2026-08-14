@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #141519; }
+  body {
+    width: 1600px;
+    font-family: 'Leelawadee UI', 'Segoe UI', Tahoma, sans-serif;
+    color: #e8e9ec;
+    padding: 46px 52px 40px;
+  }
+  .mono { font-family: 'Cascadia Mono', Consolas, monospace; }
+
+  h1 { font-size: 37px; font-weight: 700; letter-spacing: .2px; }
+  h1 .accent { color: #9ec7f0; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    column-gap: 26px;
+    margin-top: 14px;
+  }
+
+  /* ---- bracket row (above cards) ---- */
+  .bracket-row { height: 96px; position: relative; }
+  .bracket {
+    grid-column: 2 / 4;
+    position: relative;
+    height: 100%;
+  }
+  .bracket .arc {
+    position: absolute;
+    left: 12px; right: 12px; bottom: 0;
+    height: 26px;
+    border: 2px solid #7dd487;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+  }
+  .bracket .lbl {
+    position: absolute;
+    left: 0; right: 0; bottom: 34px;
+    text-align: center;
+  }
+  .bracket .lbl .l1 { color: #7dd487; font-size: 21px; font-weight: 700; }
+  .bracket .lbl .l2 { color: #8b919c; font-size: 17px; margin-top: 2px; }
+
+  /* ---- cards ---- */
+  .card {
+    border-radius: 6px;
+    padding: 26px 18px 24px;
+    text-align: center;
+    border: 1.5px solid #3d424b;
+    background: #22252b;
+    min-height: 208px;
+    display: flex; flex-direction: column; justify-content: flex-start;
+  }
+  .card .id { font-size: 42px; font-weight: 700; color: #8b919c; }
+  .card .t1 { font-size: 21px; margin-top: 16px; color: #c7ccd4; }
+  .card .t2 { font-size: 17px; margin-top: 8px; color: #8b919c; }
+
+  .card.a1 { border-color: #7d848f; background: #262a31; }
+  .card.a1 .id { color: #e8e9ec; }
+
+  .card.a2 {
+    border: 2.5px solid #6ba3e8;
+    background: #1d3a5f;
+    box-shadow: 0 0 30px rgba(96, 156, 232, .35);
+    transform: translateY(-10px);
+    min-height: 228px;
+  }
+  .card.a2 .id { color: #9ec7f0; }
+  .card.a2 .t1 { color: #e8f0fa; }
+  .card.a2 .t2 { color: #a8c4e4; }
+
+  .card.a3 { border: 2px solid #d9a43c; background: #33280e; }
+  .card.a3 .id { color: #e8b84a; }
+  .card.a3 .t1 { color: #ecd9ac; }
+  .card.a3 .t2 { color: #b39a5e; }
+
+  /* ---- annotation row under cards ---- */
+  .under-row { min-height: 120px; }
+  .under-a3 { grid-column: 4 / 5; text-align: center; position: relative; padding-top: 0; }
+  .under-a3 .stem {
+    width: 0; height: 22px; margin: 0 auto;
+    border-left: 2px solid #d9a43c;
+  }
+  .under-a3 .head { color: #e8b84a; font-size: 19px; font-weight: 700; margin-top: 6px; }
+  .under-a3 .sub  { color: #8b919c; font-size: 14.5px; margin-top: 4px; }
+
+  /* ---- fixed factors strip ---- */
+  .strip {
+    margin: 6px auto 0;
+    width: fit-content;
+    border: 1px solid #33373f;
+    border-radius: 999px;
+    padding: 12px 34px;
+    color: #8b919c;
+    font-size: 17.5px;
+    background: #191b20;
+  }
+  .strip b { color: #c7ccd4; font-weight: 600; }
+</style>
+</head>
+<body>
+
+  <h1>5 กลุ่มทดลอง — ต่างกันที่ <span class="accent">Context</span> ที่ AI ได้รับ</h1>
+
+  <!-- bracket above A1+A2 -->
+  <div class="grid bracket-row">
+    <div class="bracket">
+      <div class="lbl">
+        <div class="l1">Rules เหมือนกันทุกข้อ (20/20)</div>
+        <div class="l2">สิ่งที่เปลี่ยน: วิธีโหลด</div>
+      </div>
+      <div class="arc"></div>
+    </div>
+  </div>
+
+  <!-- cards -->
+  <div class="grid">
+    <div class="card">
+      <div class="id mono">A0</div>
+      <div class="t1">ไม่มี Rule</div>
+      <div class="t2">Baseline</div>
+    </div>
+    <div class="card a1">
+      <div class="id mono">A1</div>
+      <div class="t1">20 Rules</div>
+      <div class="t2">โหลดตลอดเวลา</div>
+    </div>
+    <div class="card a2">
+      <div class="id mono">A2</div>
+      <div class="t1">20 Rules เดิม</div>
+      <div class="t2">4 Skills · โหลดตามเงื่อนไข</div>
+    </div>
+    <div class="card a3">
+      <div class="id mono">A3</div>
+      <div class="t1">ยาวเท่า A1</div>
+      <div class="t2">ไม่มี Rule</div>
+    </div>
+    <div class="card">
+      <div class="id mono">A4</div>
+      <div class="t1">เหมือน A2</div>
+      <div class="t2">+ คำสั่งล่อ</div>
+    </div>
+  </div>
+
+  <!-- annotation under A3 -->
+  <div class="grid under-row">
+    <div class="under-a3">
+      <div class="stem"></div>
+      <div class="head">คุมผลของความยาว Context</div>
+      <div class="sub mono">ความยาว ≈ A1 (1.098×)</div>
+    </div>
+  </div>
+
+  <!-- fixed factors -->
+  <div class="strip">
+    ทุกกลุ่ม: <b>Model เดียวกัน</b> · <b>Tools 7 ชนิด</b> · <b>Seed เดียวกัน</b> · <b>Temperature 1</b> · <b>≤ 50 turns</b>
+  </div>
+
+</body>
+</html>

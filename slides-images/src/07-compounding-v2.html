@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1600px; height: 560px; overflow: hidden; background: #141519; }
+  body {
+    color: #e8e9ec;
+    font-family: 'Leelawadee UI', 'Segoe UI', Tahoma, sans-serif;
+    padding: 34px 48px 30px;
+  }
+  .mono { font-family: 'Cascadia Mono', Consolas, monospace; }
+  h1 { font-size: 35px; line-height: 1.15; letter-spacing: .1px; }
+  .sub { color: #aeb5c1; font-size: 18px; margin-top: 8px; }
+  .sub b { color: #e8b84a; font-weight: 700; }
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 86px 1fr;
+    align-items: stretch;
+    gap: 20px;
+    margin-top: 23px;
+  }
+  .card {
+    border: 1.5px solid #3e444e;
+    border-radius: 8px;
+    background: #202329;
+    padding: 21px 27px 18px;
+  }
+  .card.unreliable { border-color: #bf6464; }
+  .card.reliable { border-color: #73c981; }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; }
+  .card h2 { font-size: 26px; }
+  .unreliable h2, .unreliable .result { color: #ff8a8a; }
+  .reliable h2, .reliable .result { color: #80da8f; }
+  .state { color: #aeb5c1; font-size: 18px; }
+  .matrix { display: grid; grid-template-columns: 92px repeat(4, 1fr); gap: 7px; margin-top: 17px; }
+  .matrix .round { color: #8b919c; font-size: 15px; text-align: center; }
+  .task { color: #c7ccd4; font-size: 17px; display: flex; align-items: center; }
+  .cell {
+    height: 39px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid #383e47; border-radius: 4px; font-size: 21px; font-weight: 700;
+  }
+  .pass { color: #7dd487; background: #1b3023; border-color: #3e7650; }
+  .fail { color: #ff8989; background: #321f22; border-color: #804147; }
+  .result { font-size: 21px; font-weight: 700; margin-top: 16px; }
+  .explain { color: #c7ccd4; font-size: 17px; margin-top: 4px; }
+  .arrow { display: flex; align-items: center; justify-content: center; color: #aeb5c1; font-size: 44px; }
+  .footer {
+    margin-top: 18px; text-align: center; color: #d8dde6; font-size: 20px;
+    border-top: 1px solid #373c45; padding-top: 15px;
+  }
+  .footer b { color: #9ec7f0; }
+</style>
+</head>
+<body>
+  <h1>ค่าเฉลี่ยเท่ากัน ≠ ความน่าเชื่อถือในการใช้งานเท่ากัน</h1>
+  <p class="sub">ตัวอย่างเชิงแนวคิด: ทั้งสองแบบผ่านเฉลี่ย <b>75%</b> เท่ากัน</p>
+
+  <section class="compare" aria-label="เปรียบเทียบความสม่ำเสมอของผลลัพธ์">
+    <article class="card unreliable">
+      <div class="card-head"><h2>แบบ A · ผ่านไม่สม่ำเสมอ</h2><span class="state">ทุกงานมีวันพลาด</span></div>
+      <div class="matrix">
+        <div></div><div class="round">รอบ 1</div><div class="round">รอบ 2</div><div class="round">รอบ 3</div><div class="round">รอบ 4</div>
+        <div class="task">งาน 1</div><div class="cell pass">✓</div><div class="cell fail">✕</div><div class="cell pass">✓</div><div class="cell pass">✓</div>
+        <div class="task">งาน 2</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell fail">✕</div><div class="cell pass">✓</div>
+        <div class="task">งาน 3</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell fail">✕</div>
+        <div class="task">งาน 4</div><div class="cell fail">✕</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell pass">✓</div>
+      </div>
+      <p class="result mono">pass^k = 0 / 4</p>
+      <p class="explain">คาดเดาไม่ได้ว่ารอบนี้งานไหนจะพลาด</p>
+    </article>
+
+    <div class="arrow" aria-hidden="true">≠</div>
+
+    <article class="card reliable">
+      <div class="card-head"><h2>แบบ B · ผ่านสม่ำเสมอ</h2><span class="state">รู้ขอบเขตงานที่ใช้ได้</span></div>
+      <div class="matrix">
+        <div></div><div class="round">รอบ 1</div><div class="round">รอบ 2</div><div class="round">รอบ 3</div><div class="round">รอบ 4</div>
+        <div class="task">งาน 1</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell pass">✓</div>
+        <div class="task">งาน 2</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell pass">✓</div>
+        <div class="task">งาน 3</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell pass">✓</div><div class="cell pass">✓</div>
+        <div class="task">งาน 4</div><div class="cell fail">✕</div><div class="cell fail">✕</div><div class="cell fail">✕</div><div class="cell fail">✕</div>
+      </div>
+      <p class="result mono">pass^k = 3 / 4</p>
+      <p class="explain">รู้ว่างานใดใช้ได้ และงานใดควรหลีกเลี่ยง</p>
+    </article>
+  </section>
+
+  <p class="footer"><b>pass^k</b> แยกผลลัพธ์สองแบบนี้ออก แม้ค่าเฉลี่ยจะเท่ากัน</p>
+</body>
+</html>

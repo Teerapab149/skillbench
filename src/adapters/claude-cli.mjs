@@ -113,7 +113,17 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
                                      // 300 วินาทีสั้นเกินไป: smoke test จริง A0=211s A1=161s A2=301s
                                      // A2 ถูกฆ่าคาที่ 301s -> ไม่มี result event -> finalMessage ว่าง
                                      // กฎที่ตรวจจากข้อความตอบเลยตกหมด ทั้งที่เอเจนต์ทำงานถูกต้อง
-                                     timeoutMs = 900000, model = 'claude-opus-5' }) {
+                                     timeoutMs = 900000, model }) {
+  /*
+   * โมเดลต้องอ่านจาก fixedFactors ไม่ใช่ default parameter
+   *
+   * เดิมบรรทัดนี้เขียน `model = 'claude-opus-5'` เป็น default parameter ซึ่งไม่มี call site
+   * ไหนส่ง model เข้ามาเลย — ค่าใน config/arms.json จึงไม่เคยถูกอ่าน (รูปแบบเดียวกับ
+   * ข้อบกพร่องที่ 1 และกรณี maxTurns ด้านล่าง) ถ้าใครแก้ config เป็นโมเดลอื่นแล้วรัน
+   * จะได้ Opus ต่อไปเงียบๆ แต่ meta ของไฟล์ผลเขียนชื่อโมเดลใหม่ — dataset ที่ metadata
+   * โกหกตัวเอง
+   */
+  model = model ?? fixedFactors?.model ?? 'claude-opus-5';
   const cwd = path.resolve(workspace);
 
   // ติดตั้ง "สภาพ context" ของ arm — ตัวแปรต้นเดียวของการทดลองทั้งหมดอยู่ตรงนี้
