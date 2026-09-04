@@ -21,6 +21,7 @@ import { fileURLToPath } from 'node:url';
 import { makeRng } from './stats.mjs';
 import { gradeRun } from './graders.mjs';
 import { runMock } from './adapters/mock.mjs';
+import { queryCliVersion, manifestPath, freezeManifest, loadManifest, validateRuntime, experimentDigest } from './runtime-manifest.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -28,6 +29,18 @@ function argv(flag, dflt) {
   const i = process.argv.indexOf(flag);
   return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : dflt;
 }
+
+/*
+ * ไฟล์นี้ต้องรันเมื่อถูกเรียกเป็นสคริปต์เท่านั้น ห้ามรันเพราะถูก import
+ *
+ * เพิ่มหลังเจอของจริง 4 ก.ย. 2569: การ import เพื่อตรวจว่าโมดูลโหลดผ่านไหม
+ * ไปเรียก main() เข้า แล้วมันรัน mock 1100 run จนจบ ทับ results/latest.json
+ * กับ rules-long.csv ด้วยข้อมูลปลอม (กู้คืนจาก graded-*.json ที่เก็บไว้แล้ว)
+ *
+ * ตระกูลเดียวกับข้อบกพร่องที่ 23 เป๊ะ — เครื่องมือเขียนทับข้อมูลของตัวเองโดยไม่มีใครสั่ง
+ */
+const RUN_AS_SCRIPT = process.argv[1]
+  && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 
 function shuffle(arr, rnd) {
   const a = [...arr];
@@ -47,6 +60,16 @@ async function main() {
   const maxRetries = parseInt(argv('--max-retries', '5'), 10);
   const maxTurnsOverride = argv('--max-turns', '');
   const modelOverride = argv('--model', '');
+
+  /*
+   * --stop-after-rep: หยุดหลังทำครบรอบที่ระบุ โดย "เป้าหมาย" ยังเป็น reps เต็มเหมือนเดิม
+   *
+   * มีไว้สำหรับประตูตรวจสภาพที่ rep 0 โดยเฉพาะ ถ้าใช้ `--reps 1` แล้วค่อยเปลี่ยนเป็น
+   * `--reps 6` ทีหลัง signature จะไม่ตรงกัน (reps อยู่ใน signature) -> checkpoint คนละไฟล์
+   * -> rep 0 กลายเป็นข้อมูลกำพร้าและต้องเก็บใหม่ทั้ง 55 run
+   * flag นี้จึงไม่แตะ signature เลย แค่ break ออกจากลูปเมื่อทำถึงรอบที่กำหนด
+   */
+  const stopAfterRep = argv('--stop-after-rep', '') === '' ? null : parseInt(argv('--stop-after-rep', ''), 10);
 
   const config = JSON.parse(fs.readFileSync(path.join(ROOT, configPath), 'utf8'));
   // เพดาน turn เป็นตัวแปรควบคุม การเปลี่ยนค่าทำให้ข้อมูลเทียบกับชุดเดิมไม่ได้
@@ -86,6 +109,24 @@ async function main() {
 
   const total = reps * scenarios.length * arms.length;
   // ลายเซ็นของการทดลอง — ใช้กัน checkpoint ของคนละชุดมาปนกัน
+  const cliVersion = adapterName === 'claude-cli' ? queryCliVersion() : 'mock';
+
+  /*
+   * signature กับ manifest ทำหน้าที่คนละอย่าง และการสลับที่กันคือกับดัก
+   *
+   *   signature = "ปุ่มที่คนตั้งใจหมุนเอง"     -> เปลี่ยนแล้วต้องได้ dataset ใหม่ (แยก checkpoint)
+   *   manifest  = "สิ่งที่ drift ใต้เท้าเราได้"  -> เปลี่ยนแล้วต้อง **หยุดตาย** ไม่ใช่แยก dataset
+   *
+   * ⚠️ แก้เมื่อ 4 ก.ย. 2569 (รอบสอง) — ก่อนหน้านี้เอา cliVersion ใส่ signature ซึ่ง
+   * **ทำตรงข้ามกับที่ตั้งใจ**: พอ CLI อัปเดตตัวเองตอนตีสาม sigHash เปลี่ยน ->
+   * ckptPath/mfPath เปลี่ยนชื่อ -> loadManifest คืน null -> แช่แข็ง manifest ใหม่ ->
+   * validateRuntime ผ่านฉลุย แล้ว **เริ่มเก็บ dataset ชุดใหม่เงียบๆ** ตื่นมาเจอสองก้อนคนละครึ่ง
+   * ด่านตรวจ CLI version ที่เขียนไว้จึงไม่มีทางได้ทำงานเลยแม้แต่ครั้งเดียว
+   *
+   * เวอร์ชัน CLI จึงย้ายไปอยู่ใน manifest อย่างเดียว และหลักการเดียวกันใช้กับ
+   * digest ของไฟล์ arm/scenario/กฎ/grader ด้วย — ถ้าใส่ใน signature การแก้ไฟล์ระหว่างทาง
+   * จะกลายเป็น "เริ่มชุดใหม่เงียบๆ" แบบเดียวกัน
+   */
   const signature = JSON.stringify({ adapterName, reps, masterSeed, configPath,
                                      maxTurns: config.fixedFactors?.maxTurns ?? 25,
                                      // โมเดลต้องอยู่ใน signature — ไม่งั้น resume ข้ามโมเดลจะนับ
@@ -97,7 +138,17 @@ async function main() {
   if (adapterName === 'mock') console.log('  [SIMULATION] ตัวเลขที่ได้เป็นของปลอม ใช้ตรวจ pipeline เท่านั้น');
   console.log('');
 
-  const outDirEarly = path.join(ROOT, 'results');
+  /*
+   * --out: เขียนผลลงที่อื่นแทน results/
+   *
+   * เพิ่มหลังเกิดของจริง 4 ก.ย. 2569 — การรัน mock เพื่อตรวจ pipeline เขียนทับ
+   * results/latest.json กับ rules-long.csv ด้วยข้อมูลปลอม (กู้คืนจาก graded-*.json ได้)
+   * การตรวจ pipeline ต้องไม่แตะโฟลเดอร์เดียวกับข้อมูลจริงตั้งแต่แรก
+   */
+  const outDirEarly = path.resolve(ROOT, argv('--out', 'results'));
+  if (adapterName === 'mock' && path.basename(outDirEarly) === 'results') {
+    console.log('  ⚠️  รัน mock ลง results/ โดยตรง — ข้อมูลจำลองจะปนกับข้อมูลจริง แนะนำให้ใส่ --out');
+  }
   fs.mkdirSync(outDirEarly, { recursive: true });
 
   /*
@@ -116,14 +167,71 @@ async function main() {
    */
   const sigHash = crypto.createHash('sha256').update(signature).digest('hex').slice(0, 12);
   const ckptPath = path.join(outDirEarly, `checkpoint-${sigHash}.json`);
+  const mfPath = manifestPath(outDirEarly, sigHash);
+  // digest ของไฟล์ที่นิยามการทดลอง — เทียบกับ manifest ทุก run เพื่อจับการแก้ไฟล์ระหว่างทาง
+  const expDigest = experimentDigest(ROOT);
+  let manifest = loadManifest(mfPath);
+  let startedNewExperiment = false;
+  if (manifest) {
+    console.log(`  manifest ที่ตรึงไว้: CLI ${manifest.cliVersion} · tool ${manifest.toolset.length} ตัว · baseline skill ${manifest.baselineSkills.length} ตัว`);
 
-  // ย้ายของเดิม: ถ้ายังไม่มีไฟล์ตาม signature แต่มี checkpoint.json เก่าที่ signature ตรงกัน
-  // ให้ใช้ต่อได้ตามปกติ — อ่านอย่างเดียว ไม่เขียนทับพาธเก่าอีกต่อไป
+    /*
+     * pre-flight — สิ่งที่รู้ได้ "ก่อน" ยิง run แรก ต้องหยุดตั้งแต่ตรงนี้
+     *
+     * validateRuntime ตรวจหลัง run จบ ซึ่งแปลว่าถ้า CLI อัปเดตตัวเองข้ามคืน
+     * เราจะเสีย run ไปหนึ่งตัว (และเงิน/โควตาของมัน) ก่อนจะรู้ตัว
+     * เวอร์ชัน CLI กับ digest ของไฟล์การทดลอง รู้ได้ก่อนทั้งคู่ จึงตรวจตรงนี้เลย
+     */
+    const preflight = [];
+    if (manifest.cliVersion && manifest.cliVersion !== cliVersion) {
+      preflight.push(`เวอร์ชัน CLI เปลี่ยนไปจากที่ตรึงไว้: ${cliVersion} != ${manifest.cliVersion}`);
+    }
+    if (manifest.experimentDigest && manifest.experimentDigest !== expDigest.combined) {
+      const changed = Object.keys(expDigest.files)
+        .filter((f) => manifest.experimentFiles?.[f] !== expDigest.files[f]);
+      preflight.push(`ไฟล์ที่นิยามการทดลองถูกแก้หลังเริ่มเก็บข้อมูล — เปลี่ยน ${changed.length} ไฟล์: ${changed.slice(0, 6).join(', ')}${changed.length > 6 ? ' …' : ''}`);
+    }
+    if (preflight.length) {
+      console.error('\n  ⛔ สภาพไม่ตรงกับ manifest ที่ตรึงไว้ — หยุดก่อนเริ่ม run แม้แต่ตัวเดียว\n');
+      for (const x of preflight) console.error(`     - ${x}`);
+      console.error('\n  ทางเลือกมีสองทาง และทั้งคู่ต้องเป็นการตัดสินใจของคน ไม่ใช่ของสคริปต์:');
+      console.error('    1) ทำให้สภาพกลับไปตรงกับ manifest (ปักหมุดเวอร์ชัน CLI เดิม / คืนไฟล์ที่แก้)');
+      console.error('    2) ประกาศว่านี่คือการทดลองชุดใหม่ แล้วเริ่ม dataset ใหม่ด้วย --new-experiment');
+      console.error('       (ชุดเดิมยังอยู่ครบ ไม่ถูกเขียนทับ — แต่ห้ามเอาสองชุดมารวมกันวิเคราะห์)\n');
+      if (!process.argv.includes('--new-experiment')) { process.exitCode = 1; return; }
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const retired = mfPath.replace(/\.json$/, `.retired-${stamp}.json`);
+      fs.renameSync(mfPath, retired);
+      if (fs.existsSync(ckptPath)) fs.renameSync(ckptPath, ckptPath.replace(/\.json$/, `.retired-${stamp}.json`));
+      console.error(`  --new-experiment: ปลดระวางชุดเดิมไปที่ ${path.basename(retired)} แล้วเริ่มใหม่\n`);
+      // ตั้ง manifest เป็น null พอ — checkpoint ถูกเปลี่ยนชื่อไปแล้ว ขั้นตอนโหลดด้านล่าง
+      // จะไม่พบไฟล์และเริ่มนับจากศูนย์เอง ไม่ต้องยุ่งกับ artifacts/graded ที่ยังไม่ถูกประกาศตรงนี้
+      manifest = null;
+      startedNewExperiment = true;
+    }
+  }
+
+  /*
+   * checkpoint รูปแบบเก่า (พาธเดียวตายตัว) — อ่านต่อได้ แต่ห้ามชุบชีวิตข้ามการทดลอง
+   *
+   * ⚠️ ช่องโหว่ที่ปิดเมื่อ 4 ก.ย. 2569 (รอบสาม): `--new-experiment` เปลี่ยนชื่อ checkpoint
+   * ที่ผูกกับ signature ไปแล้ว แต่โค้ดยัง fallback ไป `results/checkpoint.json`
+   * ซึ่ง **มีอยู่จริงในเครื่องนี้** (1.9 MB ลงวันที่ 10 ส.ค.)
+   * ผลคือคำสั่งที่แปลว่า "เริ่มชุดใหม่" จะไปดูด run ของการทดลองเก่ากลับเข้ามาแทน
+   * — ตรงข้ามกับเจตนาของ flag ทุกประการ
+   *
+   * เมื่อประกาศเริ่มชุดใหม่ ต้องเริ่มจากศูนย์จริง ๆ ไม่มีข้อยกเว้น
+   */
   const legacyPath = path.join(outDirEarly, 'checkpoint.json');
-  const readFrom = fs.existsSync(ckptPath) ? ckptPath
-    : (fs.existsSync(legacyPath) ? legacyPath : null);
-  if (resume && readFrom === legacyPath) {
-    console.log('  พบ checkpoint.json รูปแบบเก่า — จะอ่านต่อแต่บันทึกลงไฟล์ใหม่ตาม signature');
+  let readFrom = null;
+  if (startedNewExperiment) {
+    console.log('  เริ่มการทดลองชุดใหม่ — ไม่อ่าน checkpoint ใด ๆ ทั้ง hashed และรูปแบบเก่า');
+  } else {
+    readFrom = fs.existsSync(ckptPath) ? ckptPath
+      : (fs.existsSync(legacyPath) ? legacyPath : null);
+    if (resume && readFrom === legacyPath) {
+      console.log('  พบ checkpoint.json รูปแบบเก่า — จะอ่านต่อแต่บันทึกลงไฟล์ใหม่ตาม signature');
+    }
   }
 
   /*
@@ -207,7 +315,9 @@ async function main() {
       for (let attempt = 0; ; attempt++) {
         try {
           artifact = await runAgent({ scenario: s, arm: a, repIndex: rep, seed, workspace,
-                                      fixedFactors: config.fixedFactors });
+                                      fixedFactors: config.fixedFactors,
+                                      // ตรวจ auto-memory ว่าง "ก่อน" run โดยใช้พาธที่ manifest ตรึงไว้
+                                      memoryAutoPathHint: manifest?.memoryAutoPath ?? null });
         } catch (e) {
           artifact = { runId, scenarioId: s.id, armId: a.id, repIndex: rep, seed,
                        toolCalls: [], commands: [], filesChanged: [], diff: '', finalMessage: '', loadedSkills: [],
@@ -229,12 +339,67 @@ async function main() {
         break;
       }
 
+      /*
+       * ตรวจสภาพ runtime แบบ fail-closed — run แรกแช่แข็ง manifest ที่เหลือต้องตรงกับมัน
+       *
+       * นี่คือสิ่งที่ขาดไปตลอดและทำให้ตัวแปรควบคุมสามตัวหลุดโดยไม่มีใครรู้
+       * (model ไม่เคยถูกอ่าน / temperature ไม่เคยถูกส่ง / MCP เล็ดลอดผ่าน --tools)
+       * ข้อมูลหลักฐานเคยถูกบันทึกไว้ครบใน artifact อยู่แล้ว แต่ไม่มีใคร assert
+       *
+       * หยุดทั้งชุดเมื่อไม่ผ่าน ไม่ใช่บันทึกแล้วรันต่อ เพราะ run ที่เก็บภายใต้สภาพที่ต่างกัน
+       * เอามารวมเป็น dataset เดียวไม่ได้ และการรู้ทีหลังตอนวิเคราะห์ = เก็บใหม่ทั้งหมด
+       */
+      if (adapterName === 'claude-cli' && !artifact.error) {
+        const initEv = (artifact.rawEvents ?? []).find((e) => e.type === 'system' && e.subtype === 'init');
+        if (!manifest) {
+          if (!initEv) {
+            console.log(`\n\n  ⛔ run แรก (${runId}) ไม่มี system:init — ตรึงสภาพ runtime ไม่ได้ หยุดก่อน\n`);
+            saveCheckpoint();
+            process.exitCode = 1;
+            return;
+          }
+          manifest = freezeManifest({
+            file: mfPath, init: initEv, cliVersion, digest: expDigest,
+            declared: { model: config.fixedFactors?.model, maxTurns: config.fixedFactors?.maxTurns,
+                        toolset: [...new Set([...(config.fixedFactors?.toolset ?? []), 'Skill'])] },
+          });
+          console.log(`\n  แช่แข็ง manifest จาก run แรก -> ${path.basename(mfPath)}`);
+          console.log(`    CLI ${manifest.cliVersion} · tool ${manifest.toolset.length} · baseline skill ${manifest.baselineSkills.length} · auth ${manifest.apiKeySource}`);
+          console.log(`    digest ของไฟล์การทดลอง ${manifest.experimentDigest}`);
+        }
+        const violations = validateRuntime({
+          init: initEv, toolCalls: artifact.toolCalls, arm: a, manifest,
+          // คำนวณ digest ใหม่ "ทุก run" ไม่ใช่ครั้งเดียวก่อนลูป — การทดลองหลักกินเวลา ~38 ชม.
+          // ถ้าคำนวณครั้งเดียว การแก้ไฟล์ arm ระหว่างทางจะไม่ถูกจับจนกว่าจะ restart
+          digest: experimentDigest(ROOT),
+          memoryStateBefore: artifact.control?.memoryStateBefore,
+          memoryStateAfter: artifact.control?.memoryStateAfter,
+        });
+        if (violations.length) {
+          saveCheckpoint();
+          console.log(`\n\n  ⛔ สภาพ runtime ของ ${runId} ไม่ตรงกับ manifest ที่ตรึงไว้ — หยุดทั้งชุด`);
+          for (const x of violations) console.log(`     - ${x}`);
+          console.log(`\n  run นี้ไม่ถูกบันทึกลง dataset · เก็บสำเร็จไปแล้ว ${artifacts.filter((x) => !x.error).length} run`);
+          console.log('  แก้สาเหตุก่อน แล้วค่อย --resume · ถ้าสาเหตุคือ CLI อัปเดตตัวเอง ต้องตัดสินใจว่าจะ');
+          console.log('  ปักหมุดเวอร์ชันเดิมกลับ หรือประกาศเริ่มการทดลองชุดใหม่ — ห้ามรันต่อเฉยๆ\n');
+          process.exitCode = 1;
+          return;
+        }
+      }
+
       artifacts.push(artifact);
       graded.push(gradeRun(artifact, s));
       done++;
       saveCheckpoint();
       const errMark = artifact.error ? ' [error]' : '';
       process.stdout.write(`\r  progress ${done}/${total} (${((done / total) * 100).toFixed(0)}%)${errMark}   `);
+    }
+
+    // ประตูตรวจสภาพ: หยุดหลังครบรอบที่กำหนด โดยไม่แตะ signature (ดูคอมเมนต์ที่ --stop-after-rep)
+    if (stopAfterRep !== null && rep >= stopAfterRep && !sessionLimitHit) {
+      console.log(`\n\n  หยุดตาม --stop-after-rep ${stopAfterRep} (เป้าหมายเต็มยังเป็น ${reps} รอบ)`);
+      console.log('  checkpoint เดิมใช้ต่อได้ — สั่งคำสั่งเดิมพร้อม --resume โดยไม่ต้องแก้ --reps\n');
+      break;
     }
   }
   console.log('\n');
@@ -260,10 +425,10 @@ async function main() {
   }
   fs.writeFileSync(path.join(outDir, 'rules-long.csv'), rows.join('\n'));
 
-  console.log(`  บันทึกที่ results/latest.json (+ graded-${stamp}.json, artifacts, rules-long.csv)`);
+  console.log(`  บันทึกที่ ${path.relative(ROOT, outDir) || "."}/latest.json (+ graded-${stamp}.json, artifacts, rules-long.csv)`);
   console.log(`  ต่อไป: node src/analyze.mjs\n`);
 }
 
 function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+if (RUN_AS_SCRIPT) main().catch((e) => { console.error(e); process.exit(1); });

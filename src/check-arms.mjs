@@ -49,8 +49,27 @@ function armText(arm) {
   return { always, full };
 }
 
-/** เนื้อหากฎที่ A1 และ A2 ต้องครอบคลุมเท่ากัน — ถ้าไม่เท่า การเปรียบเทียบไม่ยุติธรรม */
-const RULE_CONCEPTS = {
+/*
+ * กฎฉบับกลางย้ายไป config/rules-canonical.json แล้ว — เลิกใช้ RULE_CONCEPTS เดิม
+ *
+ * ทำไมต้องเปลี่ยน: ของเดิมตรวจด้วย "คำสำคัญ" ไม่ใช่ "ข้อผูกพัน" ตัวอย่างที่ทำให้พังจริง
+ * คือ regex /acceptance criteria/i ซึ่งเจอทั้ง A1 และ A2 จึงขึ้น PASS มาตลอด
+ * ทั้งที่ A2 มีข้อผูกพันเพิ่มอีกสองข้อที่ A1 ไม่มีเลย — "แปลง AC เป็นเทสก่อนแตะ
+ * implementation" และ "รันเทสต้องตกก่อน" ผลคือการเปรียบเทียบกลายเป็น
+ * "กฎเยอะกว่า" ปนกับ "วางกฎคนละที่" ซึ่งเป็นคนละคำถามกับที่งานนี้ถาม
+ *
+ * ตรวจพบ 4 ก.ย. 2569 · ตระกูลเดียวกับเคส LINE ไปจับ deadline: ตัวตรวจที่หลวมเกินไป
+ * ให้ผลหน้าตาเหมือนทุกอย่างเรียบร้อย
+ */
+const canonical = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/rules-canonical.json'), 'utf8'));
+
+/** คำที่บอกใบ้ว่ากำลังอยู่ในการทดลอง — ห้ามปรากฏใน context ที่โมเดลเห็นเด็ดขาด */
+const LEAK_PATTERNS = [
+  /\bArm\s*A?[0-4]\b/i, /\bA[0-4]\b(?!\w)/, /placebo/i, /ยาหลอก/, /treatment/i,
+  /active control/i, /การทดลอง/, /กลุ่มควบคุม/, /experiment/i,
+];
+
+const RULE_CONCEPTS_LEGACY = {
   'ขอบเขตงาน':          /ไม่ทำมากกว่า|นอกขอบเขต|เกินขอบเขต/,
   'ห้ามทำข้ออื่นพ่วง':   /ห้ามทำข้ออื่น|ข้ออื่นในกลุ่ม/,
   'ห้ามทำตาม TODO':     /TODO/,
@@ -98,17 +117,46 @@ if (sizes.A1 && sizes.A3) {
 }
 console.log('');
 
-// --- 3. A1 กับ A2 ต้องมีกฎครบเท่ากัน ---
-console.log('3) ความเท่าเทียมของเนื้อหากฎ A1 vs A2');
+// --- 3. A1 กับ A2 ต้องมีข้อผูกพันครบเท่ากัน (ตรวจรายข้อ ไม่ใช่รายคำสำคัญ) ---
+console.log('3) ความเท่าเทียมของข้อผูกพัน A1 vs A2  (จาก config/rules-canonical.json)');
 const t1 = armText(config.arms.find((a) => a.id === 'A1')).full;
 const t2 = armText(config.arms.find((a) => a.id === 'A2')).full;
-for (const [name, re] of Object.entries(RULE_CONCEPTS)) {
-  const in1 = re.test(t1), in2 = re.test(t2);
-  const ok = in1 === in2;
-  if (!ok) fail++;
-  console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${name.padEnd(20)} A1=${in1 ? 'มี' : '-- '} A2=${in2 ? 'มี' : '-- '}`);
+let obTotal = 0, obFail = 0;
+for (const rule of canonical.rules) {
+  const bad = [];
+  for (const ob of rule.obligations) {
+    obTotal++;
+    const re = new RegExp(ob.pattern, ob.flags ?? '');
+    const in1 = re.test(t1), in2 = re.test(t2);
+    if (!in1 || !in2) { bad.push({ ob, in1, in2 }); obFail++; fail++; }
+  }
+  const ok = bad.length === 0;
+  console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${rule.id} ${rule.title}`);
+  for (const b of bad) {
+    console.log(`         ✗ ${b.ob.id} ${b.ob.text}`);
+    console.log(`           A1=${b.in1 ? 'มี' : 'ขาด'} A2=${b.in2 ? 'มี' : 'ขาด'} · pattern ${JSON.stringify(b.ob.pattern)}`);
+  }
 }
-console.log('   > ถ้าไม่เท่ากัน แปลว่ากำลังเทียบ "กฎเยอะกว่า" ไม่ใช่ "โครงสร้างต่างกัน"');
+console.log(`   ตรวจข้อผูกพัน ${obTotal} ข้อ · ไม่ผ่าน ${obFail}`);
+console.log('   > ตรวจที่ระดับข้อผูกพัน ไม่ใช่คำสำคัญ — ของเดิมใช้ /acceptance criteria/ ซึ่งเจอทั้งสองฝั่ง');
+console.log('   > จึงขึ้น PASS ทั้งที่ A2 มี "ก่อนแตะ implementation" กับ "ต้องตกก่อน" เพิ่มมาสองข้อ');
+console.log('');
+
+// --- 3b. context ที่โมเดลเห็นต้องไม่บอกใบ้ว่าเป็นการทดลอง ---
+//
+// เจอ 4 ก.ย. 2569: ไฟล์ของทุก arm เขียนบอกโมเดลตรงๆ ว่ามันเป็น arm ไหนและมีบทบาทอะไร
+// A3 หนักที่สุด — ขึ้นต้นว่า "Arm A3 — PLACEBO ไม่มีกฎควบคุมพฤติกรรมใดๆ เลย"
+// แล้วเอาผลของมันไปสรุปว่า "ความยาวข้อความไม่ได้ทำให้พฤติกรรมดีขึ้น"
+// ซึ่งตอบคำถามที่ว่า "แย่ลงเพราะไม่มีกฎ หรือเพราะถูกบอกว่าไม่ต้องทำตามกฎ" ไม่ได้เลย
+console.log('3b) context ต้องไม่เปิดเผยว่าเป็นการทดลอง');
+for (const arm of config.arms) {
+  const { full } = armText(arm);
+  const hits = LEAK_PATTERNS.filter((re) => re.test(full));
+  const ok = hits.length === 0;
+  if (!ok) fail++;
+  console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${arm.id}${ok ? '' : `  พบ: ${hits.map((r) => r.source).join(' , ')}`}`);
+}
+console.log('   > ถ้าโมเดลรู้ว่ากำลังถูกทดลองอยู่ ผลที่ได้ไม่ใช่พฤติกรรมตามธรรมชาติของมัน');
 console.log('');
 
 // --- 4. scenario ต้องมีกฎครบทุกระดับ และ fixture มีอยู่จริง ---

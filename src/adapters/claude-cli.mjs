@@ -14,6 +14,10 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { installArm, uninstallArm } from '../install-arm.mjs';
+import { resolveClaudeBin, memoryDirState } from '../claude-bin.mjs';
+
+// re-export ไว้เพื่อไม่ให้ call site เดิม (สคริปต์ probe) พัง — นิยามจริงย้ายไป claude-bin.mjs แล้ว
+export { resolveClaudeBin };
 
 /**
  * ใส่เครื่องหมายคำพูดให้ argument สำหรับ cmd.exe บน Windows
@@ -32,34 +36,8 @@ function quoteWin(arg) {
   return `"${escaped}"`;
 }
 
-/**
- * หาไฟล์ปฏิบัติการของ claude เพื่อ spawn ตรงโดย "ไม่ผ่าน shell"
- *
- * ทำไมสำคัญ: quoteWin แก้ปัญหาการตัดคำได้ แต่แก้ปัญหา cmd.exe ไม่ได้ทั้งหมด
- * cmd ขยาย %VAR% ให้ก่อนโปรแกรมจะได้รับ argument ซึ่งไม่มีการ quote แบบไหนกันได้
- * ทดสอบแล้ว: prompt ที่มี "%PATH%" กลายเป็น PATH จริงยาวเหยียดส่งเข้าไปแทน
- * โจทย์ในโดเมนนี้มีโอกาสมี % สูง (เช่น "ปัดขึ้น 100%") จึงเป็นระเบิดเวลา
- *
- * ทางออก: claude ที่ติดตั้งผ่าน npm มาพร้อม bin/claude.exe ซึ่งเป็น native binary
- * spawn ตรงด้วย shell:false ได้เลย Node จะ escape ให้ถูกต้องตามกฎ CreateProcess
- * ไม่มี cmd.exe อยู่ในเส้นทาง -> ไม่มีการขยายตัวแปร ไม่มีอักขระพิเศษ
- */
-export function resolveClaudeBin() {
-  if (process.env.SKILLBENCH_CLAUDE_BIN) {
-    return { bin: process.env.SKILLBENCH_CLAUDE_BIN, mode: 'direct', how: 'env' };
-  }
-  if (process.platform !== 'win32') return { bin: 'claude', mode: 'direct', how: 'PATH' };
+// resolveClaudeBin ย้ายไป src/claude-bin.mjs แล้ว (กัน circular import กับ runtime-manifest)
 
-  for (const dir of (process.env.PATH ?? '').split(path.delimiter).filter(Boolean)) {
-    for (const rel of ['claude.exe', 'node_modules/@anthropic-ai/claude-code/bin/claude.exe']) {
-      const p = path.join(dir, rel);
-      if (fs.existsSync(p)) return { bin: p, mode: 'direct', how: 'PATH scan' };
-    }
-  }
-  // หาไม่เจอ — ยอมถอยไปใช้ shell แต่ต้องบันทึกไว้ใน artifact ว่าใช้โหมดไหน
-  // การถอยแบบเงียบๆ คือบั๊กชนิดเดียวกับที่เพิ่งแก้ไป จึงต้องเตือนให้เห็น
-  return { bin: 'claude', mode: 'shell', how: 'fallback' };
-}
 
 function git(cwd, args) {
   try { return execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }); }
@@ -113,7 +91,7 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
                                      // 300 วินาทีสั้นเกินไป: smoke test จริง A0=211s A1=161s A2=301s
                                      // A2 ถูกฆ่าคาที่ 301s -> ไม่มี result event -> finalMessage ว่าง
                                      // กฎที่ตรวจจากข้อความตอบเลยตกหมด ทั้งที่เอเจนต์ทำงานถูกต้อง
-                                     timeoutMs = 900000, model }) {
+                                     timeoutMs = 900000, model, memoryAutoPathHint = null }) {
   /*
    * โมเดลต้องอ่านจาก fixedFactors ไม่ใช่ default parameter
    *
@@ -137,6 +115,16 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
   const claudeBin = resolveClaudeBin();
 
   /*
+   * auto-memory ปิดด้วย flag ไม่ได้โดยไม่ทำอย่างอื่นพัง
+   *   --bare ปิดได้ แต่ปิด CLAUDE.md auto-discovery ไปด้วย ซึ่งคือช่องทางส่ง arm เข้าไป
+   *          และบังคับ auth เป็น ANTHROPIC_API_KEY = เปลี่ยนจาก subscription ไปจ่ายรายโทเคน
+   *   CLAUDE_CONFIG_DIR ย้าย memory ไปที่ชั่วคราวได้จริง แต่ auth พัง — วัดแล้วได้
+   *          "Not logged in" cost 0 โดย subtype ยังเป็น success (ล้มเหลวเงียบ)
+   * จึงต้องตรวจว่ามันว่างแทนการปิด และตรวจ "ก่อน" run เพื่อกันสถานะจาก run ก่อนหน้าข้ามมา
+   */
+  const memoryStateBefore = memoryDirState(memoryAutoPathHint);   // 'unknown' เมื่อยังไม่มี manifest
+
+  /*
    * เพดาน turn ต้องอ่านจาก fixedFactors ไม่ใช่ฝังตายไว้ตรงนี้
    *
    * config/arms.json ประกาศ maxTurns ไว้เป็นตัวแปรควบคุมตั้งแต่ต้น แต่ไม่มีโค้ดอ่านไปใช้
@@ -156,10 +144,36 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
     '--model', model,
     '--max-turns', maxTurns,
     '--permission-mode', 'bypassPermissions',  // ต้องรันใน sandbox/VM เท่านั้น
-    // ล็อกให้เท่ากันทุก arm: อ่านเฉพาะ setting ของโปรเจกต์ ไม่เอาของผู้ใช้
-    // สำคัญ 2 อย่าง (1) skill ส่วนตัวในเครื่องคนรันจะไม่รั่วเข้าไปเป็นตัวแปรกวน
-    // (2) ตัวแปรที่ต่างระหว่าง arm คือ "มีโฟลเดอร์ .claude/skills ไหม" ไม่ใช่ flag ของ CLI
+    /*
+     * ล็อกให้เท่ากันทุก arm: อ่านเฉพาะ setting ของโปรเจกต์ ไม่เอาของผู้ใช้
+     *
+     * ⚠️ แก้คำอธิบายเดิม 4 ก.ย. 2569 — ของเดิมเขียนว่า flag นี้กัน "skill ส่วนตัวในเครื่อง
+     * คนรันไม่ให้รั่วเข้าไปเป็นตัวแปรกวน" ซึ่ง **วัดแล้วพบว่าไม่จริง**
+     * probe: --setting-sources project ยังเห็น skill นอกการทดลอง 18 ตัว
+     * (บันเดิลมากับ CLI 15 + ของผู้ใช้ 3) ทุก arm รวม A0/A1 ที่นิยามว่าไม่มี skill
+     *
+     * เอาออกให้เหลือศูนย์ไม่ได้ด้วย flag ใดเลย: --disable-slash-commands ฆ่า skill ของ arm ไปด้วย
+     * ส่วน CLAUDE_CONFIG_DIR แยกได้จริงแต่ทำ auth พัง (ได้ "Not logged in", cost 0,
+     * แต่ subtype ยังเป็น success — silent failure) จึงรับสภาพและจัดการแบบนี้แทน:
+     *   - เรียกชุดที่เหลือว่า baseline set B แล้วบังคับให้ **เท่ากันทุก arm**
+     *   - ตัวแปรต้นคือส่วนต่าง (A2/A4 = B + 4 skill ของการทดลอง)
+     *   - validateRuntime() บังคับ foreign skill ที่ถูก "เรียกใช้จริง" = 0 ทุก run
+     * ข้อมูลเก่าทั้งชุดสอดคล้องกับข้อนี้: ไม่มี arm ใดเรียก skill นอกการทดลองเลยสักครั้ง
+     */
     '--setting-sources', 'project',
+    /*
+     * ตัวที่ปิดรูรั่วจริง — เพิ่ม 4 ก.ย. 2569
+     *
+     * `--tools` จำกัดได้เฉพาะ tool ในตัว แต่ **tool ของ MCP เล็ดลอดผ่านไปได้**
+     * ตรวจย้อนหลังจาก system:init ที่เก็บไว้: 166 จาก 173 run ได้ MCP tool ติดมาด้วย
+     * จำนวน tool ที่ได้จริงแกว่งอยู่ที่ 31 / 39 / 47 ตัว ทั้งที่ประกาศไว้ 7
+     * และ mcp_servers รายงาน Canva กับ Google Drive สถานะ connected
+     *
+     * `--strict-mcp-config` โดยไม่ส่ง `--mcp-config` = ไม่โหลด MCP จากที่ไหนเลย
+     * วัดผลแล้ว: tool 52 -> 7 เป๊ะ · mcp tool 45 -> 0 · mcp server 2 -> 0
+     * โดย skill ของ arm ยังมาครบ 4 และ apiKeySource ยังเป็น none (subscription)
+     */
+    '--strict-mcp-config',
     // ล็อกชุด tool ให้ตรงกับที่ประกาศใน config/arms.json -> fixedFactors.toolset
     // ใช้ --tools ไม่ใช่ --allowed-tools เพราะ --allowed-tools คุมแค่การขออนุญาต
     // ซึ่งไม่มีผลอยู่แล้วภายใต้ bypassPermissions ตัวที่จำกัดชุด tool จริงคือ --tools
@@ -274,6 +288,10 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
 
   const probesAfter = runProbes(cwd, scenario.probes);
 
+  // event ตัวเดียวที่บอกสภาพ runtime จริง — ต้องดึงเก็บไว้ให้ครบ ไม่ใช่หยิบเฉพาะบางฟิลด์
+  // ของเดิมหยิบแค่ tools กับ apiKeySource ทำให้ MCP ที่ต่ออยู่ไม่เคยถูกมองเห็นเลยทั้งที่มีในนี้
+  const initEv = events.find((e) => e.type === 'system' && e.subtype === 'init') ?? null;
+
   const artifact = {
     runId: `${scenario.id}__${arm.id}__r${repIndex}`,
     scenarioId: scenario.id, armId: arm.id, repIndex, seed,
@@ -302,7 +320,28 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
        *    ที่ ~$1.4/run การรันเต็ม 810 run คือเงินจริงราว $1,100 จึงต้องรู้ก่อนกดรัน
        * 2. เป็นเรื่องการทำซ้ำ: ต้องเขียนลงเล่มว่าเก็บข้อมูลผ่านช่องทางไหน
        */
-      apiKeySource: events.find((e) => e.type === 'system' && e.subtype === 'init')?.apiKeySource ?? null,
+      apiKeySource: initEv?.apiKeySource ?? null,
+
+      /*
+       * สภาพ runtime ที่เหลือ — เพิ่ม 4 ก.ย. 2569 หลังพบว่า MCP กับ skill นอกการทดลอง
+       * เข้ามาได้โดยไม่มีอะไรบันทึกหรือเตือน ทุกฟิลด์ต่อจากนี้มีไว้ให้ validateRuntime() ตรวจ
+       * และให้ตรวจย้อนหลังได้ว่า run นั้นอยู่ในสภาพที่ประกาศไว้จริง
+       */
+      strictMcpConfig: true,
+      mcpServers: (initEv?.mcp_servers ?? []).map((s) => s.name),
+      skillsAvailable: initEv?.skills ?? null,
+      claudeCodeVersion: initEv?.claude_code_version ?? null,
+      modelReported: initEv?.model ?? null,      // โมเดลที่ CLI บอกว่าใช้จริง เทียบกับที่สั่งไป
+      memoryAutoPath: initEv?.memory_paths?.auto ?? null,
+      /*
+       * เก็บสองค่า เพราะ run แรกยังไม่รู้พาธจนกว่าจะเห็น init
+       *   before = ตรวจก่อน spawn ด้วยพาธจาก manifest (run ที่ 2 เป็นต้นไป)
+       *   after  = ตรวจหลังจบด้วยพาธที่ init บอก — ใช้เป็นด่านของ run แรก
+       * ทั้งคู่เป็น 'empty' | 'nonempty' | 'unreadable' | 'unknown' ไม่ใช่ boolean
+       * เพราะ "อ่านไม่ได้" ต้องหยุด ไม่ใช่ถูกกลืนเป็น "ว่าง"
+       */
+      memoryStateBefore,
+      memoryStateAfter: memoryDirState(initEv?.memory_paths?.auto ?? null),
     },
     probes: { before: probesBefore, after: probesAfter },
     usage: {
