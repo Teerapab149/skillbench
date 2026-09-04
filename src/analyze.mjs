@@ -65,21 +65,65 @@ const mean = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : NaN);
  * และเมื่อระบุแล้ว รายงานจะถูกประทับหัวไว้ว่าเป็นฉบับไม่ครบ ห้ามนำไปอ้างเป็นผล
  */
 const ALLOW_PARTIAL = process.argv.includes('--partial');
-const expectedCells = (meta.reps ?? 0) * armIds.length * scenIds.length;
-const usableCells = graded.length;
-const completeness = expectedCells ? usableCells / expectedCells : NaN;
-const missingCells = Math.max(0, expectedCells - usableCells);
 
-if (expectedCells && usableCells < expectedCells) {
+/*
+ * ตรวจ "เมทริกซ์" ไม่ใช่ "จำนวนรวม"
+ *
+ * ⚠️ ของเดิมเทียบแค่ graded.length กับ reps x arms x scenarios ซึ่งผ่านได้ทั้งที่ข้อมูลพัง:
+ * ชุดที่มี cell หนึ่งซ้ำสองครั้งและอีก cell หายไป จะได้ยอดรวมเท่าเดิมเป๊ะ
+ * แล้ว pairedCompare จะจับคู่ผิดโดยไม่มีอะไรเตือน (Map ทับกันเงียบ ๆ ที่คีย์ scenario#rep)
+ *
+ * ต้อง assert ว่าทุก (scenario, arm, rep) มี "หนึ่งรายการพอดี" ไม่ใช่อย่างน้อยหนึ่ง
+ */
+function auditMatrix() {
+  const seen = new Map();
+  for (const g of graded) {
+    const k = `${g.scenarioId}|${g.armId}|${g.rep}`;
+    seen.set(k, (seen.get(k) ?? 0) + 1);
+  }
+  const missing = [], duplicated = [];
+  for (const s of scenIds) for (const a of armIds) for (let r = 0; r < (meta.reps ?? 0); r++) {
+    const k = `${s}|${a}|${r}`;
+    const n = seen.get(k) ?? 0;
+    if (n === 0) missing.push(k);
+    else if (n > 1) duplicated.push(`${k} x${n}`);
+  }
+  // cell ที่อยู่ในข้อมูลแต่ไม่อยู่ในเมทริกซ์ที่ประกาศ (เช่น rep เกิน meta.reps)
+  const declared = new Set();
+  for (const s of scenIds) for (const a of armIds) for (let r = 0; r < (meta.reps ?? 0); r++) declared.add(`${s}|${a}|${r}`);
+  const unexpected = [...seen.keys()].filter((k) => !declared.has(k));
+  return { missing, duplicated, unexpected, expected: declared.size, present: seen.size };
+}
+
+const matrix = auditMatrix();
+const expectedCells = matrix.expected;
+const usableCells = graded.length;
+const completeness = expectedCells ? (expectedCells - matrix.missing.length) / expectedCells : NaN;
+const missingCells = matrix.missing.length;
+const matrixBroken = matrix.duplicated.length > 0 || matrix.unexpected.length > 0;
+
+const show = (list, n = 8) => list.slice(0, n).join(', ') + (list.length > n ? ` … อีก ${list.length - n}` : '');
+
+if (matrixBroken) {
+  // ข้อนี้ --partial ก็ข้ามไม่ได้ — ซ้ำหรือเกินแปลว่าข้อมูลผิดรูป ไม่ใช่แค่เก็บไม่ครบ
+  console.error('\n⛔ เมทริกซ์ข้อมูลผิดรูป — ไม่ใช่แค่ไม่ครบ');
+  if (matrix.duplicated.length) console.error(`   cell ซ้ำ ${matrix.duplicated.length}: ${show(matrix.duplicated)}`);
+  if (matrix.unexpected.length) console.error(`   cell นอกเมทริกซ์ที่ประกาศ ${matrix.unexpected.length}: ${show(matrix.unexpected)}`);
+  console.error('   การจับคู่ราย scenario#rep จะทับกันเงียบ ๆ ผลที่ได้เชื่อไม่ได้ · --partial ข้ามข้อนี้ไม่ได้\n');
+  process.exit(2);
+}
+
+if (missingCells) {
   const pct = (completeness * 100).toFixed(1);
   if (!ALLOW_PARTIAL) {
-    console.error(`\n⛔ ข้อมูลไม่ครบ: ใช้ได้ ${usableCells} จาก ${expectedCells} cell (${pct}%) ขาด ${missingCells}`);
+    console.error(`\n⛔ ข้อมูลไม่ครบ: มี ${expectedCells - missingCells} จาก ${expectedCells} cell (${pct}%) ขาด ${missingCells}`);
+    console.error(`   cell ที่ขาด: ${show(matrix.missing)}`);
     console.error('   การวิเคราะห์ถูกปฏิเสธ เพราะรายงานจากข้อมูลไม่ครบหน้าตาเหมือนรายงานฉบับสมบูรณ์ทุกประการ');
     console.error('   ถ้าตั้งใจดูผลระหว่างทางจริง ให้ใส่ --partial (รายงานจะถูกประทับว่าไม่ครบ)');
     console.error('   ⚠ ผลจาก --partial ห้ามนำไปอ้างในเล่มหรือบนสไลด์\n');
     process.exit(2);
   }
-  console.error(`\n⚠  โหมด --partial: ${usableCells}/${expectedCells} cell (${pct}%) — ห้ามอ้างเป็นผล\n`);
+  console.error(`\n⚠  โหมด --partial: ขาด ${missingCells}/${expectedCells} cell (${pct}%) — ห้ามอ้างเป็นผล\n`);
 }
 
 // ---------- 1. ตารางหลัก: metric ต่อ arm พร้อม 95% CI ----------
@@ -219,14 +263,15 @@ if (meta.simulated) {
 p(`- เวลา: ${meta.stamp} | adapter: \`${meta.adapter}\` | repetitions: ${meta.reps} | seed: ${meta.masterSeed}`);
 p(`- โจทย์: ${scenIds.length} | arms: ${armIds.join(', ')} | จำนวน run รวม: ${graded.length}`);
 if (ALLOW_PARTIAL && missingCells) {
-  p(`> ⛔ **รายงานฉบับไม่ครบ — ${usableCells}/${expectedCells} cell (${(completeness * 100).toFixed(1)}%) ขาด ${missingCells}**`);
+  p(`> ⛔ **รายงานฉบับไม่ครบ — ขาด ${missingCells} จาก ${expectedCells} cell (มี ${(completeness * 100).toFixed(1)}%)**`);
   p('> สร้างด้วย `--partial` สำหรับดูสถานะระหว่างทางเท่านั้น **ห้ามอ้างตัวเลขในเอกสารนี้เป็นผล**');
+  p(`> cell ที่ขาด: \`${show(matrix.missing, 12)}\``);
   p('');
 }
 p(`- **Primary endpoint (ประกาศล่วงหน้า): ${meta.primaryEndpoint?.metric} — ${meta.primaryEndpoint?.comparison}**`);
 p(`- **สถิติหลัก: exact paired sign-flip ที่ระดับ scenario** · CI: cluster bootstrap`);
 p(`- McNemar exact ระดับ run = **sensitivity analysis** ไม่ใช่ผลหลัก`);
-p(`- ความครบของข้อมูล: ${usableCells}/${expectedCells || '?'} cell`);
+p(`- ความครบของข้อมูล: ${expectedCells - missingCells}/${expectedCells || '?'} cell · ทุก (scenario, arm, rep) มีหนึ่งรายการพอดี · run ทั้งหมด ${usableCells}`);
 p('');
 
 p('## 1. ตัวชี้วัดหลักต่อ arm (พร้อม 95% CI)');
@@ -366,29 +411,67 @@ if (grandTotal.length) {
 
 p('## 6. การเปรียบเทียบแบบจับคู่');
 p('');
-p('### 6.1 PRIMARY — exact paired sign-flip ที่ระดับ scenario');
+/*
+ * ⚠️ แก้เมื่อ 4 ก.ย. 2569 — ของเดิมติดป้าย PRIMARY ให้ทุกคู่และทั้ง CRIT/SCOPE
+ *
+ * pre-registration ประกาศ primary ไว้ตัวเดียวคือ `CRIT` ของ A2 เทียบ A1
+ * การพิมพ์คำว่า PRIMARY บนตารางที่มี 10 แถวสร้างความกำกวมเรื่อง multiplicity ทันที
+ * และเปิดช่องให้ใครก็ตาม (รวมทั้งตัวเราเองตอนเขียนเล่ม) หยิบแถวที่ p สวยที่สุดมาเล่า
+ * ทั้งที่ยังไม่มีการคุม alpha ให้แถวอื่นเลย
+ */
+const PRIMARY = { armA: 'A2', armB: 'A1', metric: 'CRIT' };
+const hasPrimary = armIds.includes(PRIMARY.armA) && armIds.includes(PRIMARY.armB);
+
+p('### 6.1 PRIMARY — `CRIT` · A2 เทียบ A1 · exact paired sign-flip ที่ระดับ scenario');
 p('');
+p('> **ตารางนี้มีแถวเดียวโดยเจตนา** — pre-registration ประกาศ primary endpoint ไว้ตัวเดียว');
 p('> หน่วยข้อมูลคือ **scenario** ไม่ใช่ run · ผลต่างคือค่าเฉลี่ยรายโจทย์ · CI จาก cluster bootstrap');
 p('> ประกาศไว้ใน `PRE-REGISTRATION.md` §1 (Amendment 4)');
 p('');
-p('| เปรียบเทียบ | metric | A | B | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | **p (sign-flip)** |');
+if (!hasPrimary) {
+  p('**ข้อมูลชุดนี้ไม่มีทั้ง A1 และ A2 จึงไม่มี primary endpoint ให้รายงาน**');
+  p('');
+} else {
+  const r = pairedCompare(PRIMARY.armA, PRIMARY.armB, PRIMARY.metric);
+  p('| เปรียบเทียบ | metric | A2 | A1 | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | **p (sign-flip)** |');
+  p('|---|---|---|---|---|---|---:|---|');
+  p(`| **A2 vs A1** | **CRIT** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
+  p('');
+  if (r.unmatched.length) {
+    p(`> ⚠️ โจทย์ที่มีข้อมูลข้างเดียวจึงถูกตัดออก (matched cells เท่านั้น): ${r.unmatched.join(', ')}`);
+    p('');
+  }
+  if (r.signFlip.k < scenIds.length) {
+    p(`> ⚠️ ใช้ ${r.signFlip.k} จาก ${scenIds.length} โจทย์ — k ที่ลดลงกระทบ power โดยตรง`);
+    p('');
+  }
+}
+
+p('### 6.2 SECONDARY / EXPLORATORY — ไม่มีการคุม alpha');
+p('');
+p('> **ทุกแถวในตารางนี้ไม่ใช่ผลหลัก** และไม่ได้ถูกปรับค่าวิกฤตสำหรับการทดสอบหลายครั้ง');
+p('> `RCR` เป็น co-primary ที่ทดสอบต่อเมื่อ primary มีนัยสำคัญ (fixed-sequence) — ดูหัวข้อแยกต่างหาก');
+p('> ห้ามหยิบ p ที่เล็กที่สุดจากตารางนี้มาเล่าเป็นข้อค้นพบ');
+p('');
+p('| เปรียบเทียบ | metric | A | B | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | p (sign-flip) |');
 p('|---|---|---|---|---|---|---:|---|');
 for (const [x, y] of COMPARISONS) {
   for (const m of ['CRIT', 'SCOPE']) {
+    if (hasPrimary && x === PRIMARY.armA && y === PRIMARY.armB && m === PRIMARY.metric) continue;  // อยู่ใน 6.1 แล้ว
     const r = pairedCompare(x, y, m);
-    p(`| ${x} vs ${y} | ${m} | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
+    p(`| ${x} vs ${y} | ${m} | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | ${fmtP(r.signFlip.p)} |`);
   }
 }
 p('');
 {
   const anyUnmatched = COMPARISONS.map(([x, y]) => pairedCompare(x, y, 'CRIT')).filter((r) => r.unmatched.length);
   if (anyUnmatched.length) {
-    p('> ⚠️ **มีโจทย์ที่มีข้อมูลข้างเดียว จึงถูกตัดออกจาก primary** (matched cells เท่านั้น):');
+    p('> ⚠️ โจทย์ที่มีข้อมูลข้างเดียวถูกตัดออกจากทุกการเปรียบเทียบ (matched cells เท่านั้น):');
     for (const r of anyUnmatched) p(`> - ${r.armA} vs ${r.armB}: ${r.unmatched.join(', ')}`);
     p('');
   }
 }
-p('### 6.2 SENSITIVITY — McNemar exact ระดับ run');
+p('### 6.3 SENSITIVITY — McNemar exact ระดับ run');
 p('');
 p('> **ไม่ใช่ผลหลัก** run ในโจทย์เดียวกันไม่เป็นอิสระต่อกัน (`ICC` วัดได้ 0.335 บน Opus)');
 p('> การนับ b/c จาก run ทั้งหมดจึงให้ CI แคบเกินจริง รายงานไว้เพื่อความโปร่งใส ไม่ใช่เพื่อตัดสิน');

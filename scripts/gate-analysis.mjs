@@ -143,14 +143,49 @@ step('analyze วิ่งจนจบ และรายงานตรงก�
   const txt = fs.readFileSync(report, 'utf8');
   const must = [
     ['หัวข้อ PRIMARY เป็น sign-flip ระดับ scenario', /PRIMARY.*sign-flip.*scenario/s],
+    ['PRIMARY ระบุว่าเป็น CRIT ของ A2 เทียบ A1', /PRIMARY —.*CRIT.*A2 เทียบ A1/s],
     ['มีคอลัมน์ p ของ sign-flip', /p \(sign-flip\)/],
+    ['มีหัวข้อ SECONDARY / EXPLORATORY แยกต่างหาก', /### 6\.2 SECONDARY \/ EXPLORATORY/],
+    ['SECONDARY ระบุว่าไม่มีการคุม alpha', /ไม่มีการคุม alpha/],
     ['McNemar ถูกระบุเป็น SENSITIVITY', /SENSITIVITY.*McNemar/s],
     ['ระบุชัดว่า McNemar ไม่ใช่ผลหลัก', /ไม่ใช่ผลหลัก/],
-    ['ระบุความครบของข้อมูล', /ความครบของข้อมูล/],
+    ['ระบุความครบของข้อมูลระดับ cell', /ทุก \(scenario, arm, rep\) มีหนึ่งรายการพอดี/],
   ];
   const missing = must.filter(([, re]) => !re.test(txt)).map(([n]) => n);
   if (missing.length) throw new Error(`รายงานไม่ตรงกับแผน: ${missing.join(' · ')}`);
-  return `report.md ${txt.length} ตัวอักษร · assert เนื้อหา ${must.length} ข้อ`;
+
+  /*
+   * ตารางของ 6.1 ต้องมี "แถวข้อมูลเดียว" — ถ้าเผลอกลับไปพิมพ์ทุกคู่ลงตาราง primary
+   * ความกำกวมเรื่อง multiplicity จะกลับมาทันทีโดยที่ข้อความข้างบนยังดูถูกต้องอยู่
+   */
+  const sec61 = txt.split('### 6.2')[0].split('### 6.1')[1] ?? '';
+  const dataRows = sec61.split('\n').filter((l) => /^\|/.test(l) && !/^\|\s*-+/.test(l) && !/เปรียบเทียบ \| metric/.test(l));
+  if (dataRows.length !== 1) throw new Error(`ตาราง PRIMARY ต้องมีแถวข้อมูลเดียว แต่มี ${dataRows.length}`);
+  return `report.md ${txt.length} ตัวอักษร · assert เนื้อหา ${must.length} ข้อ · PRIMARY มีแถวเดียว`;
+});
+
+/*
+ * cell ซ้ำหนึ่งตัว + ขาดหนึ่งตัว ให้ยอดรวมเท่าเดิมเป๊ะ — ด่านที่นับแต่ยอดรวมจึงมองไม่เห็น
+ * และ pairedCompare จะจับคู่ผิดเงียบ ๆ เพราะ Map ทับกันที่คีย์ scenario#rep
+ */
+step('analyze ปฏิเสธเมทริกซ์ผิดรูป (cell ซ้ำ) แม้ใส่ --partial', () => {
+  const full = JSON.parse(fs.readFileSync(path.join(tmp, 'latest.json'), 'utf8'));
+  const g = [...full.graded];
+  const victim = g.findIndex((x) => x.runId !== g[0].runId);
+  g[victim] = { ...g[0] };                       // ทำให้ cell แรกซ้ำ และ cell ของ victim หายไป
+  const f = path.join(tmp, 'dupe.json');
+  fs.writeFileSync(f, JSON.stringify({ meta: full.meta, graded: g }));
+  if (g.length !== full.graded.length) throw new Error('เตรียมข้อมูลผิด — ยอดรวมต้องเท่าเดิม');
+
+  for (const extra of [[], ['--partial']]) {
+    let rejected = false;
+    try {
+      execFileSync(process.execPath, ['src/analyze.mjs', '--in', f, '--out', path.join(tmp, 'dupe-out'), ...extra],
+        { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+    } catch { rejected = true; }
+    if (!rejected) throw new Error(`เมทริกซ์ซ้ำแต่ analyze ยังออกรายงาน (${extra.join(' ') || 'ไม่มี flag'})`);
+  }
+  return 'ปฏิเสธทั้งแบบมีและไม่มี --partial';
 });
 
 step('analyze ปฏิเสธข้อมูลไม่ครบ เว้นแต่ระบุ --partial', () => {
