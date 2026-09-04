@@ -18,10 +18,12 @@
     "regrade": "node scripts/regrade.mjs",
     "fixture:test": "node --test \"fixtures/gpu-booking/tests/*.test.ts\"",
     "test": "node --test \"tests/*.test.mjs\"",
-    "gate": "node src/check-arms.mjs && node scripts/check-spec.mjs && node scripts/gate-analysis.mjs",
+    "gate": "node src/check-arms.mjs && node scripts/check-spec.mjs && node scripts/make-arms-explained.mjs && node scripts/gate-analysis.mjs",
     "probe:runtime": "node scripts/probe-runtime.mjs",
     "gate0": "node src/runner.mjs --adapter claude-cli --reps 6 --stop-after-rep 0 --resume",
-    "main": "node src/runner.mjs --adapter claude-cli --reps 6 --resume"
+    "main": "node src/runner.mjs --adapter claude-cli --reps 6 --resume",
+    "arms:doc": "node scripts/make-arms-explained.mjs",
+    "arms:dump": "node scripts/dump-arm.mjs"
   },
   "engines": {
     "node": ">=18"
