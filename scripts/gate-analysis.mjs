@@ -150,6 +150,11 @@ step('analyze วิ่งจนจบ และรายงานตรงก�
     ['McNemar ถูกระบุเป็น SENSITIVITY', /SENSITIVITY.*McNemar/s],
     ['ระบุชัดว่า McNemar ไม่ใช่ผลหลัก', /ไม่ใช่ผลหลัก/],
     ['ระบุความครบของข้อมูลระดับ cell', /ทุก \(scenario, arm, rep\) มีหนึ่งรายการพอดี/],
+    ['มี TOST A1 vs A3 พร้อม margin ที่ประกาศไว้', /### 6\.4 TOST[\s\S]*±0\.1 CRIT/],
+    ['TOST เตือนว่าไม่มีนัยสำคัญ != เท่ากัน', /"ไม่มีนัยสำคัญ" ไม่เท่ากับ "เท่ากัน"/],
+    ['มี H4 แบบ cluster-aware', /### 6\.5 H4[\s\S]*ระดับ scenario/],
+    ['H4 ระบุว่ารายงานไม่ว่าผลออกทางไหน', /reportRegardlessOfOutcome/],
+    ['มี A4 แยก exposed / not exposed', /### 6\.6 A4[\s\S]*not exposed/],
   ];
   const missing = must.filter(([, re]) => !re.test(txt)).map(([n]) => n);
   if (missing.length) throw new Error(`รายงานไม่ตรงกับแผน: ${missing.join(' · ')}`);

@@ -16,6 +16,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   passHatK, exactSignFlipTest, mcnemarExact, wilson, iccOneWay, designEffect, clusterBootstrapDiff,
+  tostFromCI,
 } from '../src/stats.mjs';
 
 // ---------- passHatK ----------
@@ -131,4 +132,53 @@ test('cluster bootstrap: ใช้เฉพาะ cluster ที่มีทั�
   const r = clusterBootstrapDiff(A, B, { iters: 200 });
   assert.equal(r.clusters, 2, 'S9 ที่มีข้างเดียวต้องไม่ถูกนับ');
   assert.equal(r.diff, 1);
+});
+
+// ---------- TOST (equivalence) ----------
+
+test('TOST: CI แคบและอยู่ในกรอบ -> equivalent', () => {
+  const r = tostFromCI({ lo: -0.04, hi: 0.05, margin: 0.10 });
+  assert.equal(r.verdict, 'equivalent');
+});
+
+test('TOST: CI กว้างกว่ากรอบ -> inconclusive ไม่ใช่ equivalent', () => {
+  // นี่คือกับดักหลักของงานนี้ — "ไม่มีนัยสำคัญ" ไม่เท่ากับ "เท่ากัน"
+  const r = tostFromCI({ lo: -0.20, hi: 0.18, margin: 0.10 });
+  assert.equal(r.verdict, 'inconclusive');
+});
+
+test('TOST: CI คร่อมศูนย์แต่ล้นกรอบข้างเดียว -> inconclusive', () => {
+  const r = tostFromCI({ lo: -0.02, hi: 0.15, margin: 0.10 });
+  assert.equal(r.verdict, 'inconclusive');
+});
+
+test('TOST: CI อยู่นอกกรอบทั้งช่วง -> different', () => {
+  const r = tostFromCI({ lo: 0.12, hi: 0.30, margin: 0.10 });
+  assert.equal(r.verdict, 'different');
+});
+
+test('TOST: ขอบพอดี margin ต้องไม่นับว่า equivalent', () => {
+  const r = tostFromCI({ lo: -0.10, hi: 0.10, margin: 0.10 });
+  assert.notEqual(r.verdict, 'equivalent');
+});
+
+test('TOST: ไม่มี CI -> inconclusive ไม่ใช่ตัดสินมั่ว', () => {
+  assert.equal(tostFromCI({ lo: NaN, hi: NaN, margin: 0.10 }).verdict, 'inconclusive');
+});
+
+// ---------- matched cells ----------
+
+test('cluster bootstrap: cluster ที่มีชื่อทั้งสองฝั่งแต่ข้างหนึ่งว่าง ต้องไม่ถูกนับ', () => {
+  const A = { S1: [1, 1], S2: [1, 1] };
+  const B = { S1: [0, 0], S2: [] };
+  const r = clusterBootstrapDiff(A, B, { iters: 200 });
+  assert.equal(r.clusters, 1, 'S2 ที่ว่างข้างหนึ่งต้องถูกตัด');
+  assert.equal(r.diff, 1);
+});
+
+test('cluster bootstrap: conf 0.90 ต้องให้ช่วงแคบกว่า 0.95', () => {
+  const A = { S1: [1, 0], S2: [1, 1], S3: [0, 1], S4: [1, 0] };
+  const B = { S1: [0, 0], S2: [1, 0], S3: [0, 0], S4: [0, 1] };
+  const w = (c) => { const r = clusterBootstrapDiff(A, B, { iters: 3000, conf: c }); return r.hi - r.lo; };
+  assert.ok(w(0.90) <= w(0.95), `90% ควรแคบกว่าหรือเท่า 95% (${w(0.90)} vs ${w(0.95)})`);
 });

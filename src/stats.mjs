@@ -138,6 +138,32 @@ export function exactSignFlipTest(diffs) {
   return { p: atLeastAsExtreme / total, k, observed, permutations: total };
 }
 
+/**
+ * TOST (two one-sided tests) — ทดสอบ "ความเท่ากัน" ไม่ใช่ "ความต่าง"
+ *
+ * ทำไมงานนี้ต้องมี: `METRICS.md` ประกาศว่า A1 ≈ A3 คือข้อค้นพบที่แรงที่สุดของงาน
+ * แต่ superiority test ตอบคำถามนั้นไม่ได้เลย — **"ไม่มีนัยสำคัญ" ไม่เท่ากับ "เท่ากัน"**
+ * ผลที่ไม่มีนัยสำคัญเกิดได้จากทั้งการไม่มีผลจริง และการมี power ไม่พอ ซึ่งแยกกันไม่ออก
+ *
+ * วิธีที่ใช้: เทียบช่วงความเชื่อมั่นกับ margin ที่ประกาศล่วงหน้า (±0.10 CRIT)
+ * TOST ที่ alpha = 0.05 เทียบเท่ากับการดูว่า **CI 90%** ตกอยู่ในกรอบ margin ทั้งช่วงหรือไม่
+ * จึงส่ง CI 90% จาก cluster bootstrap เข้ามา ไม่ใช่ 95% ที่ใช้รายงานทั่วไป
+ *
+ * สามผลลัพธ์ ไม่ใช่สอง — "สรุปไม่ได้" เป็นคำตอบที่ถูกต้องและต้องรายงานตามนั้น
+ */
+export function tostFromCI({ lo, hi, margin }) {
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) {
+    return { verdict: 'inconclusive', reason: 'ไม่มีช่วงความเชื่อมั่นให้ตัดสิน' };
+  }
+  const inside = lo > -margin && hi < margin;
+  if (inside) return { verdict: 'equivalent', reason: `CI 90% [${lo.toFixed(3)}, ${hi.toFixed(3)}] อยู่ในกรอบ ±${margin}` };
+  // ต่างกันจริงเกิน margin ทั้งช่วง — คนละเรื่องกับ "กว้างเกินจะสรุป"
+  if (lo >= margin || hi <= -margin) {
+    return { verdict: 'different', reason: `CI 90% [${lo.toFixed(3)}, ${hi.toFixed(3)}] อยู่นอกกรอบ ±${margin} ทั้งช่วง` };
+  }
+  return { verdict: 'inconclusive', reason: `CI 90% [${lo.toFixed(3)}, ${hi.toFixed(3)}] กว้างกว่ากรอบ ±${margin} — power ไม่พอจะสรุปว่าเท่ากัน` };
+}
+
 /** xorshift128 PRNG — เพื่อให้ผล bootstrap reproducible จาก seed */
 export function makeRng(seed = 42) {
   let x = seed >>> 0 || 1, y = 362436069, z = 521288629, w = 88675123;
@@ -157,8 +183,11 @@ export function makeRng(seed = 42) {
  * ที่ถูกคือ resample scenario (cluster) แล้วเอาทุก run ในนั้นมาด้วย
  */
 export function clusterBootstrapDiff(clustersA, clustersB, { iters = 5000, seed = 42, conf = 0.95 } = {}) {
-  const keys = Object.keys(clustersA).filter((k) => k in clustersB);
-  if (keys.length === 0) return { diff: NaN, lo: NaN, hi: NaN };
+  // matched cells เท่านั้น — cluster ที่มีชื่ออยู่ทั้งสองฝั่งแต่ข้างใดข้างหนึ่งว่าง ไม่ใช่คู่ที่เทียบได้
+  // ถ้าไม่กรองความยาวด้วย ค่าเฉลี่ยรวมจะถูกดึงโดยฝั่งที่มีข้อมูลมากกว่าโดยไม่มีใครเห็น
+  const keys = Object.keys(clustersA)
+    .filter((k) => k in clustersB && (clustersA[k]?.length ?? 0) > 0 && (clustersB[k]?.length ?? 0) > 0);
+  if (keys.length === 0) return { diff: NaN, lo: NaN, hi: NaN, clusters: 0 };
   const rnd = makeRng(seed);
   const mean = (arr) => arr.reduce((s, v) => s + v, 0) / arr.length;
   const pooled = (ks, src) => mean(ks.flatMap((k) => src[k]));
