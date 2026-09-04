@@ -18,8 +18,12 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { installArm, uninstallArm, BASELINE_TAG } from '../src/install-arm.mjs';
+import { refuseIfCollecting } from './collection-guard.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// สคริปต์นี้ติดตั้ง arm ลง fixture จริง ห้ามชนกับการเก็บข้อมูลที่กำลังเดินอยู่
+refuseIfCollecting(ROOT, 'dump-arm');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
 const FIXTURE = path.join(ROOT, 'fixtures/gpu-booking');
 

@@ -11,8 +11,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyInstall } from './install-arm.mjs';
+import { refuseIfCollecting } from '../scripts/collection-guard.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// ข้อ 5 ของสคริปต์นี้ติดตั้ง arm ลง fixture จริง ห้ามชนกับการเก็บข้อมูลที่กำลังเดินอยู่
+refuseIfCollecting(ROOT, 'check-arms');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
 
 /** ประมาณจำนวน token แบบหยาบ — ไทยราว 1 token ต่อ 2 อักขระ, อังกฤษราว 1 ต่อ 4 */
