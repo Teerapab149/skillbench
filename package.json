@@ -23,7 +23,8 @@
     "gate0": "node src/runner.mjs --adapter claude-cli --reps 6 --stop-after-rep 0 --resume",
     "main": "node src/runner.mjs --adapter claude-cli --reps 6 --resume",
     "arms:doc": "node scripts/make-arms-explained.mjs",
-    "arms:dump": "node scripts/dump-arm.mjs"
+    "arms:dump": "node scripts/dump-arm.mjs",
+    "gate:rep0": "node scripts/gate-rep0.mjs"
   },
   "engines": {
     "node": ">=18"
