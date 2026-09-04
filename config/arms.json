@@ -1,5 +1,5 @@
 {
-  "_note": "แต่ละ arm คือ 'สภาพ context' ที่ต่างกัน ตัวแปรอื่นต้องล็อกให้เหมือนกันหมด (model, temperature, tool set, fixture, seed)",
+  "_note": "แต่ละ arm คือ 'สภาพ context' ที่ต่างกัน ตัวแปรอื่นต้องล็อกให้เหมือนกันหมด (model, maxTurns, tool set, fixture, seed, สภาพ runtime) · การล็อกไม่ใช่การประกาศ — ทุกตัวต้องถูก assert ราย run โดย src/runtime-manifest.mjs มิฉะนั้นจะเกิดซ้ำแบบ model/temperature/toolset ที่ประกาศไว้แล้วไม่เคยมีผลจริง",
   "arms": [
     {
       "id": "A0",
@@ -62,9 +62,9 @@
   ],
   "fixedFactors": {
     "_note": "ตัวแปรควบคุม — ต้องเขียนลงรายงานทุกตัว มิฉะนั้นผลทำซ้ำไม่ได้",
-    "model": "claude-opus-5",
-    "_modelNote": "ค่านี้อยู่มาตั้งแต่ commit แรกโดยไม่มีบันทึกเหตุผล — Amendment 2 (12 ส.ค. 2569) ประกาศให้เลือกโมเดลของการทดลองหลักจาก calibration คู่: A1@50 บน claude-sonnet-5 อีก 55 run เทียบกับชุด Opus ที่มี ด้วยเกณฑ์ตายตัวใน PRE-REGISTRATION.md หัวข้อ 9 (จำนวนโจทย์ในโซน 0.15–0.85 > จำนวนโจทย์ชนพื้น > ต้นทุน) · แรงจูงใจ: 4/11 โจทย์ชนเพดานบน Opus · ห้ามแก้ค่านี้จนกว่าจะประกาศ Amendment 2.1 · รัน calibration ข้ามโมเดลด้วย --model ไม่ต้องแก้ไฟล์นี้ · หมายเหตุ: ก่อน 12 ส.ค. ค่านี้ไม่เคยถูกโค้ดอ่านเลย (adapter ฝัง default เอง — แก้แล้ว และ model เข้า checkpoint signature แล้ว)",
-    "temperature": 1,
+    "model": "claude-sonnet-5",
+    "_modelNote": "ล็อกเป็น claude-sonnet-5 เมื่อ 4 ก.ย. 2569 = Amendment 2.1 · ยกเลิกขั้นตอนเลือกโมเดลด้วย calibration คู่ที่ Amendment 2 ประกาศไว้ และยกเลิก probe 33 run · เหตุผล: (1) งบเวลาเหลือ 14 วันถึงวันนำเสนอ การประกวดโมเดลกิน 1-2 วันโดยไม่เพิ่ม power ให้ผลหลัก (2) แรงจูงใจเดิมยังอยู่ครบ — calibration บน Opus พบ 4 จาก 11 โจทย์ชนเพดาน ซึ่งทำให้ CRIT ไม่มีที่ให้กฎช่วยใน 36% ของโจทย์ (3) คำถามวิจัยมีความหมายที่สุดกับโมเดลที่ยังมีที่ให้กฎช่วย · ประกาศก่อนเก็บข้อมูลเปรียบเทียบแม้แต่ run เดียว · ข้อมูล Opus เดิมทั้ง 64 run เป็น development/calibration evidence เท่านั้น ห้ามรวมกับผลหลักไม่ว่ากรณีใด · ICC = 0.335 ที่วัดจาก Opus ใช้เป็นค่าวางแผนได้เท่านั้น ไม่ใช่ค่ารับรอง power ของ Sonnet ต้องวัดใหม่จากชุดนี้",
+    "_temperatureRemoved": "ลบ `temperature: 1` ออกเมื่อ 4 ก.ย. 2569 — ค่านี้ไม่เคยถูกส่งไปที่ CLI เลย (grep ทั้ง runner และ adapter ไม่พบ) และ Claude Code CLI ไม่มี flag สำหรับตั้ง temperature ให้ตั้งแต่แรก การประกาศไว้เป็น 'ตัวแปรควบคุม' จึงเป็นคำอ้างที่ไม่มีอะไรรองรับ · ตระกูลเดียวกับ `model` ที่ไม่เคยถูกอ่าน (เจอ 12 ส.ค.) และ `toolset` ที่ MCP เล็ดลอดผ่าน (เจอ 4 ก.ย.) · สิ่งที่ต้องเขียนลงเล่มแทนคือ: การสุ่มของโมเดลเป็นค่าตั้งต้นของ CLI ควบคุมไม่ได้ และนั่นคือเหตุผลที่ต้องรันหลายรอบต่อโจทย์แล้วรายงาน pass^k",
     "maxTurns": 50,
     "_maxTurnsNote": "ขึ้นจาก 25 เป็น 50 เมื่อ 10 ส.ค. 2569 ก่อนเก็บข้อมูลหลัก · เหตุผล: A2 ใช้ turn มากกว่า A1 ใน 4 จาก 5 โจทย์ที่เทียบได้ (sign test p = 0.125 ยังไม่ถึงนัยสำคัญ) แต่ถ้าตัวกวนมีจริง run ที่ชนเพดานจะถูกตัดออกก่อนวิเคราะห์ ซึ่งเลือกตัดเฉพาะ run ที่ A2 ทำงานละเอียดที่สุด แล้วดันผลไปทาง 'ไม่ต่างกัน' เสมอ · ต้นทุนของการขึ้นเพดานเกือบเป็นศูนย์เพราะ run ที่ไม่ชนใช้ทรัพยากรเท่าเดิม จึงเลือกป้องกันไว้ก่อนโดยไม่รอ p < 0.05 · ที่ 50 ไม่มี run ใดชนเลย (A2 ใช้สูงสุด 41 turn) · ข้อมูล A1 ที่เก็บด้วยเพดาน 25 ใช้ร่วมกับการทดลองหลักไม่ได้ ต้องเก็บใหม่ · หมายเหตุ: ตัวเลข 'A2 ชน 2/3' ที่เคยบันทึกไว้มาจาก pilot รอบแรกซึ่งข้อมูลดิบถูกเขียนทับไปแล้วด้วยข้อบกพร่องที่ 23 จึงไม่นำมาอ้างอิงอีก",
     "toolset": [
@@ -75,17 +75,23 @@
       "Glob",
       "Grep"
     ],
-    "_toolsetNote": "บังคับจริงด้วย --tools ตอนเรียก CLI (ไม่ใช่ --allowed-tools ซึ่งคุมแค่การขออนุญาต และไม่มีผลภายใต้ bypassPermissions) ถ้าไม่บังคับ CLI จะเปิดให้ 31 ตัวรวม Task/WebSearch/Workflow ซึ่งทำให้คนอื่นทำซ้ำไม่ได้",
+    "_toolsetNote": "บังคับด้วย --tools ร่วมกับ --strict-mcp-config · ⚠️ แก้คำอธิบายเดิม 4 ก.ย. 2569: ข้อความเก่าอ้างว่า --tools อย่างเดียวบังคับได้จริง ซึ่งผิด — ตรวจย้อนหลังจาก system:init ที่เก็บไว้ในทุก artifact พบว่า tool ของ MCP เล็ดลอดผ่าน --tools ไปได้ 166 จาก 173 run ได้ MCP tool ติดมาด้วย และจำนวน tool ที่ได้จริงแกว่งอยู่ที่ 31/39/47 ตัวทั้งที่ประกาศไว้ 7 · หลักฐานอยู่ใน control.toolsGranted มาตลอดแต่ไม่มีใคร assert · เพิ่ม --strict-mcp-config แล้ววัดผลได้ tool 52 -> 7 เป๊ะ, mcp tool 45 -> 0, mcp server 2 -> 0 โดย skill ของ arm ยังครบและ auth ยังเป็น subscription · ตอนนี้ทุก run ถูก assert ด้วย validateRuntime() และไม่ผ่าน = หยุดทั้งชุด",
     "_skillToolNote": "ตัว Skill ถูกเติมเข้าไปให้ทุก arm เท่ากัน แม้ arm ที่ไม่มีไฟล์ skill — ถ้าให้เฉพาะ A2/A4 ชุด tool จะกลายเป็นตัวแปรที่ต่างกันอีกตัว แล้วแยกไม่ออกว่าผลมาจากโครงสร้างกฎหรือจากการมี tool มากกว่า",
-    "settingSources": "project (ล็อกเท่ากันทุก arm — กัน skill ส่วนตัวในเครื่องคนรันรั่วเข้ามาเป็นตัวแปรกวน)",
+    "settingSources": "project (ล็อกเท่ากันทุก arm)",
+    "_settingSourcesNote": "⚠️ แก้คำอธิบายเดิม 4 ก.ย. 2569: ข้อความเก่าอ้างว่า flag นี้กัน skill ส่วนตัวรั่วเข้ามา ซึ่งวัดแล้วไม่จริง — ทุก arm รวม A0/A1 ที่นิยามว่าไม่มี skill ยังเห็น skill นอกการทดลอง 18 ตัว (บันเดิลมากับ CLI 15 + ของผู้ใช้ 3) · เอาออกให้เหลือศูนย์ไม่ได้: --disable-slash-commands ฆ่า skill ของ arm ไปด้วย ส่วน CLAUDE_CONFIG_DIR แยกได้จริงแต่ทำ auth พัง (ได้ 'Not logged in' cost 0 โดย subtype ยังเป็น success) · จึงนิยามชุดนี้เป็น baseline set B แล้วบังคับให้เท่ากันทุก arm ตัวแปรต้นคือส่วนต่าง (A2/A4 = B + 4 skill ของการทดลอง) · validateRuntime() บังคับเพิ่มว่า skill นอกการทดลองที่ถูกเรียกใช้จริงต้องเป็น 0 ทุก run · ข้อมูลชุดเดิมสอดคล้อง: ไม่มี arm ใดเรียก skill นอกการทดลองเลยสักครั้ง และ A0/A1/A3/A4 ไม่เรียก Skill เลย",
     "workspaceReset": "git checkout -- . && git clean -fd ก่อนทุก run",
     "runOrder": "randomized block — สลับลำดับ arm ในแต่ละ repetition กัน drift ของ API"
   },
   "primaryEndpoint": {
     "metric": "CRIT",
     "comparison": "A2 vs A1",
-    "test": "McNemar exact (จับคู่ด้วย scenarioId#rep ไม่ใช่ค่า seed — ดู analyze.mjs pairedCompare)",
+    "clusterUnit": "scenario",
+    "test": "exact paired sign-flip (permutation) บนผลต่างค่าเฉลี่ย CRIT ราย scenario — stats.mjs exactSignFlipTest",
+    "interval": "cluster bootstrap 95% CI ที่ระดับ scenario — stats.mjs clusterBootstrapDiff",
+    "sensitivityAnalysis": "McNemar exact ระดับ run (stats.mjs mcnemarExact) — รายงานควบคู่เสมอ แต่ไม่ใช่ primary",
     "declaredOn": "2026-08-09",
+    "revisedOn": "2026-09-04",
+    "_revisionWhy": "ของเดิมประกาศ McNemar ระดับ run เป็น primary ซึ่งขัดกับ PRE-REGISTRATION.md ที่เขียนไว้แล้วว่าหน่วยวิเคราะห์คือ scenario (n = k โจทย์ ไม่ใช่ k×m run) · run ในโจทย์เดียวกันไม่เป็นอิสระต่อกัน (ICC = 0.335) การนับ b/c จาก run ทั้งหมดจึงเป็นการเคลม information ที่ไม่มีอยู่ และให้ CI แคบเกินจริง · การแก้ครั้งนี้ทำให้ config, PRE-REGISTRATION.md, METRICS.md และ analyze.mjs พูดตรงกันเป็นครั้งแรก · ไม่มีตัวชี้วัดใดถูกทิ้ง McNemar ย้ายไปเป็น sensitivity",
     "supersedes": "RCR",
     "_see": "PRE-REGISTRATION.md — ลำดับชั้นแบบ fixed-sequence: CRIT -> RCR (gated) -> passHatK",
     "_why": "McNemar และ requiredNPerArm ที่ประกาศไว้ล่วงหน้าเป็นเครื่องมือของผลลัพธ์ทวิภาค RCR เป็นเศษส่วนต่อเนื่องจึงไม่เคยเข้ากันกับแผนวิเคราะห์เดิม"

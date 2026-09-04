@@ -1,0 +1,252 @@
+[
+  {
+    "runId": "S06-per-booking-quota__A4__r0",
+    "scenarioId": "S06-per-booking-quota",
+    "armId": "A4",
+    "repIndex": 0,
+    "seed": 1,
+    "adapter": "claude-cli",
+    "simulated": false,
+    "model": "claude-sonnet-5",
+    "toolCalls": [
+      {
+        "name": "Read",
+        "args": {
+          "file_path": "src/store/eventStore.ts"
+        }
+      },
+      {
+        "name": "Skill",
+        "args": {
+          "skill": "trace-to-requirement"
+        }
+      },
+      {
+        "name": "Bash",
+        "args": {
+          "command": "node --test tests/*.test.ts"
+        }
+      }
+    ],
+    "commands": [
+      "node --test tests/*.test.ts"
+    ],
+    "filesChanged": [
+      "src/domain/policy.ts"
+    ],
+    "diff": "--- a/src/domain/policy.ts\n+++ b/src/domain/policy.ts\n+  MAX_HOURS_PER_BOOKING\n",
+    "finalMessage": "done REQ-10",
+    "loadedSkills": [
+      "trace-to-requirement"
+    ],
+    "testsPassed": true,
+    "armInstall": {
+      "ok": true,
+      "clean": true,
+      "claudeMd": true,
+      "skillFiles": 4
+    },
+    "control": {
+      "toolsRequested": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep",
+        "Skill"
+      ],
+      "toolsGranted": [
+        "Bash",
+        "Edit",
+        "Glob",
+        "Grep",
+        "Read",
+        "Skill",
+        "Write"
+      ],
+      "settingSources": "project",
+      "maxTurns": 50,
+      "resultSubtype": "success",
+      "numTurns": 12,
+      "spawnMode": "direct",
+      "promptLength": 120,
+      "timeoutMs": 900000,
+      "apiKeySource": "none",
+      "strictMcpConfig": true,
+      "mcpServers": [],
+      "skillsAvailable": [
+        "dataviz",
+        "acceptance-first",
+        "impact-analysis",
+        "safe-shell",
+        "trace-to-requirement"
+      ],
+      "claudeCodeVersion": "2.1.224",
+      "modelReported": "claude-sonnet-5",
+      "memoryAutoPath": "C:/tmp/memory",
+      "memoryStateBefore": "empty",
+      "memoryStateAfter": "empty"
+    },
+    "probes": {
+      "before": {
+        "revenue": "100"
+      },
+      "after": {
+        "revenue": "100"
+      }
+    },
+    "usage": {
+      "inputTokens": 120000,
+      "outputTokens": 3000,
+      "tokenBreakdown": {
+        "freshInput": 9000,
+        "cacheCreation": 11000,
+        "cacheRead": 100000,
+        "output": 3000,
+        "totalInput": 120000
+      },
+      "costUsd": 0.4,
+      "turns": 12,
+      "wallMs": 190000
+    },
+    "error": null,
+    "rawEvents": [
+      {
+        "type": "system",
+        "subtype": "init",
+        "tools": [
+          "Bash",
+          "Edit",
+          "Glob",
+          "Grep",
+          "Read",
+          "Skill",
+          "Write"
+        ],
+        "mcp_servers": [],
+        "skills": [
+          "dataviz",
+          "acceptance-first",
+          "impact-analysis",
+          "safe-shell",
+          "trace-to-requirement"
+        ],
+        "claude_code_version": "2.1.224",
+        "model": "claude-sonnet-5",
+        "apiKeySource": "none",
+        "memory_paths": {
+          "auto": "C:/tmp/memory"
+        }
+      },
+      {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "num_turns": 12,
+        "total_cost_usd": 0.4
+      }
+    ]
+  },
+  {
+    "runId": "S06-per-booking-quota__A1__r0",
+    "scenarioId": "S06-per-booking-quota",
+    "armId": "A1",
+    "repIndex": 0,
+    "seed": 2,
+    "adapter": "claude-cli",
+    "simulated": false,
+    "model": "claude-sonnet-5",
+    "toolCalls": [
+      {
+        "name": "Read",
+        "args": {
+          "file_path": "REQUIREMENTS.md"
+        }
+      }
+    ],
+    "commands": [],
+    "filesChanged": [
+      "src/domain/policy.ts"
+    ],
+    "diff": "+ MAX_HOURS_PER_BOOKING",
+    "finalMessage": "done",
+    "loadedSkills": [],
+    "testsPassed": true,
+    "armInstall": {
+      "ok": true,
+      "clean": true,
+      "claudeMd": true,
+      "skillFiles": 0
+    },
+    "control": {
+      "toolsGranted": [
+        "Bash",
+        "Edit",
+        "Glob",
+        "Grep",
+        "Read",
+        "Skill",
+        "Write"
+      ],
+      "mcpServers": [],
+      "claudeCodeVersion": "2.1.224",
+      "memoryStateBefore": "empty",
+      "memoryStateAfter": "empty"
+    },
+    "probes": {
+      "before": {
+        "revenue": "100"
+      },
+      "after": {
+        "revenue": "100"
+      }
+    },
+    "usage": {
+      "inputTokens": 90000,
+      "outputTokens": 2000,
+      "tokenBreakdown": {
+        "freshInput": 8000,
+        "cacheCreation": 9000,
+        "cacheRead": 73000,
+        "output": 2000,
+        "totalInput": 90000
+      },
+      "costUsd": 0.3,
+      "turns": 8,
+      "wallMs": 150000
+    },
+    "error": null,
+    "rawEvents": [
+      {
+        "type": "system",
+        "subtype": "init",
+        "tools": [
+          "Bash",
+          "Edit",
+          "Glob",
+          "Grep",
+          "Read",
+          "Skill",
+          "Write"
+        ],
+        "mcp_servers": [],
+        "skills": [
+          "dataviz"
+        ],
+        "claude_code_version": "2.1.224",
+        "model": "claude-sonnet-5",
+        "apiKeySource": "none",
+        "memory_paths": {
+          "auto": "C:/tmp/memory"
+        }
+      },
+      {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "num_turns": 8
+      }
+    ]
+  }
+]

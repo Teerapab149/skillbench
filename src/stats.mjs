@@ -100,6 +100,44 @@ export function mcnemarExact(b, c) {
 
 // ---------- resampling ----------
 
+/**
+ * Exact paired sign-flip (permutation) test — สถิติหลักของงานนี้
+ *
+ * หน่วยข้อมูลคือ scenario ไม่ใช่ run: รับผลต่างค่าเฉลี่ยรายโจทย์ d_i = mean(A2) - mean(A1)
+ * แล้วสุ่มพลิกเครื่องหมายทุกรูปแบบที่เป็นไปได้ (2^k แบบ) เพื่อสร้างการแจกแจงภายใต้ H0
+ *
+ * ทำไมต้องเป็นตัวนี้ ไม่ใช่ McNemar:
+ *   McNemar ต้องการผลลัพธ์ทวิภาคที่จับคู่กันราย run และนับ b/c จาก 605 run
+ *   ซึ่งเป็นการเคลม information ที่ไม่มีอยู่ — run ในโจทย์เดียวกันไม่เป็นอิสระต่อกัน
+ *   (วัด ICC ได้ 0.335) การรายงานที่ระดับ run จึงให้ CI แคบเกินจริง
+ *   sign-flip ที่ระดับโจทย์ใช้ k หน่วยตรงๆ ไม่ต้องสมมติอะไรเรื่องการแจกแจง
+ *   และเป็น exact จริงเมื่อ k เล็ก (k = 11 -> เพียง 2048 แบบ enumerate ครบได้)
+ *
+ * McNemar ยังคำนวณอยู่ใน analyze.mjs แต่สถานะเปลี่ยนเป็น sensitivity analysis
+ *
+ * @param diffs ผลต่างรายโจทย์ · ค่า 0 ยังนับเป็นหน่วยข้อมูล (พลิกเครื่องหมายแล้วก็ยังเป็น 0)
+ */
+export function exactSignFlipTest(diffs) {
+  const d = diffs.filter((x) => Number.isFinite(x));
+  const k = d.length;
+  if (k === 0) return { p: NaN, k: 0, observed: NaN, note: 'ไม่มีข้อมูล' };
+  if (k > 22) return { p: NaN, k, observed: NaN, note: 'k ใหญ่เกินจะ enumerate ครบ ให้ใช้แบบสุ่มแทน' };
+
+  const mean = (a) => a.reduce((s, x) => s + x, 0) / a.length;
+  const observed = mean(d);
+  const target = Math.abs(observed);
+
+  let atLeastAsExtreme = 0;
+  const total = 2 ** k;
+  for (let mask = 0; mask < total; mask++) {
+    let sum = 0;
+    for (let i = 0; i < k; i++) sum += (mask >> i) & 1 ? -d[i] : d[i];
+    // ปัดกันปัญหาเลขทศนิยม มิฉะนั้นกรณีที่ควรเท่ากันพอดีจะหลุดออกจากการนับ
+    if (Math.abs(sum / k) >= target - 1e-12) atLeastAsExtreme++;
+  }
+  return { p: atLeastAsExtreme / total, k, observed, permutations: total };
+}
+
 /** xorshift128 PRNG — เพื่อให้ผล bootstrap reproducible จาก seed */
 export function makeRng(seed = 42) {
   let x = seed >>> 0 || 1, y = 362436069, z = 521288629, w = 88675123;
@@ -151,8 +189,28 @@ export function clusterBootstrapDiff(clustersA, clustersB, { iters = 5000, seed 
  */
 export function passHatK(perScenarioOutcomes) {
   const ids = Object.keys(perScenarioOutcomes);
-  const allPass = ids.filter((id) => perScenarioOutcomes[id].every((v) => v === 1 || v === true));
-  return { value: ids.length ? allPass.length / ids.length : NaN, passed: allPass.length, total: ids.length };
+
+  /*
+   * scenario ที่ไม่มีข้อมูลเลย ต้องไม่ถูกนับว่า "ผ่าน"
+   *
+   * ของเดิมเรียก [].every(...) ตรงๆ ซึ่ง JavaScript คืน true เสมอสำหรับ array ว่าง
+   * ผลคือ scenario ที่เก็บข้อมูลไม่ได้สักรอบจะถูกนับเป็น "ผ่านครบทุกครั้ง"
+   * และมัน **เด้งพอดีตอนโควตาตัดกลางคัน** ซึ่งเป็นสถานการณ์ที่เกิดแน่ในการเก็บข้อมูลจริง
+   * ยิ่งเก็บข้อมูลได้น้อย ตัวเลข pass^k ยิ่งสวยขึ้น — ทิศทางของอคติแย่ที่สุดเท่าที่จะเป็นไปได้
+   *
+   * แยกออกมาเป็น `missing` แทนที่จะเงียบ เพราะการที่ scenario ไม่มีข้อมูลเป็นเรื่องที่
+   * ต้องรู้ตอนอ่านผล ไม่ใช่เรื่องที่ควรถูกกลบไปในตัวหารเฉยๆ
+   */
+  const withData = ids.filter((id) => (perScenarioOutcomes[id] ?? []).length > 0);
+  const missing = ids.filter((id) => (perScenarioOutcomes[id] ?? []).length === 0);
+  const allPass = withData.filter((id) => perScenarioOutcomes[id].every((v) => v === 1 || v === true));
+  return {
+    value: withData.length ? allPass.length / withData.length : NaN,
+    passed: allPass.length,
+    total: withData.length,
+    missing: missing.length,
+    missingIds: missing,
+  };
 }
 
 /** Normalized Shannon entropy ของผลลัพธ์เชิงหมวด (เช่น set ของไฟล์ที่ถูกแก้) — 0 = deterministic */

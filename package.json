@@ -11,14 +11,19 @@
     "check:arms": "node src/check-arms.mjs",
     "check:spec": "node scripts/check-spec.mjs",
     "power": "node src/stats.mjs --power",
-    "pilot": "node src/runner.mjs --adapter mock --reps 12 && node src/analyze.mjs",
-    "calibrate": "node src/runner.mjs --adapter claude-cli --arms A1 --reps 5 && node scripts/calibrate.mjs",
-    "real": "node src/runner.mjs --adapter claude-cli --reps 11 && node src/analyze.mjs",
+    "pilot": "node src/runner.mjs --adapter mock --reps 12 --out tmp/mock && node src/analyze.mjs --in tmp/mock/latest.json --out tmp/mock",
     "dilution:make": "node scripts/make-dilution-arms.mjs",
     "dilution": "node src/runner.mjs --adapter claude-cli --config config/dilution.json --scenarios S08,S09 --reps 15 && node scripts/dilution-report.mjs",
     "analyze": "node src/analyze.mjs",
     "regrade": "node scripts/regrade.mjs",
-    "fixture:test": "node --test \"fixtures/gpu-booking/tests/*.test.ts\""
+    "fixture:test": "node --test \"fixtures/gpu-booking/tests/*.test.ts\"",
+    "test": "node --test \"tests/*.test.mjs\"",
+    "gate": "node src/check-arms.mjs && node scripts/check-spec.mjs && node scripts/gate-analysis.mjs",
+    "probe:runtime": "node scripts/probe-runtime.mjs",
+    "gate0": "node src/runner.mjs --adapter claude-cli --reps 6 --stop-after-rep 0 --resume",
+    "main": "node src/runner.mjs --adapter claude-cli --reps 6 --resume"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }

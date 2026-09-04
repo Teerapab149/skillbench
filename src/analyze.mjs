@@ -9,13 +9,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  wilson, cohensH, mcnemarExact, clusterBootstrapDiff, passHatK,
+  wilson, cohensH, mcnemarExact, clusterBootstrapDiff, passHatK, exactSignFlipTest,
   meanPairwiseJaccard, normalizedEntropy, fmtPct, fmtP,
 } from './stats.mjs';
 import { triggerMetrics } from './graders.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const raw = JSON.parse(fs.readFileSync(path.join(ROOT, 'results/latest.json'), 'utf8'));
+/*
+ * --in / --out: ให้ชี้ไฟล์เข้าและโฟลเดอร์ออกได้ เพิ่ม 4 ก.ย. 2569
+ * จำเป็นสำหรับประตูตรวจ pipeline ซึ่งต้องรันบนข้อมูลจำลองโดยไม่แตะ results/ ของจริง
+ */
+const argv = (flag, dflt) => {
+  const i = process.argv.indexOf(flag);
+  return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : dflt;
+};
+const IN_FILE = path.resolve(ROOT, argv('--in', 'results/latest.json'));
+const OUT_DIR = path.resolve(ROOT, argv('--out', 'results'));
+const raw = JSON.parse(fs.readFileSync(IN_FILE, 'utf8'));
 const meta = raw.meta;
 
 /*
@@ -43,6 +53,34 @@ const armIds = meta.arms;
 const scenIds = meta.scenarios;
 const by = (armId) => graded.filter((g) => g.armId === armId);
 const mean = (a) => (a.length ? a.reduce((s, v) => s + v, 0) / a.length : NaN);
+
+/*
+ * ประตูความครบของข้อมูล — ต้องอยู่ก่อนคำนวณอะไรทั้งสิ้น
+ *
+ * เหตุผล: `--stop-after-rep 0` เขียน latest.json ออกมาเหมือน run ที่จบสมบูรณ์ทุกประการ
+ * ถ้าไม่มีด่านนี้ การเผลอสั่ง analyze หลังประตู rep 0 จะได้รายงานฉบับเต็มหน้าตาน่าเชื่อถือ
+ * ที่สร้างจาก 55 จาก 330 run โดยไม่มีอะไรเตือนเลยสักบรรทัด
+ *
+ * ต้องระบุ --partial อย่างชัดแจ้งเท่านั้นจึงจะวิเคราะห์ข้อมูลไม่ครบได้
+ * และเมื่อระบุแล้ว รายงานจะถูกประทับหัวไว้ว่าเป็นฉบับไม่ครบ ห้ามนำไปอ้างเป็นผล
+ */
+const ALLOW_PARTIAL = process.argv.includes('--partial');
+const expectedCells = (meta.reps ?? 0) * armIds.length * scenIds.length;
+const usableCells = graded.length;
+const completeness = expectedCells ? usableCells / expectedCells : NaN;
+const missingCells = Math.max(0, expectedCells - usableCells);
+
+if (expectedCells && usableCells < expectedCells) {
+  const pct = (completeness * 100).toFixed(1);
+  if (!ALLOW_PARTIAL) {
+    console.error(`\n⛔ ข้อมูลไม่ครบ: ใช้ได้ ${usableCells} จาก ${expectedCells} cell (${pct}%) ขาด ${missingCells}`);
+    console.error('   การวิเคราะห์ถูกปฏิเสธ เพราะรายงานจากข้อมูลไม่ครบหน้าตาเหมือนรายงานฉบับสมบูรณ์ทุกประการ');
+    console.error('   ถ้าตั้งใจดูผลระหว่างทางจริง ให้ใส่ --partial (รายงานจะถูกประทับว่าไม่ครบ)');
+    console.error('   ⚠ ผลจาก --partial ห้ามนำไปอ้างในเล่มหรือบนสไลด์\n');
+    process.exit(2);
+  }
+  console.error(`\n⚠  โหมด --partial: ${usableCells}/${expectedCells} cell (${pct}%) — ห้ามอ้างเป็นผล\n`);
+}
 
 // ---------- 1. ตารางหลัก: metric ต่อ arm พร้อม 95% CI ----------
 const METRICS = [
@@ -123,7 +161,30 @@ function pairedCompare(armA, armB, metric) {
   const boot = clusterBootstrapDiff(clA, clB, { iters: 4000 });
   const pA = mean(by(armA).map((r) => r[metric]));
   const pB = mean(by(armB).map((r) => r[metric]));
-  return { armA, armB, metric, mcnemar: mcnemarExact(b, c), both, neither, boot, pA, pB, h: cohensH(pA, pB) };
+
+  /*
+   * สถิติหลักตาม PRE-REGISTRATION.md §1 — หน่วยคือ scenario ไม่ใช่ run
+   *
+   * ผลต่างค่าเฉลี่ยรายโจทย์ d_i = mean(armA ในโจทย์ i) - mean(armB ในโจทย์ i)
+   * แล้วทดสอบด้วย exact paired sign-flip ซึ่งใช้ k หน่วยตรงๆ
+   *
+   * นับเฉพาะโจทย์ที่ **มีข้อมูลทั้งสองฝั่ง** (matched cells) โจทย์ที่ขาดข้างใดข้างหนึ่ง
+   * ไม่ใช่หลักฐานของผลต่าง และการเติม 0 หรือข้ามแบบเงียบๆ จะบิดผลไปคนละทาง
+   */
+  const perScenDiff = [];
+  const unmatched = [];
+  for (const id of scenIds) {
+    const a = clA[id] ?? [], b2 = clB[id] ?? [];
+    if (!a.length || !b2.length) { if (a.length || b2.length) unmatched.push(id); continue; }
+    perScenDiff.push({ id, d: mean(a) - mean(b2), nA: a.length, nB: b2.length });
+  }
+  const signFlip = exactSignFlipTest(perScenDiff.map((x) => x.d));
+  const wins = perScenDiff.filter((x) => x.d > 0).length;
+  const losses = perScenDiff.filter((x) => x.d < 0).length;
+  const ties = perScenDiff.filter((x) => x.d === 0).length;
+
+  return { armA, armB, metric, mcnemar: mcnemarExact(b, c), both, neither, boot, pA, pB,
+           h: cohensH(pA, pB), signFlip, perScenDiff, unmatched, wins, losses, ties };
 }
 
 const COMPARISONS = [['A2', 'A1'], ['A2', 'A0'], ['A1', 'A3'], ['A2', 'A3'], ['A4', 'A2']]
@@ -157,7 +218,15 @@ if (meta.simulated) {
 }
 p(`- เวลา: ${meta.stamp} | adapter: \`${meta.adapter}\` | repetitions: ${meta.reps} | seed: ${meta.masterSeed}`);
 p(`- โจทย์: ${scenIds.length} | arms: ${armIds.join(', ')} | จำนวน run รวม: ${graded.length}`);
+if (ALLOW_PARTIAL && missingCells) {
+  p(`> ⛔ **รายงานฉบับไม่ครบ — ${usableCells}/${expectedCells} cell (${(completeness * 100).toFixed(1)}%) ขาด ${missingCells}**`);
+  p('> สร้างด้วย `--partial` สำหรับดูสถานะระหว่างทางเท่านั้น **ห้ามอ้างตัวเลขในเอกสารนี้เป็นผล**');
+  p('');
+}
 p(`- **Primary endpoint (ประกาศล่วงหน้า): ${meta.primaryEndpoint?.metric} — ${meta.primaryEndpoint?.comparison}**`);
+p(`- **สถิติหลัก: exact paired sign-flip ที่ระดับ scenario** · CI: cluster bootstrap`);
+p(`- McNemar exact ระดับ run = **sensitivity analysis** ไม่ใช่ผลหลัก`);
+p(`- ความครบของข้อมูล: ${usableCells}/${expectedCells || '?'} cell`);
 p('');
 
 p('## 1. ตัวชี้วัดหลักต่อ arm (พร้อม 95% CI)');
@@ -273,11 +342,21 @@ if (grandTotal.length) {
   }
   p('');
   // ระบุให้ชัดว่าตัวเลขนี้เป็นเงินจริงหรือแค่ราคาอ้างอิง — ต่างกันคนละเรื่อง
+  /*
+   * "ไม่มีค่า" ไม่ใช่ "subscription"
+   *
+   * ของเดิมถือว่า keySources ว่าง = อยู่บน subscription ซึ่งเป็นการเดาไปทางที่สบายใจ
+   * ในเรื่องที่ผิดแล้วรู้ทีหลังไม่ได้ (จ่ายเงินจริงไปแล้ว) ต้องแยกเป็นสามสถานะ
+   */
   const keySources = [...new Set(raw.graded.map((g) => g.apiKeySource).filter(Boolean))];
-  const onSubscription = keySources.length === 0 || keySources.every((k) => k === 'none');
-  p(onSubscription
-    ? '> **ตัวเลขนี้ไม่ใช่เงินที่ถูกตัดจริง** — เก็บข้อมูลผ่านการ login ด้วย subscription (`apiKeySource: none`)'
-    : `> **⚠ ตัวเลขนี้คือเงินจริง** — เก็บข้อมูลผ่าน API key (\`${keySources.join(', ')}\`)`);
+  const authUnknown = keySources.length === 0;
+  const onSubscription = !authUnknown && keySources.every((k) => k === 'none');
+  p(authUnknown
+    ? '> **⚠ ระบุแหล่งสิทธิ์เรียกใช้ไม่ได้** — ข้อมูลชุดนี้ไม่มีค่า `apiKeySource` บันทึกไว้ '
+      + 'จึงยืนยันไม่ได้ว่าเป็นเงินจริงหรือราคาอ้างอิง **ห้ามสรุปว่าเป็น subscription**'
+    : onSubscription
+      ? '> **ตัวเลขนี้ไม่ใช่เงินที่ถูกตัดจริง** — เก็บข้อมูลผ่านการ login ด้วย subscription (`apiKeySource: none`)'
+      : `> **⚠ ตัวเลขนี้คือเงินจริง** — เก็บข้อมูลผ่าน API key (\`${keySources.join(', ')}\`)`);
   p('> `total_cost_usd` คือราคาเทียบเท่าถ้าจ่ายตามอัตรา API ใช้ประเมินขนาดของงานได้ทั้งสองกรณี');
   p(onSubscription
     ? '> ข้อจำกัดจริงของแผนนี้คือ **โควตาการใช้งานและเวลารัน** ไม่ใช่งบประมาณ'
@@ -285,14 +364,41 @@ if (grandTotal.length) {
   p('');
 }
 
-p('## 6. การเปรียบเทียบแบบจับคู่ (McNemar exact + cluster bootstrap)');
+p('## 6. การเปรียบเทียบแบบจับคู่');
 p('');
-p('| เปรียบเทียบ | metric | A | B | ผลต่าง [95% CI] | b/c | p (McNemar) | Cohen\'s h |');
-p('|---|---|---|---|---|---|---|---|');
+p('### 6.1 PRIMARY — exact paired sign-flip ที่ระดับ scenario');
+p('');
+p('> หน่วยข้อมูลคือ **scenario** ไม่ใช่ run · ผลต่างคือค่าเฉลี่ยรายโจทย์ · CI จาก cluster bootstrap');
+p('> ประกาศไว้ใน `PRE-REGISTRATION.md` §1 (Amendment 4)');
+p('');
+p('| เปรียบเทียบ | metric | A | B | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | **p (sign-flip)** |');
+p('|---|---|---|---|---|---|---:|---|');
 for (const [x, y] of COMPARISONS) {
   for (const m of ['CRIT', 'SCOPE']) {
     const r = pairedCompare(x, y, m);
-    p(`| ${x} vs ${y} | ${m} | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.mcnemar.b}/${r.mcnemar.c} | ${fmtP(r.mcnemar.p)} | ${r.h.toFixed(2)} |`);
+    p(`| ${x} vs ${y} | ${m} | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
+  }
+}
+p('');
+{
+  const anyUnmatched = COMPARISONS.map(([x, y]) => pairedCompare(x, y, 'CRIT')).filter((r) => r.unmatched.length);
+  if (anyUnmatched.length) {
+    p('> ⚠️ **มีโจทย์ที่มีข้อมูลข้างเดียว จึงถูกตัดออกจาก primary** (matched cells เท่านั้น):');
+    for (const r of anyUnmatched) p(`> - ${r.armA} vs ${r.armB}: ${r.unmatched.join(', ')}`);
+    p('');
+  }
+}
+p('### 6.2 SENSITIVITY — McNemar exact ระดับ run');
+p('');
+p('> **ไม่ใช่ผลหลัก** run ในโจทย์เดียวกันไม่เป็นอิสระต่อกัน (`ICC` วัดได้ 0.335 บน Opus)');
+p('> การนับ b/c จาก run ทั้งหมดจึงให้ CI แคบเกินจริง รายงานไว้เพื่อความโปร่งใส ไม่ใช่เพื่อตัดสิน');
+p('');
+p('| เปรียบเทียบ | metric | b/c | p (McNemar) | Cohen\'s h |');
+p('|---|---|---|---|---|');
+for (const [x, y] of COMPARISONS) {
+  for (const m of ['CRIT', 'SCOPE']) {
+    const r = pairedCompare(x, y, m);
+    p(`| ${x} vs ${y} | ${m} | ${r.mcnemar.b}/${r.mcnemar.c} | ${fmtP(r.mcnemar.p)} | ${r.h.toFixed(2)} |`);
   }
 }
 p('');
@@ -407,7 +513,8 @@ if (excluded.length) {
   p('');
 }
 
-fs.writeFileSync(path.join(ROOT, 'results/report.md'), L.join('\n'));
+fs.mkdirSync(OUT_DIR, { recursive: true });
+fs.writeFileSync(path.join(OUT_DIR, 'report.md'), L.join('\n'));
 
 const csv = ['arm,n,RCR,RCR_lo,RCR_hi,FULL,FULL_lo,FULL_hi,SCOPE,passHatK,jaccard,entropy,tok_in,tok_cache_read,tok_out,cost_usd,tools,wall_s'];
 for (const a of armIds) {
@@ -417,7 +524,7 @@ for (const a of armIds) {
             s.costUsd ?? '', s.tools, s.wallS]
            .map((v) => (typeof v === 'number' ? v.toFixed(4) : v)).join(','));
 }
-fs.writeFileSync(path.join(ROOT, 'results/summary.csv'), csv.join('\n'));
+fs.writeFileSync(path.join(OUT_DIR, 'summary.csv'), csv.join('\n'));
 
 console.log(L.join('\n'));
-console.log(`\n[เขียนแล้ว] results/report.md, results/summary.csv\n`);
+console.log(`\n[เขียนแล้ว] ${path.relative(ROOT, OUT_DIR) || '.'}/report.md, summary.csv\n`);
