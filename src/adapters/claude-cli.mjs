@@ -165,7 +165,7 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
      * ตัวที่ปิดรูรั่วจริง — เพิ่ม 4 ก.ย. 2569
      *
      * `--tools` จำกัดได้เฉพาะ tool ในตัว แต่ **tool ของ MCP เล็ดลอดผ่านไปได้**
-     * ตรวจย้อนหลังจาก system:init ที่เก็บไว้: 166 จาก 173 run ได้ MCP tool ติดมาด้วย
+     * ตรวจย้อนหลังจาก system:init ที่เก็บไว้: 100 จาก 109 run (92%) ได้ MCP tool ติดมาด้วย
      * จำนวน tool ที่ได้จริงแกว่งอยู่ที่ 31 / 39 / 47 ตัว ทั้งที่ประกาศไว้ 7
      * และ mcp_servers รายงาน Canva กับ Google Drive สถานะ connected
      *
