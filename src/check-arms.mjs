@@ -146,6 +146,57 @@ console.log('   > ตรวจที่ระดับข้อผูกพั�
 console.log('   > จึงขึ้น PASS ทั้งที่ A2 มี "ก่อนแตะ implementation" กับ "ต้องตกก่อน" เพิ่มมาสองข้อ');
 console.log('');
 
+/* --- 3a. ประโยคที่ต้องเหมือนกันทุกตัวอักษร ---
+ *
+ * ⚠️ เพิ่ม 7 ก.ย. 2569 — การตรวจ "ข้อผูกพันมีครบ" ยังจับความต่างเชิงเนื้อหาไม่ได้
+ *
+ * pattern ระดับข้อผูกพันตรวจว่า "มีกฎข้อนี้อยู่ไหม" แต่ไม่ตรวจว่า "กฎเขียนว่าอะไร"
+ * ผลคือ A1 กับ A2 ต่างกันเชิงเนื้อหา 7 จุดโดยที่ตัวตรวจขึ้น PASS มาตลอด เช่น
+ *   A1: อ่าน openapi ก่อนแก้ "เสมอ"        A2: อ่าน "ถ้างานแตะชั้น API"
+ *   A1: อ้าง REQ-ID ไม่ได้ -> เสนอเป็นคำขอแยก   A2: -> อธิบายว่าทำไมจำเป็น  (คนละกฎ)
+ *   A2: บอกชื่อ tool ว่า Grep                A1: บอกแค่ "ค้นหา"
+ * อันสุดท้ายอันตรายที่สุด เพราะ S08 IM4 เดิมให้คะแนนเฉพาะ run ที่เรียก Grep
+ *
+ * ตัวแปรต้นคือ "กฎชุดเดียวกันวางคนละที่" ถ้าเนื้อกฎต่างด้วย ผลจะปนกันจนแยกไม่ออก
+ */
+console.log('3a) ประโยคที่ต้องเหมือนกันทุกตัวอักษรทั้งสองฝั่ง');
+const verbatim = canonical.verbatim?.sentences ?? [];
+if (!verbatim.length) {
+  console.log('   FAIL  ไม่มีรายการประโยคบังคับใน config/rules-canonical.json');
+  fail++;
+} else {
+  for (const v of verbatim) {
+    const in1 = t1.includes(v.text), in2 = t2.includes(v.text);
+    const ok = in1 && in2;
+    if (!ok) fail++;
+    console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${v.id}  ${v.why}`);
+    if (!ok) {
+      console.log(`         ✗ A1=${in1 ? 'มี' : 'ขาด'} A2=${in2 ? 'มี' : 'ขาด'}`);
+      console.log(`           ต้องมีประโยคนี้เป๊ะ: ${v.text}`);
+    }
+  }
+  console.log(`   ตรวจ ${verbatim.length} ประโยค`);
+}
+
+/*
+ * ตัวตรวจเชิงลบ — จำเป็นเพราะตัวตรวจเชิงบวกอย่างเดียวไม่พอ
+ *
+ * พิสูจน์ด้วย mutation test เมื่อ 7 ก.ย. 2569: เอา `Grep` กลับเข้า impact-analysis
+ * แล้ว V02 ยัง PASS เพราะประโยคที่ถูกยังอยู่ในอีกไฟล์หนึ่ง
+ * "มีประโยคที่ถูก" กับ "ไม่มีข้อความที่ผิด" เป็นคนละคำถาม ต้องถามทั้งสอง
+ */
+const forbidden = canonical.verbatim?.forbidden?.patterns ?? [];
+for (const f of forbidden) {
+  const re = new RegExp(f.pattern);
+  const hit1 = re.test(t1), hit2 = re.test(t2);
+  const ok = !hit1 && !hit2;
+  if (!ok) fail++;
+  console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${f.id}  ต้องไม่มี /${f.pattern}/ — ${f.why}`);
+  if (!ok) console.log(`         ✗ พบใน ${[hit1 && 'A1', hit2 && 'A2'].filter(Boolean).join(' และ ')}`);
+}
+console.log('   > ความต่างที่เหลือได้คือ "วางไว้ที่ไหน" และ "โหลดเมื่อไร" เท่านั้น');
+console.log('');
+
 // --- 3b. context ที่โมเดลเห็นต้องไม่บอกใบ้ว่าเป็นการทดลอง ---
 //
 // เจอ 4 ก.ย. 2569: ไฟล์ของทุก arm เขียนบอกโมเดลตรงๆ ว่ามันเป็น arm ไหนและมีบทบาทอะไร

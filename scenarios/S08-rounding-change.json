@@ -88,13 +88,25 @@
       "check": {
         "type": "tool_order",
         "before": {
-          "name": "Grep"
+          "anyOf": [
+            {
+              "name": "Grep"
+            },
+            {
+              "name": "Glob"
+            },
+            {
+              "name": "Bash",
+              "argMatches": "\b(grep|rg|findstr|ag|ack)\b"
+            }
+          ]
         },
         "after": {
           "name": "Edit",
           "argMatches": "duration"
         }
-      }
+      },
+      "_why": "ยอมรับเครื่องมือค้นหาใดก็ได้ ไม่ใช่เฉพาะ Grep · ของเดิมบังคับ Grep ซึ่งมีแต่ A2 ที่ระบุชื่อ tool นี้ ทำให้ตัวตรวจให้รางวัลกับ arm ที่ถูกโค้ชให้ใช้ tool ที่ตัวตรวจชอบ = ตัวแปรกวน ไม่ใช่ตัวแปรต้น (7 ก.ย. 2569)"
     },
     {
       "id": "SC1",

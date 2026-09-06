@@ -75,8 +75,23 @@ const CHECKS = {
 
   /** ต้องเรียก before ก่อน after (ลำดับสำคัญ เช่น อ่าน schema ก่อนเขียน migration) */
   tool_order: (a, c) => {
-    const idx = (spec) => a.toolCalls.findIndex((t) =>
-      t.name === spec.name && (!spec.argMatches || new RegExp(spec.argMatches, 'i').test(JSON.stringify(t.args ?? ''))));
+    /*
+     * ⚠️ ขยายเมื่อ 7 ก.ย. 2569 — spec เดิมล็อกชื่อ tool ตัวเดียว
+     *
+     * S08 IM4 เดิมบังคับว่าต้องเรียก `Grep` ก่อน `Edit` ซึ่งเป็นปัญหาเพราะ
+     * **มีแต่ A2 เท่านั้นที่บอกชื่อ tool ว่า Grep** (A1 เขียนแค่ "ค้นหา")
+     * ตัวตรวจจึงให้รางวัลกับ arm ที่ถูกโค้ชให้ใช้ tool ที่ตัวตรวจชอบ
+     * ซึ่งเป็นตัวแปรกวน ไม่ใช่ตัวแปรต้น — ผู้รีวิวภายนอกชี้จุดนี้ตรง ๆ
+     *
+     * `anyOf` ให้ระบุทางเลือกได้ เพื่อวัด "ค้นหาก่อนแก้" ตามที่กฎเขียนจริง
+     * ไม่ใช่ "ใช้ tool ชื่อนี้"
+     */
+    const matches = (t, spec) =>
+      t.name === spec.name && (!spec.argMatches || new RegExp(spec.argMatches, 'i').test(JSON.stringify(t.args ?? '')));
+    const idx = (spec) => {
+      const specs = spec.anyOf ?? [spec];
+      return a.toolCalls.findIndex((t) => specs.some((s) => matches(t, s)));
+    };
     const i = idx(c.before), j = idx(c.after);
     return i !== -1 && j !== -1 && i < j;
   },
