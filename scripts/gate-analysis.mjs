@@ -155,7 +155,25 @@ step('analyze วิ่งจนจบ และรายงานตรงก�
     ['มี H4 แบบ cluster-aware', /### 6\.5 H4[\s\S]*ระดับ scenario/],
     ['H4 ระบุว่ารายงานไม่ว่าผลออกทางไหน', /reportRegardlessOfOutcome/],
     ['มี A4 แยก exposed / not exposed', /### 6\.6 A4[\s\S]*not exposed/],
+    // เพิ่ม 6 ก.ย. 2569 (Amendment 7) — สามข้อนี้เคยประกาศไว้แต่ไม่เคยถูกทำจริง
+    ['มีหัวข้อ co-primary RCR แบบ gated', /### 6\.1b CO-PRIMARY[\s\S]*RCR/],
+    ['ประตู co-primary ต้องพิมพ์สถานะออกมาเสมอ ไม่ใช่เงียบ', /ประตู(ปิด — ไม่ทดสอบ|เปิด)/],
+    ['pass\\^k ต้องมีช่วงความเชื่อมั่นกำกับ', /pass\^k[\s\S]{0,400}?95% CI/],
+    ['TASK ต้องเข้าตารางรอง', /\| TASK \|/],
   ];
+  /*
+   * assert เชิงลบ — ข้อความที่ "ต้องไม่มี"
+   *
+   * analyze.mjs เคยพิมพ์ว่า margin ±0.10 เป็นค่าที่ประกาศล่วงหน้าไว้ใน PRE-REGISTRATION.md
+   * ทั้งที่ไฟล์นั้นไม่เคยมีคำว่า TOST เลย (ดู PRE-REGISTRATION.md §14) คำอ้างแบบนี้
+   * อ่านผ่าน ๆ แล้วดูน่าเชื่อถือกว่าความจริง จึงเป็นชนิดที่กลับมาได้ง่ายที่สุด
+   */
+  const mustNot = [
+    ['ห้ามอ้างว่า margin ถูกประกาศล่วงหน้า', /margin ที่ประกาศล่วงหน้า/],
+    ['ห้ามอ้างถึงหัวข้อ co-primary ที่ "แยกต่างหาก" โดยไม่ระบุเลขหัวข้อ', /co-primary[^\n]*ดูหัวข้อแยกต่างหาก/],
+  ];
+  const wrong = mustNot.filter(([, re]) => re.test(txt)).map(([n]) => n);
+  if (wrong.length) throw new Error(`รายงานมีคำอ้างที่ต้องไม่มี: ${wrong.join(' · ')}`);
   const missing = must.filter(([, re]) => !re.test(txt)).map(([n]) => n);
   if (missing.length) throw new Error(`รายงานไม่ตรงกับแผน: ${missing.join(' · ')}`);
 
@@ -166,7 +184,34 @@ step('analyze วิ่งจนจบ และรายงานตรงก�
   const sec61 = txt.split('### 6.2')[0].split('### 6.1')[1] ?? '';
   const dataRows = sec61.split('\n').filter((l) => /^\|/.test(l) && !/^\|\s*-+/.test(l) && !/เปรียบเทียบ \| metric/.test(l));
   if (dataRows.length !== 1) throw new Error(`ตาราง PRIMARY ต้องมีแถวข้อมูลเดียว แต่มี ${dataRows.length}`);
-  return `report.md ${txt.length} ตัวอักษร · assert เนื้อหา ${must.length} ข้อ · PRIMARY มีแถวเดียว`;
+
+  /*
+   * ทดสอบประตู co-primary "ทั้งสองทาง"
+   *
+   * ข้อมูลจำลองปกติให้ primary ไม่มีนัยสำคัญ ประตูจึงปิดเสมอ ถ้าตรวจแค่นั้น
+   * โค้ดฝั่งประตูเปิดจะไม่เคยถูกรันเลยจนกว่าจะเจอข้อมูลจริง ซึ่งเป็นเวลาที่แย่ที่สุด
+   * ที่จะพบว่ามันพัง — ปัญหาเดียวกับที่รีวิวภายนอกชี้ว่าประตูเดิมทดสอบตัวจำแนกคนละตัว
+   * กับที่ analyze ใช้จริง
+   *
+   * จึงบิดข้อมูลให้ A2 ชนะ A1 ทุกโจทย์ (sign-flip ที่ k=11 ให้ p = 2/2048) แล้วรันซ้ำ
+   */
+  const openDir = path.join(tmp, 'gate-open');
+  fs.mkdirSync(openDir, { recursive: true });
+  const forced = JSON.parse(fs.readFileSync(path.join(tmp, 'latest.json'), 'utf8'));
+  for (const g of forced.graded) {
+    if (g.armId === 'A2') { g.CRIT = 1; g.RCR = 0.95; }
+    if (g.armId === 'A1') { g.CRIT = 0; g.RCR = 0.40; }
+  }
+  fs.writeFileSync(path.join(openDir, 'latest.json'), JSON.stringify(forced));
+  execFileSync(process.execPath, ['src/analyze.mjs', '--in', path.join(openDir, 'latest.json'), '--out', openDir],
+    { cwd: ROOT, encoding: 'utf8', timeout: 300000 });
+  const openTxt = fs.readFileSync(path.join(openDir, 'report.md'), 'utf8');
+  const sec61b = openTxt.split('### 6.2')[0].split('### 6.1b')[1] ?? '';
+  if (!/ประตูเปิด/.test(sec61b)) throw new Error('บิดข้อมูลให้ primary มีนัยสำคัญแล้ว แต่ประตู co-primary ยังไม่เปิด');
+  if (!/\|\s*\*\*RCR\*\*\s*\|/.test(sec61b)) throw new Error('ประตูเปิดแล้วแต่ไม่มีแถวผลของ RCR');
+  if (/ประตูปิด/.test(sec61b)) throw new Error('ประตูพิมพ์ทั้งเปิดและปิดพร้อมกัน');
+
+  return `report.md ${txt.length} ตัวอักษร · assert เนื้อหา ${must.length} ข้อ + ห้ามมี ${mustNot.length} ข้อ · PRIMARY มีแถวเดียว · ประตู co-primary ทดสอบครบสองทาง`;
 });
 
 /*

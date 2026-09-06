@@ -289,15 +289,32 @@ p('');
 
 p('## 2. ความสม่ำเสมอ (ตอบโจทย์คำว่า stochasticity โดยตรง)');
 p('');
-p('| Arm | pass^k (ผ่านครบทุกครั้ง) | Jaccard ไฟล์ที่แตะ | Entropy ของผลลัพธ์ |');
-p('|---|---|---|---|');
+/*
+ * ช่วงความเชื่อมั่นของ pass^k — เพิ่มเมื่อ 6 ก.ย. 2569
+ *
+ * ch3 ประกาศ pass^k เป็น key secondary พร้อม "Wilson + bootstrap" แต่รายงานพิมพ์
+ * ค่าจุดเปล่าๆ มาตลอด ตัวเลขอย่าง 27% จาก 11 โจทย์ดูเหมือนแม่นทั้งที่ตัวหารมีแค่ 11
+ * ซึ่งเป็นวิธีที่ทำให้คนอ่าน (รวมทั้งเราเอง) เชื่อความแม่นยำที่ข้อมูลไม่ได้ให้
+ */
+p('| Arm | pass^k (ผ่านครบทุกครั้ง) | 95% CI | Jaccard ไฟล์ที่แตะ | Entropy ของผลลัพธ์ |');
+p('|---|---|---|---|---|');
 for (const a of armIds) {
   const s = summary[a];
-  p(`| ${a} | ${fmtPct(s.passHatK.value)} (${s.passHatK.passed}/${s.passHatK.total}) | ${s.jaccard.toFixed(3)} | ${s.entropy.toFixed(3)} |`);
+  const ci = s.passHatK.total ? wilson(s.passHatK.passed, s.passHatK.total) : null;
+  const ciTxt = ci ? `[${fmtPct(ci.lo)}, ${fmtPct(ci.hi)}]` : '—';
+  p(`| ${a} | ${fmtPct(s.passHatK.value)} (${s.passHatK.passed}/${s.passHatK.total}) | ${ciTxt} | ${s.jaccard.toFixed(3)} | ${s.entropy.toFixed(3)} |`);
 }
 p('');
 p('> `pass^k` = สัดส่วนโจทย์ที่ผ่าน **ทุก** repetition — เอเจนต์ที่ผ่าน 8/10 ครั้งใช้งานจริงไม่ได้');
 p('> Jaccard สูง = แตะไฟล์ชุดเดิมทุกครั้ง (คาดเดาได้) | Entropy ต่ำ = ผลลัพธ์นิ่ง');
+p(`> **CI กว้างเพราะตัวหารคือจำนวนโจทย์ ไม่ใช่จำนวน run** (${scenIds.length} โจทย์) — ช่วงที่กว้างคือความจริง ไม่ใช่ข้อบกพร่องของการคำนวณ`);
+{
+  const miss = armIds.filter((a) => (summary[a].passHatK.missing ?? 0) > 0);
+  if (miss.length) {
+    p('>');
+    for (const a of miss) p(`> ⚠️ ${a}: ${summary[a].passHatK.missing} โจทย์ไม่มีข้อมูลเลย จึงไม่ถูกนับเป็นผ่าน — ${(summary[a].passHatK.missingIds ?? []).join(', ')}`);
+  }
+}
 p('');
 
 p('### ทำไม pass^k ถึงต่ำกว่าที่คาดมาก — ความน่าเชื่อถือทบกัน');
@@ -447,16 +464,55 @@ if (!hasPrimary) {
   }
 }
 
+/*
+ * §6.1b co-primary RCR แบบ gated — เพิ่มเมื่อ 6 ก.ย. 2569
+ *
+ * §6.2 อ้างมาตลอดว่า "RCR เป็น co-primary ที่ทดสอบต่อเมื่อ primary มีนัยสำคัญ — ดูหัวข้อแยกต่างหาก"
+ * แต่หัวข้อนั้นไม่เคยมีอยู่จริง แผนที่ประกาศไว้ทั้งใน config/arms.json (coPrimaryEndpoint)
+ * และ report/ch3-methodology.md จึงไม่เคยถูกทำตาม
+ *
+ * ประตูต้องทำงานสองทาง: ถ้า primary ไม่ผ่าน ต้องพิมพ์ว่า "ไม่ทดสอบ" ให้เห็น
+ * ไม่ใช่เงียบไป เพราะการเงียบทำให้อ่านไม่ออกว่าไม่ได้ทดสอบหรือทดสอบแล้วไม่มีนัยสำคัญ
+ */
+const ALPHA = 0.05;
+p('### 6.1b CO-PRIMARY — `RCR` · A2 เทียบ A1 · ทดสอบต่อเมื่อ primary ผ่านประตู');
+p('');
+p(`> fixed-sequence gatekeeping: ทดสอบแถวนี้**ก็ต่อเมื่อ** §6.1 ให้ p < ${ALPHA} เท่านั้น`);
+p('> ลำดับตายตัวจึงไม่ต้องปรับค่าวิกฤต และไม่มีตัวชี้วัดใดถูกทิ้ง');
+p('> ประกาศไว้ใน `config/arms.json` (`coPrimaryEndpoint`) และ `PRE-REGISTRATION.md` §1');
+p('');
+if (!hasPrimary) {
+  p('**ข้อมูลชุดนี้ไม่มีทั้ง A1 และ A2 จึงไม่มี co-primary ให้รายงาน**');
+} else {
+  const pr = pairedCompare(PRIMARY.armA, PRIMARY.armB, PRIMARY.metric);
+  const gateOpen = Number.isFinite(pr.signFlip.p) && pr.signFlip.p < ALPHA;
+  if (!gateOpen) {
+    p(`**ประตูปิด — ไม่ทดสอบ** §6.1 ให้ p = ${fmtP(pr.signFlip.p)} ซึ่งไม่ต่ำกว่า ${ALPHA}`);
+    p('');
+    p('> ตามแผนที่ประกาศไว้ `RCR` **จะไม่ถูกทดสอบ** เมื่อ primary ไม่ผ่านประตู');
+    p('> ค่า `RCR` ต่อ arm ยังรายงานไว้ในหัวข้อ 1 เพื่อความโปร่งใส แต่ห้ามอ่านเป็นผลการทดสอบ');
+  } else {
+    const r = pairedCompare(PRIMARY.armA, PRIMARY.armB, 'RCR');
+    p(`**ประตูเปิด** — §6.1 ให้ p = ${fmtP(pr.signFlip.p)} < ${ALPHA}`);
+    p('');
+    p('| เปรียบเทียบ | metric | A2 | A1 | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | **p (sign-flip)** |');
+    p('|---|---|---|---|---|---|---:|---|');
+    p(`| **A2 vs A1** | **RCR** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
+    if (r.unmatched.length) p(`\n> ⚠️ โจทย์ที่มีข้อมูลข้างเดียวถูกตัดออก: ${r.unmatched.join(', ')}`);
+  }
+}
+p('');
+
 p('### 6.2 SECONDARY / EXPLORATORY — ไม่มีการคุม alpha');
 p('');
 p('> **ทุกแถวในตารางนี้ไม่ใช่ผลหลัก** และไม่ได้ถูกปรับค่าวิกฤตสำหรับการทดสอบหลายครั้ง');
-p('> `RCR` เป็น co-primary ที่ทดสอบต่อเมื่อ primary มีนัยสำคัญ (fixed-sequence) — ดูหัวข้อแยกต่างหาก');
+p('> `RCR` เป็น co-primary ที่ทดสอบต่อเมื่อ primary มีนัยสำคัญ (fixed-sequence) — ดู §6.1b');
 p('> ห้ามหยิบ p ที่เล็กที่สุดจากตารางนี้มาเล่าเป็นข้อค้นพบ');
 p('');
 p('| เปรียบเทียบ | metric | A | B | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | p (sign-flip) |');
 p('|---|---|---|---|---|---|---:|---|');
 for (const [x, y] of COMPARISONS) {
-  for (const m of ['CRIT', 'SCOPE']) {
+  for (const m of ['CRIT', 'SCOPE', 'TASK']) {
     if (hasPrimary && x === PRIMARY.armA && y === PRIMARY.armB && m === PRIMARY.metric) continue;  // อยู่ใน 6.1 แล้ว
     const r = pairedCompare(x, y, m);
     p(`| ${x} vs ${y} | ${m} | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | ${fmtP(r.signFlip.p)} |`);
@@ -496,12 +552,26 @@ p('');
  *
  * METRICS.md ประกาศว่า A1 ≈ A3 คือข้อค้นพบที่แรงที่สุดของงาน แต่ผลที่ "ไม่มีนัยสำคัญ"
  * เกิดได้จากทั้งการไม่มีผลจริงและการมี power ไม่พอ ซึ่งแยกกันไม่ออกถ้าไม่ประกาศ margin ล่วงหน้า
- * margin ±0.10 CRIT ประกาศไว้แล้วใน PRE-REGISTRATION.md
+ *
+ * ⚠️ แก้คำอ้างเมื่อ 6 ก.ย. 2569 — ข้อความเดิมตรงนี้เขียนว่า "margin ±0.10 CRIT ประกาศไว้แล้ว
+ * ใน PRE-REGISTRATION.md" และรายงานพิมพ์คำว่า "margin ที่ประกาศล่วงหน้า" ออกไปด้วย
+ * ซึ่งไม่จริง: คำว่า TOST / equivalence / margin ไม่เคยปรากฏใน PRE-REGISTRATION.md เลย
+ *
+ * นี่คือความผิดพลาดตระกูลเดียวกับ model / temperature / toolset — คำอ้างเรื่องการควบคุม
+ * ที่ไม่มีอะไรรองรับ — แต่หนักกว่า เพราะคราวนี้เป็นคำอ้างเรื่องความซื่อสัตย์ของ pre-registration
+ * ซึ่งเป็นเกราะหลักของงานทั้งชิ้น ถ้ากรรมการ grep เจอเอง เสียหายกว่าบั๊กเทคนิคทุกตัวรวมกัน
+ *
+ * สิ่งที่ทำแทน: ประกาศเสียตอนนี้ให้ถูกต้องพร้อมวันที่จริง (PRE-REGISTRATION.md §14 = Amendment 7)
+ * แล้วให้รายงานพิมพ์ที่มาของ margin ตามจริง ไม่ใช่พิมพ์ว่าประกาศไว้ตั้งแต่ต้น
  */
 const TOST_MARGIN = 0.10;
+const TOST_DECLARED = '4 ก.ย. 2569 (commit b03014f) · เข้า PRE-REGISTRATION.md §14 เมื่อ 6 ก.ย. 2569';
 p('### 6.4 TOST — ทดสอบความเท่ากันของ A1 กับ A3');
 p('');
-p(`> margin ที่ประกาศล่วงหน้า **±${TOST_MARGIN} CRIT** · ใช้ **CI 90%** จาก cluster bootstrap ระดับ scenario`);
+p(`> margin **±${TOST_MARGIN} CRIT** · ใช้ **CI 90%** จาก cluster bootstrap ระดับ scenario`);
+p(`> ที่มาของ margin: ${TOST_DECLARED} — ค่าไม่เคยถูกแก้หลังจากนั้น (\`git log -S 'TOST_MARGIN'\` คืน commit เดียว)`);
+p('> **ประกาศช้ากว่าที่ควร** margin อยู่ในโค้ดและในร่างบทที่ 3 ก่อน แล้วจึงเข้าเอกสารประกาศแผน');
+p('> สิ่งที่ยืนยันได้คือยังไม่มีการคำนวณผลความเท่ากันบนข้อมูลชุดใดเลยก่อนหน้านั้น');
 p('> (TOST ที่ alpha = 0.05 เทียบเท่ากับการดูว่า CI 90% ตกในกรอบ margin ทั้งช่วงหรือไม่)');
 p('>');
 p('> **"ไม่มีนัยสำคัญ" ไม่เท่ากับ "เท่ากัน"** — ถ้าช่วงกว้างกว่ากรอบ ต้องรายงานว่า *สรุปไม่ได้*');
