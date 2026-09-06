@@ -43,7 +43,7 @@
 | ตัวแปรควบคุม | ค่า | บังคับอย่างไร |
 |---|---|---|
 | โมเดล | `claude-sonnet-5` | `--model` + อยู่ใน signature + `validateRuntime()` เทียบกับที่ CLI รายงาน |
-| เพดาน turn | 50 | `--max-turns` + อยู่ใน signature |
+| เพดาน turn | 80 | `--max-turns` + อยู่ใน signature |
 | ชุด tool | Read, Write, Edit, Bash, Glob, Grep, Skill | `--tools` **+ `--strict-mcp-config`** แล้ว assert ทุก run |
 | MCP | ไม่มีเลย | `--strict-mcp-config` โดยไม่ส่ง `--mcp-config` · assert ว่า `mcp_servers` ว่าง |
 | แหล่ง setting | project (ล็อกเท่ากันทุก arm) | `--setting-sources project` |
