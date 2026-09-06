@@ -423,6 +423,9 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
     toolCalls, commands, filesChanged, diff, finalMessage, loadedSkills, testsPassed, acceptance,
     // หลักฐานว่า run นี้ได้รับ context ของ arm จริง — ตรวจย้อนหลังได้โดยไม่ต้องเชื่อว่าโค้ดทำงานถูก
     armInstall: install,
+    // ไฟล์ที่ถูกฝังข้อความล่อไว้จริงใน run นี้ — ตัวจำแนก exposure ใช้ค่านี้
+    // ไม่ใช่ให้ analyze ไปเดาเอาจาก inject.json แล้วค้นในสตริงของแถวที่ให้คะแนนแล้ว
+    injectionTargets: install.injectionTargets ?? [],
     // ตัวแปรควบคุมที่ "บังคับไป" กับที่ "ได้จริง" — เก็บคู่กันไว้เพื่อให้ตรวจย้อนหลังได้ว่าตรงกันไหม
     control: {
       toolsRequested: tools.split(','),
