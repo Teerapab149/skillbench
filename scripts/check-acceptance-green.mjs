@@ -18,6 +18,7 @@ import { readdirSync, existsSync, rmSync, cpSync, readFileSync, writeFileSync } 
 import { join, relative } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { refuseIfCollecting } from './collection-guard.mjs';
+import { applyPatches } from './patch-fixture.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 refuseIfCollecting(ROOT, 'check-acceptance-green');
@@ -46,13 +47,7 @@ for (const id of refs) {
   cpSync(SRC, DEST, { recursive: true, filter: (s) => !relative(SRC, s).split(/[\\/]/)[0].startsWith('reference') });
 
   const mod = await import(pathToFileURL(join(REF, `${id}.patch.mjs`)).href);
-  let applyError = null;
-  for (const p of mod.patches) {
-    const abs = join(FIXTURE, p.file);
-    const before = readFileSync(abs, 'utf8');
-    if (!before.includes(p.find)) { applyError = `หาข้อความที่จะแทนไม่เจอใน ${p.file}`; break; }
-    writeFileSync(abs, before.replace(p.find, p.replace), 'utf8');
-  }
+  const { error: applyError } = applyPatches(FIXTURE, mod.patches);
 
   if (applyError) {
     console.log(`  ❌ ${id}  ปะเฉลยไม่ได้: ${applyError}`);

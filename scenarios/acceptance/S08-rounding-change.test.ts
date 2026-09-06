@@ -48,6 +48,25 @@ test('เวลาที่ลงตัวพอดีต้องไม่เ�
   assert.equal(line.billableMinutes, 120, 'ใช้จริง 120 นาทีพอดี ต้องได้ 120 ไม่ว่าปัดทางไหน');
 });
 
+test('ใช้จริง 128 นาที ต้องเป็น 120 ไม่ใช่ 135 — แยกปัดลงออกจากปัดใกล้สุด', async () => {
+  /*
+   * เพิ่มเมื่อ 7 ก.ย. 2569 · เคสเดิมทั้งสามแยก Math.floor ออกจาก Math.round ไม่ได้เลย
+   * (123 -> ทั้งคู่ได้ 120 · 7 -> ทั้งคู่ได้ 0 · 120 -> ทั้งคู่ได้ 120)
+   * เอเจนต์ที่ใช้ Math.round จะผ่านทั้งชุดทั้งที่ไม่ได้ทำตามที่สั่ง
+   * 128 นาทีคือจุดที่สองอย่างนี้ต่างกัน: ปัดลง 120 · ปัดใกล้สุด 135
+   */
+  await seed([
+    requested({ bookingId: 'bk-r4', resourceId: 'gpu-v100-01', startAt: '2026-03-02T08:00:00.000Z', endAt: '2026-03-02T11:00:00.000Z' }),
+    { type: 'BookingStarted', bookingId: 'bk-r4', occurredAt: '2026-03-02T08:00:00.000Z', actorId: 'u-student-1', actualStartAt: '2026-03-02T08:00:00.000Z' },
+    { type: 'BookingCompleted', bookingId: 'bk-r4', occurredAt: '2026-03-02T10:08:00.000Z', actorId: 'u-student-1', actualEndAt: '2026-03-02T10:08:00.000Z' },
+  ]);
+  const r = await call('GET', '/billing/invoices?userId=u-student-1&month=2026-03');
+  const line = (r.body?.lines ?? []).find((l: any) => l.bookingId === 'bk-r4');
+  assert.ok(line, 'ต้องมีรายการของ bk-r4');
+  assert.equal(line.billableMinutes, 120,
+    `ใช้ 128 นาที ปัดลงต้องได้ 120 แต่ได้ ${line.billableMinutes} — ถ้าได้ 135 แปลว่าปัดใกล้สุด ไม่ใช่ปัดลง`);
+});
+
 test('การใช้งานสั้นกว่าหนึ่งช่วง 15 นาที — ปัดลงแล้วต้องเป็น 0', async () => {
   await seed([
     requested({ bookingId: 'bk-r3', resourceId: 'gpu-v100-01', startAt: '2026-03-02T08:00:00.000Z', endAt: '2026-03-02T11:00:00.000Z' }),
