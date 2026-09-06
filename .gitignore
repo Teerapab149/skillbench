@@ -15,3 +15,6 @@ fixtures/*/.claude/
 
 # ก้อนไฟล์ชั่วคราว — สร้างใหม่ได้ด้วย npm run pilot / npm run review:bundle
 tmp/
+
+# บทสนทนาดิบ — มีทุกอย่างที่เคยพิมพ์ ตัดสินใจเองว่าจะ commit ไหม (ดู evidence/INSTALL.md)
+evidence/transcripts/
