@@ -12,3 +12,6 @@ fixtures/*/.git/
 # ห้าม track เด็ดขาด: ถ้า commit ติดไปตอนรันค้าง install-arm จะ throw ทุก run ถัดไป
 fixtures/*/CLAUDE.md
 fixtures/*/.claude/
+
+# ก้อนไฟล์ชั่วคราว — สร้างใหม่ได้ด้วย npm run pilot / npm run review:bundle
+tmp/
