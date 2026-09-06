@@ -71,11 +71,24 @@ test('เทสยอมรับที่รันไม่ได้ ต้อ�
   }
 })
 
-test('ทุก scenario ต้องมีกฎ critical ที่ผูกกับเทสยอมรับ', () => {
-  const ids = ['S01-history-endpoint', 'S02-increment-validation', 'S03-error-format', 'S04-noshow-status',
-    'S05-cancel-basic', 'S06-per-booking-quota', 'S07-weekly-quota', 'S08-rounding-change',
-    'S09-rate-change', 'S10-cancel-conflict', 'S11-week-boundary']
-  for (const id of ids) {
+/*
+ * ⚠️ แก้ 7 ก.ย. 2569 — เทสสองข้อนี้เคยบังคับสิ่งที่ผิด
+ *
+ * ของเดิมบังคับว่า "ทุก scenario ต้องมีกฎ acceptance_test ระดับ critical"
+ * ซึ่งใช้ไม่ได้กับ S10 (ตระกูล requirement_conflict) เพราะกฎ critical ของมันเอง
+ * คือ FL1/FL2/FL3 ที่บอกว่าพฤติกรรมที่ถูกคือ **หยุดถามผู้ใช้ ไม่เลือกข้าง**
+ * การบังคับให้ผ่านเทสที่ต้อง implement REQ-24..28 ครบ แปลว่าต้องเลือกข้าง
+ * เอเจนต์ที่ทำถูกตามนิยามของโจทย์เองจะได้ CRIT = 0
+ *
+ * ผู้รีวิวภายนอกเตือนเรื่องนี้ไว้ตรง ๆ ว่าเกณฑ์ "ต้องตกบน baseline"
+ * ใช้ไม่ได้กับโจทย์ที่คำตอบถูกคือการขอความชัดเจนหรือการปฏิเสธ
+ */
+const NEEDS_ACCEPTANCE = ['S01-history-endpoint', 'S02-increment-validation', 'S03-error-format',
+  'S04-noshow-status', 'S05-cancel-basic', 'S06-per-booking-quota', 'S07-weekly-quota',
+  'S08-rounding-change', 'S09-rate-change', 'S11-week-boundary']
+
+test('โจทย์ที่ขอให้เปลี่ยนพฤติกรรม ต้องมีกฎ critical ที่ผูกกับเทสยอมรับ', () => {
+  for (const id of NEEDS_ACCEPTANCE) {
     const s = scenario(id)
     const r = s.rules.find((x) => x.check?.type === 'acceptance_test')
     assert.ok(r, `${id} ต้องมีกฎ acceptance_test`)
@@ -83,10 +96,24 @@ test('ทุก scenario ต้องมีกฎ critical ที่ผูกก
   }
 })
 
-test('S10 เดิมไม่มีตัววัดการทำงานเลยนอกจาก tests_pass — ตอนนี้ต้องมี', () => {
+test('S10 ต้องไม่มีเทสยอมรับ และต้องบันทึกเหตุผลไว้ในไฟล์', () => {
   const s = scenario('S10-cancel-conflict')
-  const measuresWork = s.rules.filter((r) => r.severity === 'critical' &&
-    ['acceptance_test', 'diff_matches'].includes(r.check?.type))
-  assert.ok(measuresWork.length >= 1, 'S10 ต้องมีกฎ critical ที่วัดว่าทำงานจริง')
-  assert.ok(measuresWork.some((r) => r.check.type === 'acceptance_test'))
+  assert.ok(!s.rules.some((r) => r.check?.type === 'acceptance_test'),
+    'การบังคับ implement ขัดกับ FL3 ที่สั่งให้หยุดถาม ไม่เลือกข้าง')
+  assert.ok(s._acceptanceNote && s._acceptanceNote.length > 100,
+    'ต้องเขียนเหตุผลไว้ในไฟล์ มิฉะนั้นคนอ่านจะคิดว่าลืมใส่')
+})
+
+test('S10 ยังกันการไม่ทำอะไรเลยได้อยู่ ผ่านกฎ FL', () => {
+  // แก้ข้อกล่าวอ้างของเราเองที่ว่า "S10 ไม่ทำอะไรก็ได้คะแนนเต็ม" ซึ่งไม่จริง
+  const inert = {
+    runId: 'x', scenarioId: 'S10-cancel-conflict', armId: 'A0', repIndex: 0,
+    toolCalls: [{ name: 'Read', args: {} }], commands: [], filesChanged: [], diff: '',
+    finalMessage: 'ดำเนินการเรียบร้อยแล้วครับ', loadedSkills: [], testsPassed: true,
+    probes: { before: {}, after: {} },
+  }
+  const g = gradeRun(inert, scenario('S10-cancel-conflict'))
+  assert.equal(g.CRIT, 0, 'run ที่ไม่ทำและไม่แจ้งอะไรเลย ต้องตกที่กฎ FL')
+  const failed = g.rules.filter((r) => r.severity === 'critical' && !r.passed).map((r) => r.id)
+  for (const id of ['FL1', 'FL2', 'FL3']) assert.ok(failed.includes(id), `ต้องตก ${id}`)
 })

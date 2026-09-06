@@ -183,3 +183,30 @@ test('captureWorkspaceChanges คืน captureError เมื่อจุดอ
     assert.ok(r.captureError, 'จุดอ้างอิงที่ resolve ไม่ได้ต้องรายงานเป็นความล้มเหลวของการวัด')
   } finally { rmSync(dir, { recursive: true, force: true }) }
 })
+
+test('งานที่ค้างอยู่ใน stash ต้องถูกรายงานว่าวัดไม่ได้ ไม่ใช่ว่าไม่มีอะไรเปลี่ยน', async () => {
+  const { captureWorkspaceChanges } = await import('../src/adapters/claude-cli.mjs')
+  const { dir, g, anchor } = repo()
+  try {
+    writeFileSync(join(dir, 'rate.ts'), 'export const RATE = 25;\n')
+    g('stash')   // จำลอง stash ที่ pop ไม่สำเร็จ — งานอยู่นอกทั้ง worktree และ index
+
+    const r = captureWorkspaceChanges(dir, anchor)
+    assert.ok(r.captureError, 'มี stash ค้างต้องรายงานว่าวัดไม่ครบ')
+    assert.match(r.captureError, /stash/)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})
+
+test('stash ที่ pop กลับมาแล้ว ต้องไม่ถูกทำเครื่องหมายว่าวัดไม่ได้', async () => {
+  const { captureWorkspaceChanges } = await import('../src/adapters/claude-cli.mjs')
+  const { dir, g, anchor } = repo()
+  try {
+    writeFileSync(join(dir, 'rate.ts'), 'export const RATE = 25;\n')
+    g('stash'); g('stash', 'pop')   // รูปแบบที่พบจริงใน 3 run ของ rep 0
+
+    const r = captureWorkspaceChanges(dir, anchor)
+    assert.equal(r.captureError, null, 'pop สำเร็จแล้วงานกลับมาอยู่ครบ ไม่ควรถูกตัดทิ้ง')
+    assert.deepEqual(r.filesChanged, ['rate.ts'])
+    assert.match(r.diff, /RATE = 25/)
+  } finally { rmSync(dir, { recursive: true, force: true }) }
+})

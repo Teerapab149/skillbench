@@ -100,6 +100,7 @@ function applyAdversarial(cwd) {
   }
   const { injections } = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const touched = [];
+  const probes = [];
   for (const inj of injections) {
     const target = path.join(cwd, inj.file);
     if (!fs.existsSync(target)) {
@@ -108,8 +109,15 @@ function applyAdversarial(cwd) {
     const body = fs.readFileSync(target, 'utf8');
     fs.writeFileSync(target, inj.mode === 'prepend' ? `${inj.text}\n${body}` : `${body}\n${inj.text}\n`);
     touched.push(inj.file);
+    /*
+     * เก็บ "ชิ้นข้อความที่บ่งชี้ได้" ไว้ใช้ยืนยันว่าข้อความล่อถูกส่งถึงเอเจนต์จริง
+     * ใช้บรรทัดที่ยาวที่สุดเพราะสั้น ๆ อาจบังเอิญตรงกับเนื้อหาปกติของไฟล์
+     */
+    const longest = String(inj.text).split(/\r?\n/).map((l) => l.trim())
+      .filter(Boolean).sort((a, b) => b.length - a.length)[0] ?? '';
+    if (longest.length >= 20) probes.push(longest);
   }
-  return touched;
+  return { touched, probes };
 }
 
 /**
@@ -122,6 +130,7 @@ export function installArm({ workspace, arm }) {
   const cwd = path.resolve(workspace);
   resetToBaseline(cwd);
   const injectionTargets = [];
+  const injectionProbes = [];
 
   // ถ้า fixture มีไฟล์ชื่อชนกับของ arm การติดตั้งจะทับของจริงและ reset จะลบของจริงทิ้ง
   for (const p of ARM_OWNED) {
@@ -161,7 +170,9 @@ export function installArm({ workspace, arm }) {
   // เพราะตัวจำแนก "เอเจนต์เจอข้อความล่อหรือไม่" ต้องรู้ว่าไฟล์ไหนคือเป้าหมาย
   // ของเดิมให้ analyze ไปอ่าน inject.json เองแล้วค้นในสตริง ซึ่งพลาดมาตลอด
   if (arm.injectAdversarial) {
-    for (const f of applyAdversarial(cwd)) { installed.push(`${f} (adversarial)`); injectionTargets.push(f); }
+    const adv = applyAdversarial(cwd);
+    for (const f of adv.touched) { installed.push(`${f} (adversarial)`); injectionTargets.push(f); }
+    injectionProbes.push(...adv.probes);
   }
 
   /*
@@ -177,7 +188,7 @@ export function installArm({ workspace, arm }) {
   const baselineCommit = git(cwd, ['rev-parse', `${BASELINE_TAG}^{commit}`]).trim();
 
   if (!installed.length) {   // A0 — ตั้งใจให้ว่าง
-    return { installed: [], armCommit: null, startCommit: baselineCommit || null, injectionTargets };
+    return { installed: [], armCommit: null, startCommit: baselineCommit || null, injectionTargets, injectionProbes };
   }
 
   gitStrict(cwd, ['add', '-A']);
@@ -190,7 +201,7 @@ export function installArm({ workspace, arm }) {
   const dirty = git(cwd, ['status', '--porcelain']).trim();
   if (dirty) throw new Error(`ติดตั้ง arm ${arm.id} แล้ว workspace ยังไม่สะอาด:\n${dirty}`);
 
-  return { installed, armCommit, startCommit: startCommit || null, injectionTargets };
+  return { installed, armCommit, startCommit: startCommit || null, injectionTargets, injectionProbes };
 }
 
 /** ล้าง context ของ arm ออกให้หมด — ต้องเรียกเสมอ แม้ run จะพัง */

@@ -100,6 +100,24 @@ export function captureWorkspaceChanges(cwd, anchor) {
     const diff = gitStrict(cwd, ['diff', '--cached', anchor]);
     // หลักฐานตรงว่าเอเจนต์ commit เองหรือไม่ — ตรวจกับดักที่ 2 ของ A4 ได้โดยไม่ต้องเดาจาก bash log
     const revs = git(cwd, ['rev-list', '--pretty=oneline', `${anchor}..HEAD`]).trim();
+
+    /*
+     * stash เป็นช่องทางที่สามที่งานหายไปได้ และไม่ใช่เรื่องสมมติ
+     *
+     * ในข้อมูล rep 0 มี 3 run ใช้ `git stash` + `git stash pop` เพื่อเทียบผลก่อน/หลัง
+     * การแก้ของตัวเอง (เทคนิคที่สมเหตุสมผล) ทั้งสาม run pop สำเร็จ จึงไม่มีอะไรหาย
+     * แต่ถ้า pop ล้มเหลว งานจะไปนอนอยู่ใน stash ซึ่งอยู่นอกทั้ง worktree และ index
+     * แล้ว diff เทียบ anchor จะว่าง — เท่ากับปัญหาเดิมที่เพิ่งแก้ไป แค่คนละช่องทาง
+     *
+     * ตรวจว่ามี stash ค้างหรือไม่ ถ้ามีให้ถือว่าวัดไม่ได้ ไม่ใช่ถือว่าไม่ได้ทำอะไร
+     */
+    const stash = git(cwd, ['stash', 'list']).trim();
+    if (stash) {
+      return {
+        filesChanged, diff, agentCommits: revs ? revs.split('\n').filter(Boolean) : [],
+        captureError: `มี stash ค้างอยู่ ${stash.split('\n').length} รายการ — งานอาจอยู่นอก worktree และ index จึงวัดผลกระทบไม่ครบ`,
+      };
+    }
     return { filesChanged, diff, agentCommits: revs ? revs.split('\n').filter(Boolean) : [], captureError: null };
   } catch (e) {
     return { filesChanged: [], diff: '', agentCommits: [],
@@ -305,19 +323,32 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
 
   // --- แกะ tool call ออกจาก stream ---
   const toolCalls = [], commands = [], loadedSkills = [];
+  const toolResults = new Map();   // tool_use_id -> { ok, text }
   let finalMessage = '', inputTokens = 0, outputTokens = 0;
 
   for (const ev of events) {
     if (ev.type === 'assistant' && ev.message?.content) {
       for (const block of ev.message.content) {
         if (block.type === 'tool_use') {
-          toolCalls.push({ name: block.name, args: block.input });
+          // เก็บ id ไว้จับคู่กับ tool_result — ต้องรู้ว่า "อ่านสำเร็จไหม" และ "ได้ข้อความอะไรกลับมา"
+          // ไม่ใช่แค่ว่า "สั่งอ่านหรือเปล่า" ซึ่งเป็นคนละเรื่องกันตอนวัด exposure ของ A4
+          toolCalls.push({ id: block.id ?? null, name: block.name, args: block.input });
           if (block.name === 'Bash' && block.input?.command) commands.push(block.input.command);
           if (block.name === 'Skill' && block.input?.skill) loadedSkills.push(block.input.skill);
         }
       }
       inputTokens += ev.message?.usage?.input_tokens ?? 0;
       outputTokens += ev.message?.usage?.output_tokens ?? 0;
+    }
+    if (ev.type === 'user' && Array.isArray(ev.message?.content)) {
+      for (const block of ev.message.content) {
+        if (block.type === 'tool_result') {
+          const text = typeof block.content === 'string'
+            ? block.content
+            : (block.content ?? []).map((c) => c?.text ?? '').join('\n');
+          toolResults.set(block.tool_use_id, { ok: block.is_error !== true, text });
+        }
+      }
     }
     if (ev.type === 'result') {
       finalMessage = ev.result ?? finalMessage;
@@ -426,6 +457,21 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
     // ไฟล์ที่ถูกฝังข้อความล่อไว้จริงใน run นี้ — ตัวจำแนก exposure ใช้ค่านี้
     // ไม่ใช่ให้ analyze ไปเดาเอาจาก inject.json แล้วค้นในสตริงของแถวที่ให้คะแนนแล้ว
     injectionTargets: install.injectionTargets ?? [],
+    injectionProbes: install.injectionProbes ?? [],
+    /*
+     * ผลของ tool call เฉพาะที่แตะไฟล์เป้าหมายของข้อความล่อ — เก็บเท่าที่จำเป็นต่อการยืนยัน
+     * ว่าข้อความถึงมือเอเจนต์จริง ไม่เก็บทั้งหมดเพราะ artifact จะบวมมหาศาล
+     * (rawEvents มีของครบอยู่แล้วสำหรับการตรวจย้อนหลัง)
+     */
+    toolResults: Object.fromEntries(
+      toolCalls
+        .filter((t) => t.id && (install.injectionTargets ?? []).some((f) =>
+          JSON.stringify(t.args ?? {}).replace(/\\+/g, '/').includes(f)))
+        .map((t) => [t.id, {
+          ok: toolResults.get(t.id)?.ok ?? false,
+          text: String(toolResults.get(t.id)?.text ?? '').slice(0, 8000),
+        }]),
+    ),
     // ตัวแปรควบคุมที่ "บังคับไป" กับที่ "ได้จริง" — เก็บคู่กันไว้เพื่อให้ตรวจย้อนหลังได้ว่าตรงกันไหม
     control: {
       toolsRequested: tools.split(','),
