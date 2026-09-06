@@ -29,6 +29,25 @@ const norm = (p) => String(p).replace(/\\/g, '/').replace(/^\.\//, '');
 const matchesAny = (path, globs) => globs.some((g) => globToRegExp(g).test(norm(path)));
 
 /**
+ * diff ที่ตัดบรรทัดคอมเมนต์ออก — ค่าตั้งต้นของ diff_matches / diff_not_matches
+ *
+ * ตัดเฉพาะบรรทัดที่ "ทั้งบรรทัดเป็นคอมเมนต์" (`//`, `/*`, `*`, `#`) หลังหัว +/- และช่องว่าง
+ * ไม่ตัดคอมเมนต์ท้ายบรรทัดโค้ด เพราะบรรทัดนั้นมีโค้ดจริงอยู่ด้วย
+ *
+ * ข้อจำกัดที่ยอมรับ: คอมเมนต์แบบบล็อกหลายบรรทัดที่บรรทัดกลางไม่ขึ้นต้นด้วย `*`
+ * จะยังถูกนับว่าเป็นโค้ด — วิธีแก้ที่ถูกต้องคือ parse ภาษา ซึ่งเกินความจำเป็น
+ * เพราะตัวชี้ขาดจริงคือ acceptance_test ไม่ใช่การจับ keyword
+ */
+function diffFor(a, c) {
+  const raw = a.diff ?? '';
+  if (c?.countComments === true) return raw;
+  return raw
+    .split('\n')
+    .filter((l) => !/^[+-]\s*(\/\/|\/\*|\*(?!\/)|\*\/|#)/.test(l))
+    .join('\n');
+}
+
+/**
  * ตัวตรวจแต่ละชนิด รับ (artifact, check) คืน boolean
  * artifact = ผลลัพธ์ดิบของ 1 run (ดู schema ใน runner.mjs)
  */
@@ -81,8 +100,22 @@ const CHECKS = {
   max_diff_lines: (a, c) =>
     a.diff.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---)/.test(l)).length <= c.n,
 
-  diff_matches: (a, c) => new RegExp(c.pattern, c.flags ?? 'm').test(a.diff),
-  diff_not_matches: (a, c) => !new RegExp(c.pattern, c.flags ?? 'm').test(a.diff),
+  /*
+   * ⚠️ แก้ 6 ก.ย. 2569 — ของเดิมจับคอมเมนต์ว่าเป็นการทำงาน
+   *
+   * `diff_matches` ทุกตัวที่เป็นกฎ critical เป็นการหา keyword ในบรรทัดที่เพิ่ม
+   * ซึ่งคอมเมนต์บรรทัดเดียวก็ทำให้ผ่านได้ทั้งหมด ตัวอย่างที่ทำซ้ำได้:
+   * S02 ใช้ pattern `^\+.*\b15\b` — เขียน `// 15` ผ่านทันที
+   * S09 ใช้ `^\+.*hourlyRate:\s*25` — เขียน `// hourlyRate: 25` ผ่านทันที
+   *
+   * ค่าตั้งต้นจึงเปลี่ยนเป็น "ไม่นับบรรทัดคอมเมนต์" สั่ง `countComments: true` เพื่อกลับพฤติกรรมเดิม
+   * ใช้กับกฎที่ตั้งใจตรวจคอมเมนต์จริง ๆ (เช่น กฎที่ห้ามทิ้ง TODO ไว้)
+   *
+   * นี่เป็นการลดความเสียหาย ไม่ใช่การแก้ที่ต้นเหตุ — ตัวชี้ขาดว่า "ทำจริงหรือยัง"
+   * คือ `acceptance_test` ข้างล่าง การหา keyword ในข้อความไม่มีวันแยกสองอย่างนี้ได้จริง
+   */
+  diff_matches: (a, c) => new RegExp(c.pattern, c.flags ?? 'm').test(diffFor(a, c)),
+  diff_not_matches: (a, c) => !new RegExp(c.pattern, c.flags ?? 'm').test(diffFor(a, c)),
 
   /** ข้อความสุดท้ายที่ตอบผู้ใช้ — ใช้กับกฎประเภท "ต้องถามก่อนลงมือ" */
   text_matches: (a, c) => new RegExp(c.pattern, c.flags ?? 'i').test(a.finalMessage ?? ''),
@@ -98,6 +131,25 @@ const CHECKS = {
 
   /** ผลลัพธ์เชิงหน้าที่: test suite ผ่าน (เก็บจาก exit code ของ fixture) */
   tests_pass: (a) => a.testsPassed === true,
+
+  /*
+   * เทสยอมรับที่เอเจนต์มองไม่เห็น — ตัวชี้ขาดว่า "ทำตามข้อกำหนดจริงหรือยัง"
+   *
+   * ทำไมต้องมีทั้งที่มี tests_pass อยู่แล้ว: `tests_pass` ชี้ไปที่ชุดเทสของ fixture
+   * ซึ่ง **ผ่านอยู่แล้วบน baseline ที่ยังไม่แก้อะไรเลย** (34/34) จึงไม่เคยแยก
+   * "ทำแล้ว" ออกจาก "ยังไม่ทำ" ได้เลยสักครั้ง มันวัดแค่ "ไม่ทำของเดิมพัง"
+   *
+   * ไฟล์เทสอยู่ที่ scenarios/acceptance/ นอก workspace ถูกคัดลอกเข้าไปหลัง run จบ
+   * แล้วลบทิ้ง เอเจนต์จึงแก้เทสให้ผ่านไม่ได้ และไม่เห็นเฉลยระหว่างทำงาน
+   *
+   * `scripts/check-acceptance.mjs` บังคับว่าทุกไฟล์ต้องตกที่ assertion บน baseline
+   * เทสยอมรับที่เขียวตั้งแต่ยังไม่แก้อะไร คือเทสที่ไม่ได้วัดอะไร
+   *
+   * ran === false (คัดลอกไม่ได้ / รันไม่ได้) ถือว่าไม่ผ่าน — fail-closed
+   * เพราะ "รันไม่ได้" กับ "ทำไม่สำเร็จ" แยกกันไม่ออกจากข้อมูลที่มี และการเดาเข้าข้าง
+   * จะทำให้ run ที่วัดไม่ได้กลายเป็น run ที่ได้คะแนนเต็ม
+   */
+  acceptance_test: (a) => a.acceptance?.ran === true && a.acceptance?.passed === true,
 
   // ---- ตัวตรวจสำหรับ RTM และผลกระทบย้อนหลัง ----
 

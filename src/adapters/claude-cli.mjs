@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { installArm, uninstallArm } from '../install-arm.mjs';
 import { resolveClaudeBin, memoryDirState } from '../claude-bin.mjs';
+import { fileURLToPath } from 'node:url';
 
 // re-export ไว้เพื่อไม่ให้ call site เดิม (สคริปต์ probe) พัง — นิยามจริงย้ายไป claude-bin.mjs แล้ว
 export { resolveClaudeBin };
@@ -62,6 +63,60 @@ function runProbes(cwd, probes) {
     }
   }
   return out;
+}
+
+/**
+ * รันเทสยอมรับของ scenario กับ workspace ที่เอเจนต์ทำเสร็จแล้ว
+ *
+ * ไฟล์เทสอยู่ที่ scenarios/acceptance/<scenarioId>.test.ts ซึ่งอยู่นอก workspace
+ * ตลอดเวลาที่เอเจนต์ทำงาน คัดลอกเข้าไปตอนนี้ รันแล้วลบทิ้งทันที
+ * เอเจนต์จึงมองไม่เห็นเฉลย และแก้เทสให้ผ่านไม่ได้ — ซึ่งเป็นสิ่งที่กฎห้ามอยู่แล้ว
+ * แต่ห้ามด้วยกฎอย่างเดียวไม่พอเมื่อกฎนั้นคือสิ่งที่เรากำลังวัด
+ *
+ * ทุกความล้มเหลวคืน ran:false และถือว่าไม่ผ่าน (fail-closed)
+ */
+function runAcceptance(cwd, scenario) {
+  const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+  const src = path.join(ROOT, 'scenarios', 'acceptance');
+  const file = `${scenario.id}.test.ts`;
+  if (!fs.existsSync(path.join(src, file))) {
+    return { ran: false, passed: false, reason: `ไม่มีไฟล์เทสยอมรับ ${file}` };
+  }
+  const destDir = path.join(cwd, '__acceptance__');
+  try {
+    fs.rmSync(destDir, { recursive: true, force: true });
+    /*
+     * ห้ามคัดลอกโฟลเดอร์ reference/ เข้าไปเด็ดขาด — ในนั้นคือเฉลยของทุกโจทย์
+     *
+     * ถึงจะคัดลอกหลัง run จบและลบทิ้งทันที แต่ถ้าโปรเซสตายคาระหว่างนั้น
+     * เฉลยจะค้างอยู่ใน workspace ให้ run ถัดไปเห็น ซึ่งทำลายการทดลองทั้งชุดเงียบ ๆ
+     * ต้นทุนของการกันคือหนึ่งบรรทัด ต้นทุนของการไม่กันคือข้อมูลที่ใช้ไม่ได้โดยไม่มีใครรู้
+     */
+    fs.cpSync(src, destDir, {
+      recursive: true,
+      filter: (s) => !path.relative(src, s).split(/[\\/]/)[0].startsWith('reference'),
+    });
+    let passed = true, output = '';
+    try {
+      output = execFileSync(process.execPath, ['--test', `__acceptance__/${file}`], {
+        cwd, encoding: 'utf8', timeout: 120000, stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, GPU_BOOKING_NOW: '2026-03-04T09:00:00.000Z' },
+      });
+    } catch (e) {
+      passed = false;
+      output = `${e.stdout ?? ''}${e.stderr ?? ''}`;
+    }
+    return {
+      ran: true,
+      passed,
+      // เก็บเหตุผลไว้พอให้ตรวจย้อนหลังได้ว่า assertion ไหนล้ม โดยไม่ทำให้ artifact บวม
+      output: String(output).slice(-4000),
+    };
+  } catch (e) {
+    return { ran: false, passed: false, reason: String(e.message ?? e).slice(0, 300) };
+  } finally {
+    fs.rmSync(destDir, { recursive: true, force: true });
+  }
 }
 
 /**
@@ -288,6 +343,18 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
 
   const probesAfter = runProbes(cwd, scenario.probes);
 
+  /*
+   * เทสยอมรับ — ต้องรัน "หลัง" probe เสมอ
+   *
+   * เทสยอมรับเรียก resetStore() ซึ่งเขียนทับ data/events.jsonl ถ้ารันก่อน probe
+   * ค่าที่ probe อ่านได้จะเป็นผลของเทส ไม่ใช่ผลของสิ่งที่เอเจนต์ทำ แล้ว probe_unchanged
+   * จะตกทุก run โดยไม่เกี่ยวกับพฤติกรรมเลย
+   *
+   * คัดลอกเข้าไปตอนนี้ ไม่ใช่ตอนติดตั้ง arm เพราะเอเจนต์ต้องมองไม่เห็นเฉลย
+   * และต้องแก้เทสให้ผ่านไม่ได้
+   */
+  const acceptance = runAcceptance(cwd, scenario);
+
   // event ตัวเดียวที่บอกสภาพ runtime จริง — ต้องดึงเก็บไว้ให้ครบ ไม่ใช่หยิบเฉพาะบางฟิลด์
   // ของเดิมหยิบแค่ tools กับ apiKeySource ทำให้ MCP ที่ต่ออยู่ไม่เคยถูกมองเห็นเลยทั้งที่มีในนี้
   const initEv = events.find((e) => e.type === 'system' && e.subtype === 'init') ?? null;
@@ -296,7 +363,7 @@ export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, f
     runId: `${scenario.id}__${arm.id}__r${repIndex}`,
     scenarioId: scenario.id, armId: arm.id, repIndex, seed,
     adapter: 'claude-cli', simulated: false, model,
-    toolCalls, commands, filesChanged, diff, finalMessage, loadedSkills, testsPassed,
+    toolCalls, commands, filesChanged, diff, finalMessage, loadedSkills, testsPassed, acceptance,
     // หลักฐานว่า run นี้ได้รับ context ของ arm จริง — ตรวจย้อนหลังได้โดยไม่ต้องเชื่อว่าโค้ดทำงานถูก
     armInstall: install,
     // ตัวแปรควบคุมที่ "บังคับไป" กับที่ "ได้จริง" — เก็บคู่กันไว้เพื่อให้ตรวจย้อนหลังได้ว่าตรงกันไหม

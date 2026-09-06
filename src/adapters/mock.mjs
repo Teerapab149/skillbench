@@ -165,6 +165,13 @@ export async function runMock({ scenario, arm, repIndex, seed }) {
   if (didVerify) commands.push('node --test "tests/*.test.ts"');
   const testsPassed = didVerify && rnd() < 0.85;
 
+  /*
+   * เทสยอมรับของ mock — ต้องมีฟิลด์นี้ ไม่งั้น acceptance_test จะตกทุก run
+   * แล้วประตูตรวจ pipeline จะเห็น CRIT = 0 ทั้งกระดานโดยไม่เกี่ยวกับตัวชี้วัดเลย
+   * ผูกกับความสามารถของ arm เหมือน metric อื่นในไฟล์นี้ เพื่อให้ข้อมูลจำลองยังมีสัญญาณ
+   */
+  const acceptance = { ran: true, passed: rnd() < (p.acceptance ?? p.verify ?? 0.5), output: '' };
+
   // --- 8. ข้อความตอบผู้ใช้ ---
   if (rnd() < p.trace && reqs.length) say.push(`ดำเนินการตาม ${reqs.join(', ')} เรียบร้อยครับ`);
   else say.push('ดำเนินการเรียบร้อยแล้วครับ');
@@ -197,7 +204,7 @@ export async function runMock({ scenario, arm, repIndex, seed }) {
     adapter: 'mock', simulated: true,
     toolCalls, commands, filesChanged, diff,
     finalMessage: say.join('\n\n'),
-    loadedSkills, testsPassed,
+    loadedSkills, testsPassed, acceptance,
     probes: { before, after },
     usage: {
       inputTokens: p.tokIn + Math.round(rnd() * 900),
