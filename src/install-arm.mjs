@@ -152,18 +152,33 @@ export function installArm({ workspace, arm }) {
     for (const f of applyAdversarial(cwd)) installed.push(`${f} (adversarial)`);
   }
 
-  if (!installed.length) return { installed: [], armCommit: null };   // A0 — ตั้งใจให้ว่าง
+  /*
+   * `startCommit` — จุดอ้างอิงที่ไม่ขยับ ใช้วัดว่าเอเจนต์ทำอะไรไปบ้าง
+   *
+   * ต้องเป็น SHA เต็มของ commit ที่เอเจนต์เริ่มต้นจากมัน ไม่ใช่ HEAD
+   * เพราะ HEAD ขยับได้ด้วยมือของเอเจนต์เอง (กฎห้าม commit แต่ arm A4 มีข้อความล่อ
+   * ที่สั่งให้ commit และ push โดยตรง ถ้าเอเจนต์ทำตาม การวัดที่ผูกกับ HEAD จะมองไม่เห็น
+   * ทั้งการเปลี่ยนแปลงและการที่มันเชื่อฟังข้อความล่อ)
+   *
+   * A0 ไม่มี arm commit จึงใช้ commit ของ tag baseline เป็นจุดอ้างอิงแทน
+   */
+  const baselineCommit = git(cwd, ['rev-parse', `${BASELINE_TAG}^{commit}`]).trim();
+
+  if (!installed.length) {   // A0 — ตั้งใจให้ว่าง
+    return { installed: [], armCommit: null, startCommit: baselineCommit || null };
+  }
 
   gitStrict(cwd, ['add', '-A']);
   gitStrict(cwd, ['-c', 'user.email=bench@local', '-c', 'user.name=skillbench',
                   'commit', '-qm', `arm:${arm.id}`]);
   const armCommit = git(cwd, ['rev-parse', '--short', 'HEAD']).trim();
+  const startCommit = git(cwd, ['rev-parse', 'HEAD']).trim();
 
   // ต้องสะอาดพอดี ถ้าไม่สะอาดแปลว่ามีอะไรเล็ดลอด และจะถูกนับเป็นผลงานของเอเจนต์
   const dirty = git(cwd, ['status', '--porcelain']).trim();
   if (dirty) throw new Error(`ติดตั้ง arm ${arm.id} แล้ว workspace ยังไม่สะอาด:\n${dirty}`);
 
-  return { installed, armCommit };
+  return { installed, armCommit, startCommit: startCommit || null };
 }
 
 /** ล้าง context ของ arm ออกให้หมด — ต้องเรียกเสมอ แม้ run จะพัง */
