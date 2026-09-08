@@ -20,10 +20,14 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { installArm, uninstallArm } from '../src/install-arm.mjs';
 import { resolveClaudeBin } from '../src/adapters/claude-cli.mjs';
+import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
 const CWD = path.join(ROOT, 'fixtures/gpu-booking');
+
+// --arm ติดตั้ง arm ลง fixture จริง และ probe ยิง CLI จริงหลายรอบ ระหว่างนั้นห้ามใครแตะ
+lockFixtureForProcess(CWD, 'probe-runtime');
 
 const argv = (flag, dflt = '') => {
   const i = process.argv.indexOf(flag);

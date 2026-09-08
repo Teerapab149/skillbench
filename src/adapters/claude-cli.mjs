@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { installArm, uninstallArm } from '../install-arm.mjs';
+import { acquireFixtureLock } from '../fixture-lock.mjs';
 import { resolveClaudeBin, memoryDirState } from '../claude-bin.mjs';
 import { fileURLToPath } from 'node:url';
 
@@ -202,7 +203,25 @@ function toolList(fixedFactors) {
   return [...new Set([...declared, 'Skill'])].join(',');
 }
 
-export async function runClaudeCli({ scenario, arm, repIndex, seed, workspace, fixedFactors,
+/**
+ * ถือล็อก fixture ตลอด run — ตั้งแต่ก่อนติดตั้ง arm จนหลังถอนออก
+ *
+ * ต้องคลุมทั้งช่วง ไม่ใช่คลุมเฉพาะตอนสั่ง git เพราะช่วงที่อันตรายที่สุดคือ
+ * ระหว่างที่เอเจนต์กำลังทำงาน (หลายนาที) ซึ่งไม่มีคำสั่ง git ของเราเองเลย
+ * แต่เป็นช่วงที่เครื่องมืออื่นสั่ง clean แล้วงานของเอเจนต์หายไปทั้งหมด
+ *
+ * ยึดซ้ำได้ถ้า runner ถือล็อกระดับรอบเก็บข้อมูลไว้แล้ว (ดู src/fixture-lock.mjs)
+ * ชั้นนี้จึงเป็นด่านล่างสุดที่ทำงานได้แม้ยังไม่มีใครต่อล็อกระดับบนให้
+ */
+export async function runClaudeCli(opts) {
+  const cwd = path.resolve(opts.workspace);
+  const release = acquireFixtureLock(cwd, {
+    owner: `run ${opts.arm?.id ?? '?'}/${opts.scenario?.id ?? '?'} rep ${opts.repIndex ?? '?'}`,
+  });
+  try { return await runClaudeCliLocked(opts); } finally { release(); }
+}
+
+async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fixedFactors,
                                      // 300 วินาทีสั้นเกินไป: smoke test จริง A0=211s A1=161s A2=301s
                                      // A2 ถูกฆ่าคาที่ 301s -> ไม่มี result event -> finalMessage ว่าง
                                      // กฎที่ตรวจจากข้อความตอบเลยตกหมด ทั้งที่เอเจนต์ทำงานถูกต้อง

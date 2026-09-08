@@ -27,6 +27,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { assertFixtureLockHeld } from './fixture-lock.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -64,6 +65,13 @@ export function ensureBaseline(cwd) {
  * ครอบคลุมทั้ง: ไฟล์ที่ถูกแก้ / ไฟล์ใหม่ / commit ที่เอเจนต์สร้างเอง / arm commit ของ run ก่อน
  */
 export function resetToBaseline(cwd) {
+  /*
+   * ด่านนี้ล้มแรงโดยตั้งใจ — `reset --hard` + `clean -fd` คือคำสั่งที่ลบงานของ
+   * run ที่กำลังเดินอยู่ทิ้งได้ทั้งชุด และมันลบสำเร็จอย่างเงียบ ๆ ไม่มี error ให้เห็น
+   * ทางเรียกที่ไม่ได้ยึดล็อกไว้ก่อน คือทางที่จะไปทับงานของคนอื่น จึงต้องหยุดที่นี่
+   * ไม่ใช่เตือนแล้วทำต่อ
+   */
+  assertFixtureLockHeld(cwd, 'การรีเซ็ต workspace กลับ baseline');
   ensureBaseline(cwd);
   gitStrict(cwd, ['reset', '--hard', '-q', BASELINE_TAG]);
   git(cwd, ['clean', '-fdq']);

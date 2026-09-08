@@ -17,6 +17,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { BASELINE_TAG } from '../src/install-arm.mjs';
+import { acquireFixtureLock, EXIT_LOCK_BUSY } from '../src/fixture-lock.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURES = path.join(ROOT, 'fixtures');
@@ -34,6 +35,22 @@ for (const name of fs.readdirSync(FIXTURES)) {
   if (!fs.statSync(dir).isDirectory()) continue;
 
   const hasGit = fs.existsSync(path.join(dir, '.git'));
+
+  /*
+   * ยึดล็อกทีละ fixture — สคริปต์นี้ `git add -A` + commit ทั้งโฟลเดอร์
+   * ถ้ารันตอนมี run เดินอยู่ ไฟล์ของ arm และงานของเอเจนต์จะถูก commit ติดเข้า baseline
+   * แล้ว install-arm จะ throw ทุก run ถัดไปเพราะเจอ CLAUDE.md ค้างอยู่ใน baseline
+   */
+  let release;
+  try {
+    release = acquireFixtureLock(dir, { owner: 'setup-fixtures' });
+  } catch (e) {
+    if (e.code !== 'FIXTURE_LOCK_BUSY') throw e;
+    console.error(`  ${name.padEnd(24)} ข้าม — มีเครื่องมืออื่นถือ fixture นี้อยู่`);
+    console.error(e.message.split('\n').slice(1).join('\n'));
+    process.exitCode = EXIT_LOCK_BUSY;
+    continue;
+  }
 
   try {
     if (!hasGit) {
@@ -56,6 +73,8 @@ for (const name of fs.readdirSync(FIXTURES)) {
     n++;
   } catch (e) {
     console.error(`  ${name.padEnd(24)} ล้มเหลว: ${e.message.split('\n')[0]}`);
+  } finally {
+    release();
   }
 }
 

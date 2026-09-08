@@ -22,6 +22,7 @@ import { join, relative } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { refuseIfCollecting } from './collection-guard.mjs';
 import { applyPatches } from './patch-fixture.mjs';
+import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 refuseIfCollecting(ROOT, 'check-acceptance-variants');
@@ -29,6 +30,9 @@ refuseIfCollecting(ROOT, 'check-acceptance-variants');
 const SRC = join(ROOT, 'scenarios', 'acceptance');
 const VAR = join(SRC, 'variants');
 const FIXTURE = join(ROOT, 'fixtures', 'gpu-booking');
+
+// ปะเฉลยผิด/เฉลยคนละแบบลง fixture ทีละตัวแล้ว clean — ต้องถือ fixture ไว้คนเดียวตลอด
+lockFixtureForProcess(FIXTURE, 'check-acceptance-variants');
 const DEST_NAME = '__acceptance__';
 const DEST = join(FIXTURE, DEST_NAME);
 

@@ -17,6 +17,7 @@ import { readdirSync, existsSync, rmSync, cpSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { refuseIfCollecting } from './collection-guard.mjs';
+import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 
@@ -24,10 +25,15 @@ const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
  * สคริปต์นี้ทำ git checkout/clean ใน fixture และคัดลอกไฟล์เข้าไป
  * ถ้ารันระหว่างเก็บข้อมูล มันจะลบงานของ run ที่กำลังทำอยู่ทิ้งกลางคัน
  * แล้ว run นั้นจะถูกให้คะแนนว่า "เอเจนต์ไม่ทำอะไรเลย" โดยไม่มีใครรู้ว่าเพราะอะไร
+ *
+ * และไม่ได้ชนกับการเก็บข้อมูลอย่างเดียว — `npm run check` กับ `npm run check:acceptance`
+ * ชนกันเองได้เต็ม ๆ เพราะไม่มีตัวไหนเขียน checkpoint ให้ refuseIfCollecting เห็น
+ * ล็อกด้านล่างจึงเป็นตัวที่กันจริง ส่วนตัวบนไว้บอกสาเหตุให้ตรงกว่าเมื่อชนกับการเก็บข้อมูล
  */
 refuseIfCollecting(ROOT, 'check-acceptance');
 const SRC = join(ROOT, 'scenarios', 'acceptance');
 const FIXTURE = join(ROOT, 'fixtures', 'gpu-booking');
+lockFixtureForProcess(FIXTURE, 'check-acceptance');
 const DEST_NAME = '__acceptance__';
 const DEST = join(FIXTURE, DEST_NAME);
 

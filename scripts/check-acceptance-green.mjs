@@ -19,6 +19,7 @@ import { join, relative } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { refuseIfCollecting } from './collection-guard.mjs';
 import { applyPatches } from './patch-fixture.mjs';
+import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 refuseIfCollecting(ROOT, 'check-acceptance-green');
@@ -26,6 +27,9 @@ refuseIfCollecting(ROOT, 'check-acceptance-green');
 const SRC = join(ROOT, 'scenarios', 'acceptance');
 const REF = join(SRC, 'reference');
 const FIXTURE = join(ROOT, 'fixtures', 'gpu-booking');
+
+// สคริปต์นี้ปะเฉลยลง fixture แล้ว clean ทิ้งทุกรอบ — ห้ามให้ใครแตะ fixture ระหว่างนั้น
+lockFixtureForProcess(FIXTURE, 'check-acceptance-green');
 const DEST_NAME = '__acceptance__';
 const DEST = join(FIXTURE, DEST_NAME);
 

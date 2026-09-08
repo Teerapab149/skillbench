@@ -12,11 +12,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyInstall } from './install-arm.mjs';
 import { refuseIfCollecting } from '../scripts/collection-guard.mjs';
+import { lockFixtureForProcess } from './fixture-lock.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // ข้อ 5 ของสคริปต์นี้ติดตั้ง arm ลง fixture จริง ห้ามชนกับการเก็บข้อมูลที่กำลังเดินอยู่
+//
+// refuseIfCollecting อ่าน mtime ของ checkpoint แล้วเดา — เห็นเฉพาะการเก็บข้อมูล
+// และมีช่องว่างระหว่างตรวจกับลงมือเสมอ ส่วนล็อกบรรทัดถัดไปกันการชนจริง และเห็น
+// เครื่องมือด้วยกันเองด้วย (check กับ check:acceptance ไม่มีตัวไหนเขียน checkpoint)
+// เก็บไว้ทั้งคู่ เพราะข้อความของตัวแรกบอกสาเหตุได้ตรงกว่าเมื่อชนกับการเก็บข้อมูล
 refuseIfCollecting(ROOT, 'check-arms');
+lockFixtureForProcess(path.join(ROOT, 'fixtures/gpu-booking'), 'check-arms');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
 
 /** ประมาณจำนวน token แบบหยาบ — ไทยราว 1 token ต่อ 2 อักขระ, อังกฤษราว 1 ต่อ 4 */

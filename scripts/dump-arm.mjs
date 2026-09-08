@@ -19,6 +19,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { installArm, uninstallArm, BASELINE_TAG } from '../src/install-arm.mjs';
 import { refuseIfCollecting } from './collection-guard.mjs';
+import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -26,6 +27,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 refuseIfCollecting(ROOT, 'dump-arm');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
 const FIXTURE = path.join(ROOT, 'fixtures/gpu-booking');
+lockFixtureForProcess(FIXTURE, 'dump-arm');
 
 const argv = (flag, dflt = '') => {
   const i = process.argv.indexOf(flag);

@@ -15,10 +15,18 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { resolveClaudeBin } from '../src/adapters/claude-cli.mjs';
+import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
 const CWD = path.join(ROOT, 'fixtures/gpu-booking');
+
+/*
+ * สคริปต์นี้ไม่ได้สั่ง git เอง แต่ยิง CLI จริงโดยใช้ fixture เป็น cwd ด้วย bypassPermissions
+ * เอเจนต์จึงเขียนไฟล์ลงไปได้ และไฟล์นั้นจะถูกนับเป็นผลงานของ run ที่กำลังเดินอยู่
+ * เป็นการแตะ fixture คนละแบบกับตัวอื่น แต่ปนเปื้อนข้อมูลได้เหมือนกัน
+ */
+lockFixtureForProcess(CWD, 'probe-configdir');
 const CLAUDE = resolveClaudeBin();
 const DECLARED = [...new Set([...(config.fixedFactors?.toolset ?? []), 'Skill'])];
 const quoteWin = (a) => (/[\s"%&|<>^]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a);

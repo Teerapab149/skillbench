@@ -16,6 +16,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { installArm, uninstallArm, BASELINE_TAG } from '../src/install-arm.mjs';
 import { refuseIfCollecting } from './collection-guard.mjs';
+import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -24,6 +25,7 @@ refuseIfCollecting(ROOT, 'make-arms-explained');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
 const canonical = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/rules-canonical.json'), 'utf8'));
 const FIXTURE = path.join(ROOT, 'fixtures/gpu-booking');
+lockFixtureForProcess(FIXTURE, 'make-arms-explained');
 const OUT = path.join(ROOT, 'ARMS-EXPLAINED.md');
 
 const estTokens = (t) => {
