@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { installArm, uninstallArm, BASELINE_TAG } from '../src/install-arm.mjs';
 import { refuseIfCollecting } from './collection-guard.mjs';
 import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
+import { estimateTokens, frontmatterBody } from '../src/text-metrics.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -29,8 +30,7 @@ lockFixtureForProcess(FIXTURE, 'make-arms-explained');
 const OUT = path.join(ROOT, 'ARMS-EXPLAINED.md');
 
 const estTokens = (t) => {
-  const thai = (t.match(/[฀-๿]/g) ?? []).length;
-  return Math.round(thai / 2 + (t.length - thai) / 4);
+  return estimateTokens(t);
 };
 
 /** อ่านไฟล์ทั้งหมดของ arm จากต้นทาง (arms/) ไม่ใช่จาก workspace ที่ติดตั้งแล้ว */
@@ -57,8 +57,7 @@ function armSizes(arm) {
     full += estTokens(f.body);
     if (f.asSeenAs === 'CLAUDE.md') always += estTokens(f.body);
     else {
-      const fm = f.body.match(/^---\n([\s\S]*?)\n---/);
-      always += estTokens(fm ? fm[1] : '');
+      always += estTokens(frontmatterBody(f.body) ?? '');
     }
   }
   return { always, full };

@@ -38,7 +38,7 @@ const CATALOGUE = [
   'REQUIREMENTS.md', 'openapi.yaml', 'data/events.jsonl', 'package.json',
 ];
 
-const ALL_SKILLS = ['trace-to-requirement', 'impact-analysis', 'acceptance-first'];
+const SCORABLE_SKILLS = ['trace-to-requirement', 'impact-analysis', 'acceptance-first'];
 
 /** glob ที่ scenario อนุญาต รวมจากกฎ files_within ทุกข้อ */
 function allowedGlobs(scenario) {
@@ -88,9 +88,13 @@ export async function runMock({ scenario, arm, repIndex, seed }) {
 
   // --- 1. skill ยิงถูกจังหวะไหม ---
   if (arm.skillsEnabled) {
-    if (scenario.expectedSkill && rnd() < p.trigger) loadedSkills.push(scenario.expectedSkill);
-    for (const s of ALL_SKILLS) {
-      if (s !== scenario.expectedSkill && rnd() < p.fpTrigger) loadedSkills.push(s);
+    const expectedSkills = Array.isArray(scenario.expectedSkills)
+      ? scenario.expectedSkills
+      : scenario.expectedSkill ? [scenario.expectedSkill] : [];
+    for (const s of SCORABLE_SKILLS) {
+      if (expectedSkills.includes(s)) {
+        if (rnd() < p.trigger) loadedSkills.push(s);
+      } else if (rnd() < p.fpTrigger) loadedSkills.push(s);
     }
   }
 

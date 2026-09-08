@@ -23,6 +23,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { resolveClaudeBin, memoryDirState } from './claude-bin.mjs';
+import { BASELINE_TAG } from './install-arm.mjs';
 
 export { memoryDirState };
 
@@ -58,13 +59,46 @@ export function experimentDigest(root) {
   for (const rel of ['arms', 'scenarios', 'config/arms.json', 'config/rules-canonical.json',
                      'src/graders.mjs', 'src/install-arm.mjs', 'src/stats.mjs',
                      'src/runner.mjs', 'src/runtime-manifest.mjs', 'src/claude-bin.mjs',
-                     'src/adapters/claude-cli.mjs']) add(rel);
+                     'src/adapters/claude-cli.mjs', 'src/fixture-lock.mjs']) add(rel);
   const combined = createHash('sha256').update(files.map((f) => f.join(':')).join('\n')).digest('hex').slice(0, 16);
   return { combined, files: Object.fromEntries(files) };
 }
 
 /** skill ที่เป็นตัวแปรต้นของการทดลอง — ทุกตัวนอกเหนือจากนี้คือ baseline set B */
 export const EXPERIMENT_SKILLS = ['acceptance-first', 'impact-analysis', 'safe-shell', 'trace-to-requirement'];
+
+/**
+ * อ่าน tree object ของ baseline tag ในทุก fixture ที่ชุดทดลองใช้
+ *
+ * tree hash ผูกกับเนื้อหาและ path ที่ commit ไว้ แต่ไม่ขึ้นกับ working-tree line ending,
+ * timestamp หรือ commit message จึงวัด "โจทย์ตั้งต้นเหมือนเดิมไหม" ได้ตรงกว่า git status
+ */
+export function fixtureBaselineTrees(root, scenarios) {
+  const fixtures = [...new Set((scenarios ?? []).map((s) => s.fixture).filter(Boolean))].sort();
+  if (!fixtures.length) throw new Error('ไม่มี fixture ให้ตรึง baseline tree');
+
+  const trees = {};
+  for (const rel of fixtures) {
+    const normalized = String(rel).replace(/\\/g, '/');
+    const cwd = path.resolve(root, rel);
+    if (!fs.existsSync(path.join(cwd, '.git'))) {
+      throw new Error(`fixture ไม่ใช่ git repo จึงตรึง baseline tree ไม่ได้: ${normalized}`);
+    }
+    let tree;
+    try {
+      tree = execFileSync('git', ['rev-parse', `${BASELINE_TAG}^{tree}`], {
+        cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+      }).trim();
+    } catch (e) {
+      throw new Error(`อ่าน tree ของ tag ${BASELINE_TAG} ไม่สำเร็จใน ${normalized}: ${e.message}`);
+    }
+    if (!/^[0-9a-f]{40,64}$/i.test(tree)) {
+      throw new Error(`tree hash ของ ${normalized} ไม่ถูกต้อง: ${tree || '(ว่าง)'}`);
+    }
+    trees[normalized] = tree;
+  }
+  return trees;
+}
 
 /**
  * ถาม CLI ว่าเวอร์ชันอะไร "ก่อน" เริ่มรัน แล้วตรึงค่าไว้
@@ -94,8 +128,11 @@ export function manifestPath(resultsDir, sigHash) {
  * และ skill ส่วนตัวในเครื่องคนรัน ซึ่งเอาออกให้เหลือศูนย์ไม่ได้ (ดูคอมเมนต์ใน adapter)
  * สิ่งที่ทำได้และจำเป็นคือ **ตรึงให้มันเท่ากันทุก run ทุก arm** แล้วให้ตัวแปรต้นเป็นส่วนต่าง
  */
-export function freezeManifest({ file, init, declared, cliVersion, digest }) {
+export function freezeManifest({ file, init, declared, cliVersion, digest, fixtureTrees }) {
   const available = init.skills ?? [];
+  if (!fixtureTrees || !Object.keys(fixtureTrees).length) {
+    throw new Error('ไม่มี fixture baseline tree จึงแช่แข็ง manifest แบบ fail-closed ไม่ได้');
+  }
   const manifest = {
     frozenAt: new Date().toISOString(),
     _note: 'แช่แข็งจาก run แรกของการทดลองชุดนี้ ห้ามแก้ด้วยมือ — ถ้าต้องเปลี่ยน ให้เริ่มการทดลองชุดใหม่',
@@ -103,6 +140,7 @@ export function freezeManifest({ file, init, declared, cliVersion, digest }) {
     cliVersion,
     experimentDigest: digest?.combined ?? null,
     experimentFiles: digest?.files ?? null,
+    fixtureBaselineTrees: { ...fixtureTrees },
     model: declared.model,
     maxTurns: declared.maxTurns,
     toolset: [...declared.toolset].sort(),
@@ -131,13 +169,32 @@ const sameSet = (a, b) => {
   return x.length === y.length && x.every((v, i) => v === y[i]);
 };
 
+/** เปรียบเทียบ fixture tree ใช้ร่วมกันทั้ง preflight และ validation หลัง run */
+export function fixtureTreeViolations(manifest, fixtureTrees) {
+  const v = [];
+  if (!manifest.fixtureBaselineTrees || !Object.keys(manifest.fixtureBaselineTrees).length) {
+    v.push('manifest ไม่มี fixture baseline tree — ยืนยันไม่ได้ว่าโจทย์ตั้งต้นตรงกัน จึงถือว่าไม่ผ่าน');
+  } else if (!fixtureTrees || !Object.keys(fixtureTrees).length) {
+    v.push('อ่าน fixture baseline tree ของ run นี้ไม่ได้ — ยืนยัน baseline ไม่ได้ จึงถือว่าไม่ผ่าน');
+  } else if (!sameSet(Object.keys(fixtureTrees), Object.keys(manifest.fixtureBaselineTrees))) {
+    v.push('รายการ fixture ไม่ตรงกับ manifest ที่ตรึงไว้');
+  } else {
+    for (const [fixture, tree] of Object.entries(fixtureTrees)) {
+      if (tree !== manifest.fixtureBaselineTrees[fixture]) {
+        v.push(`fixture baseline tree เปลี่ยน: ${fixture} (${tree} != ${manifest.fixtureBaselineTrees[fixture]})`);
+      }
+    }
+  }
+  return v;
+}
+
 /**
  * ตรวจ run เดียวเทียบกับ manifest — คืนรายการที่ผิด (ว่าง = ผ่าน)
  *
  * `arm.skillsEnabled` เป็นตัวแปรต้น: arm ที่เปิดต้องเห็น skill ของการทดลองครบ 4
  * arm ที่ปิดต้องไม่เห็นเลยสักตัว ส่วน baseline set ต้องเท่ากันทั้งสองฝั่ง
  */
-export function validateRuntime({ init, toolCalls, arm, manifest, memoryStateBefore, memoryStateAfter, digest }) {
+export function validateRuntime({ init, toolCalls, arm, manifest, memoryStateBefore, memoryStateAfter, digest, fixtureTrees }) {
   const v = [];
   if (!init) return ['ไม่มี system:init event — ตรวจสภาพ runtime ไม่ได้เลย'];
 
@@ -149,6 +206,8 @@ export function validateRuntime({ init, toolCalls, arm, manifest, memoryStateBef
       + ` · เปลี่ยน ${changed.length} ไฟล์: ${changed.slice(0, 5).join(', ')}${changed.length > 5 ? ' …' : ''}`
       + (added.length ? ` · เพิ่มใหม่ ${added.length}` : ''));
   }
+
+  v.push(...fixtureTreeViolations(manifest, fixtureTrees));
 
   const tools = init.tools ?? [];
   if (!sameSet(tools, manifest.toolset)) {

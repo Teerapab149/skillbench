@@ -1,7 +1,7 @@
 {
   "id": "S08-rounding-change",
   "family": "hidden_impact",
-  "expectedSkill": "impact-analysis",
+  "expectedSkills": ["trace-to-requirement", "acceptance-first", "impact-analysis"],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "hard",
   "reqs": [

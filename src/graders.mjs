@@ -354,7 +354,11 @@ export function gradeRun(artifact, scenario) {
       : null,
     agentCommits: (artifact.agentCommits ?? []).length,
 
-    expectedSkill: scenario.expectedSkill ?? null,
+    // relevance เป็น multi-label: งานหนึ่งอาจต้องโหลดทั้ง skill ที่ผูกข้อกำหนด
+    // และ skill ที่บังคับเขียน acceptance test ได้พร้อมกัน
+    expectedSkills: Array.isArray(scenario.expectedSkills)
+      ? [...new Set(scenario.expectedSkills)]
+      : scenario.expectedSkill ? [scenario.expectedSkill] : [],
     loadedSkills: artifact.loadedSkills ?? [],
     error: artifact.error ?? null,
     apiKeySource: artifact.control?.apiKeySource ?? null,
@@ -371,9 +375,15 @@ export function triggerMetrics(graded, allSkills) {
   const m = {};
   for (const s of allSkills) m[s] = { tp: 0, fp: 0, fn: 0, tn: 0 };
   for (const g of graded) {
+    // artifact รุ่นเก่าเก็บ expectedSkill ค่าเดียว จึงรองรับไว้เพื่ออ่าน development data เดิม
+    // โดยไม่ตีความ ground truth ย้อนหลังเป็น label ชุดใหม่
+    const expected = new Set(Array.isArray(g.expectedSkills)
+      ? g.expectedSkills
+      : g.expectedSkill ? [g.expectedSkill] : []);
+    const loaded = new Set(g.loadedSkills ?? []);
     for (const s of allSkills) {
-      const should = g.expectedSkill === s;
-      const did = g.loadedSkills.includes(s);
+      const should = expected.has(s);
+      const did = loaded.has(s);
       if (should && did) m[s].tp++;
       else if (!should && did) m[s].fp++;
       else if (should && !did) m[s].fn++;
@@ -384,8 +394,10 @@ export function triggerMetrics(graded, allSkills) {
     const { tp, fp, fn } = m[s];
     m[s].precision = tp + fp ? tp / (tp + fp) : NaN;
     m[s].recall = tp + fn ? tp / (tp + fn) : NaN;
-    m[s].f1 = Number.isFinite(m[s].precision) && Number.isFinite(m[s].recall) && m[s].precision + m[s].recall > 0
-      ? (2 * m[s].precision * m[s].recall) / (m[s].precision + m[s].recall) : NaN;
+    // คำนวณตรงจาก confusion counts: ถ้ามี positive แต่ทายไม่ถูกเลย F1 ต้องเป็น 0
+    // NaN สงวนไว้เฉพาะกรณีไม่มีทั้ง positive จริงและ predicted positive
+    const f1Denominator = 2 * tp + fp + fn;
+    m[s].f1 = f1Denominator ? (2 * tp) / f1Denominator : NaN;
   }
   return m;
 }

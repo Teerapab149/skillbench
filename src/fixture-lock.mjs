@@ -123,6 +123,18 @@ function describeHolder (h) {
  */
 const held = new Map();   // lockPath -> { depth, token }
 
+function releaseHeldLock (lockPath, token) {
+  const entry = held.get(lockPath);
+  if (!entry || entry.token !== token) return;
+  if (--entry.depth > 0) return;
+  held.delete(lockPath);
+  // ปลดเฉพาะล็อกของเราเอง — ถ้า token ไม่ตรงแปลว่าโดนแกะไปแล้วและมีคนอื่นถืออยู่
+  try {
+    const cur = readLockFile(lockPath);
+    if (cur?.info?.token === token) fs.unlinkSync(lockPath);
+  } catch { /* ไฟล์หายไปแล้วก็ถือว่าปลดแล้ว */ }
+}
+
 let exitHookInstalled = false;
 function installExitHook () {
   if (exitHookInstalled) return;
@@ -157,7 +169,11 @@ export function acquireFixtureLock (fixtureDir, { owner = 'unknown', command = n
   if (mine) {
     mine.depth++;
     let released = false;
-    return () => { if (released) return; released = true; mine.depth--; };
+    return () => {
+      if (released) return;
+      released = true;
+      releaseHeldLock(lockPath, mine.token);
+    };
   }
 
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
@@ -180,15 +196,7 @@ export function acquireFixtureLock (fixtureDir, { owner = 'unknown', command = n
       return () => {
         if (released) return;
         released = true;
-        const entry = held.get(lockPath);
-        if (!entry) return;
-        if (--entry.depth > 0) return;
-        held.delete(lockPath);
-        // ปลดเฉพาะล็อกของเราเอง — ถ้า token ไม่ตรงแปลว่าโดนแกะไปแล้วและมีคนอื่นถืออยู่
-        try {
-          const cur = readLockFile(lockPath);
-          if (cur?.info?.token === token) fs.unlinkSync(lockPath);
-        } catch { /* ไฟล์หายไปแล้วก็ถือว่าปลดแล้ว */ }
+        releaseHeldLock(lockPath, token);
       };
     }
 
@@ -200,13 +208,33 @@ export function acquireFixtureLock (fixtureDir, { owner = 'unknown', command = n
     }
 
     /*
-     * แกะล็อกค้างด้วยการ "เปลี่ยนชื่อ" ไม่ใช่ลบตรง ๆ
-     * rename สำเร็จได้แค่รายเดียวเมื่อหลายโปรเซสแกะพร้อมกัน ตัวที่แพ้จะได้ ENOENT
-     * แล้ววนไปสร้างใหม่ตามปกติ — ไม่มีทางที่สองตัวจะคิดว่าตัวเองยึดได้พร้อมกัน
+     * serialize ผู้แกะ stale ด้วย breaker อายุสั้น แล้วตรวจเจ้าของซ้ำหลังได้ breaker
+     *
+     * rename อย่างเดียวไม่พอเมื่อมี 3 process: A อาจย้าย stale ออก, C สร้างล็อกใหม่,
+     * แล้ว B ซึ่งอ่าน stale ตัวเก่าไว้ก่อนหน้าไป rename ล็อกใหม่ของ C ทิ้งได้ การมี breaker
+     * ทำให้ B ต้องรอจน A จบ แล้วเห็นว่าเจ้าของปัจจุบันคือ C ที่ยังมีชีวิตก่อนแตะไฟล์
      */
-    const parked = `${lockPath}.stale-${token}`;
-    try { fs.renameSync(lockPath, parked); fs.unlinkSync(parked); }
-    catch { /* คนอื่นแกะไปก่อน วนไปลองสร้างใหม่ */ }
+    const breakerPath = `${lockPath}.breaker`;
+    const breakerToken = `breaker-${token}`;
+    if (!tryCreate(breakerPath, { ...payload, token: breakerToken, owner: `stale-breaker: ${owner}` })) {
+      continue;
+    }
+    try {
+      const current = inspectLock(fixtureDir);
+      if (!current) continue;
+      if (!current.stale) {
+        throw new FixtureLockBusyError(
+          `fixture ถูกใช้งานอยู่: ${path.resolve(fixtureDir)}\n${describeHolder(current)}`, current);
+      }
+      const parked = `${lockPath}.stale-${token}`;
+      try { fs.renameSync(lockPath, parked); fs.unlinkSync(parked); }
+      catch { /* เจ้าของเพิ่งปล่อยหรือสภาพเปลี่ยน วนไปตรวจใหม่ */ }
+    } finally {
+      try {
+        const breaker = readLockFile(breakerPath);
+        if (breaker?.info?.token === breakerToken) fs.unlinkSync(breakerPath);
+      } catch { /* breaker หายไปแล้ว */ }
+    }
   }
 
   const holder = inspectLock(fixtureDir);

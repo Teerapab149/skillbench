@@ -223,6 +223,17 @@ test('ยึดซ้อนในโปรเซสเดียวกันไ�
   assert.ok(!existsSync(lockPathFor(fx)))
 })
 
+test('ยึดซ้อนแล้วปลดผิดลำดับต้องไม่ทิ้งไฟล์ล็อกค้าง', () => {
+  const fx = scratchFixture()
+  const releaseOuter = acquireFixtureLock(fx, { owner: 'ชั้นนอก' })
+  const releaseInner = acquireFixtureLock(fx, { owner: 'ชั้นใน' })
+
+  releaseOuter()
+  assert.ok(existsSync(lockPathFor(fx)), 'ยังมีผู้ถือชั้นในอยู่ ล็อกจริงต้องยังอยู่')
+  releaseInner()
+  assert.ok(!existsSync(lockPathFor(fx)), 'ผู้ถือคนสุดท้ายปล่อยแล้ว ต้องลบล็อกจริงไม่ว่าลำดับใด')
+})
+
 test('withFixtureLock ปลดล็อกแม้งานข้างในจะโยน error', async () => {
   const fx = scratchFixture()
   await assert.rejects(withFixtureLock(fx, 'พัง', async () => { throw new Error('พังกลางคัน') }), /พังกลางคัน/)

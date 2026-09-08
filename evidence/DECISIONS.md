@@ -182,3 +182,82 @@
 A1 โตเป็น 1,969 token · A3/A1 = 1.053 ยังอยู่ในกรอบ
 **ข้อจำกัดที่บันทึกไว้:** พิสูจน์ได้แค่ว่าเจ็ดจุดที่รู้แล้วจะไม่กลับมาเงียบ ๆ
 **ไม่ได้พิสูจน์ว่าไม่มีจุดที่แปด** และการอ่านเทียบทำโดยผู้เขียนกฎทั้งสองฝั่งเอง
+
+---
+
+### 2026-09-07 — แก้ Trigger F1 ให้ใช้ relevance แบบหลาย label (ถัง A ข้อ #13)
+
+**ตัดสินโดย:** Teerapab *('เริ่มแก้เลย')*
+**หลักฐานว่าของเดิมพัง (repro ก่อนแก้):**
+- run ที่ควรโหลด `acceptance-first` แต่ไม่โหลดอะไรเลยได้ `recall = 0` แต่ `F1 = NaN`
+  ทั้งที่มี false negative หนึ่งตัวและ F1 ต้องเป็น 0
+- scenario เก็บ `expectedSkill` ได้ค่าเดียว ทั้งที่ description ระบุว่า `trace-to-requirement`
+  ใช้กับทุกงานแก้โค้ด และ `acceptance-first` ใช้กับงานที่อ้าง REQ-ID ซึ่งมี acceptance criteria
+  การโหลดทั้งสองตัวอย่างถูกต้องจึงถูกนับเป็น false positive หนึ่งตัว
+**ผู้ช่วยเสนอ:** เปลี่ยนเป็น `expectedSkills` แบบ multi-label คำนวณ F1 ตรงจาก confusion counts
+และไม่ให้คะแนน `safe-shell` ด้วย ground truth ระดับโจทย์ เพราะ relevance ของมันขึ้นกับ action
+**ทางเลือกที่ปฏิเสธ:** บังคับให้เลือก skill หลักตัวเดียวต่อโจทย์ — ทำให้ตัวเลขเรียบง่ายแต่ขัดกับ
+description ที่เอเจนต์เห็นจริง และให้โทษพฤติกรรมที่ทำตามกฎ
+**ผล:** Amendment 11 · mapping 11 โจทย์ถูกล็อกด้วยเทส · artifact เก่ายังอ่านแบบ scalar ได้
+**ข้อจำกัด:** mapping ยังเป็น judgement ของผู้วิจัยจาก description ที่ผู้วิจัยเขียนเอง
+
+---
+
+### 2026-09-08 — ตรึง baseline tree ของ fixture และแยกงาน process lock ให้ตรวจอิสระ
+
+**ตัดสินโดย:** Teerapab *('ผมอยากให้ทั้งสองคนทำงานร่วมกัน' และให้แบ่งรันพร้อมกัน)*
+**หลักฐาน:** `experimentDigest()` ครอบคลุม skill content แล้วแต่ไม่ครอบคลุม nested fixture repo;
+การย้าย tag `skillbench-baseline` จึงเปลี่ยนโจทย์ตั้งต้นได้โดย manifest เดิมไม่ฟ้อง และการรัน
+`npm run check` พร้อม `npm run check:acceptance` ทำให้สอง process checkout/clean fixture ทับกันจริง
+**ผู้ช่วยเสนอ:** ตรึง tree object ของ baseline tag ทุก fixture ใน manifest และตรวจซ้ำทุก run;
+แยก process lock ให้ Claude Code ทำใน worktree/branch อิสระเพื่อไม่ชนไฟล์
+**ทางเลือกที่ปฏิเสธ:** hash working tree — ปนผลของ line ending/timestamp กับเนื้อหา baseline
+และการให้สอง agent แก้ `runner.mjs` พร้อมกัน — เสี่ยง merge conflict กับจุดควบคุมหลัก
+**ผล:** Amendment 12 · Codex รับ fixture tree + full gate · Claude รับ cross-process lock
+
+---
+
+### 2026-09-08 — บันทึกความผิดพลาดระหว่างปิดถัง A รอบนี้
+
+**เจ้าของงาน:** Teerapab
+**ผู้ช่วยพลาดข้อ 1:** รัน `npm test`, `npm run check` และ `npm run check:acceptance` พร้อมกัน
+ทั้งที่สองคำสั่งหลัง reset/clean nested fixture เดียวกัน ผลคือ acceptance 10/11 ไฟล์ตกด้วยเหตุผลผิด
+ไม่ใช่บั๊กของ acceptance test เมื่อตรวจซ้ำแบบเรียงลำดับผ่านครบ 11/11
+**ผู้ช่วยพลาดข้อ 2:** implementation แรกอ่าน fixture tree ตอนแช่แข็ง manifest หลัง run แรกจบ
+จึงมีช่อง TOCTOU: เอเจนต์ตัวแรกย้าย baseline tag แล้วค่าที่เปลี่ยนจะถูกแช่แข็งเป็นค่าถูกได้
+**สิ่งที่จับข้อ 2:** เพิ่มเทสที่บังคับให้ snapshot อยู่ก่อน run loop เทสตกก่อนแก้และผ่านหลังย้าย
+snapshot ไปก่อน run แรก พร้อมอ่านค่าปัจจุบันใหม่หลังทุก run
+**ผล:** full test 121/121 และ `npm run gate` ผ่าน; process lock ที่ป้องกันข้อ 1 แบบบังคับจริง
+ถูกแยกให้ Claude Code ทำใน worktree อิสระ
+
+---
+
+### 2026-09-08 — รวม process lock จาก Claude และปิดช่องระหว่าง run ใน runner
+
+**ตัดสินโดย:** Teerapab *(สั่งให้ Codex กับ Claude Code แบ่ง task และรันพร้อมกัน)*
+**หลักฐานก่อนแก้:** Claude จำลองสอง process แล้วได้ `newFileSurvived: false`, Git status ว่าง,
+ทั้ง runner จำลองและ checker exit 0 ยืนยันว่าการชนทำให้ข้อมูลผิดแบบเงียบจริง
+**การแบ่งงาน:** Claude ทำ atomic lock, entry points, CLI และเทสบน `claude/fixture-process-lock`;
+Codex review commit `f9a18b2`, รวมเข้ากิ่งหลัก แล้วรับผิดชอบ session lock ใน `runner.mjs`,
+fixture-tree ordering และ experiment digest
+**สิ่งที่ Codex พบระหว่าง review:** release ของ re-entrant lock เดิมสมมติว่าต้องปลดชั้นในก่อน
+ชั้นนอก หากปลดผิดลำดับ depth ถึงศูนย์ใน closure ที่ไม่ลบไฟล์ ทำให้ล็อกค้าง จึงรวม release path
+เป็นฟังก์ชันเดียวและเพิ่ม regression test สำหรับลำดับกลับกัน; review รอบสองพบว่า rename อย่างเดียว
+ยังมี race แบบสาม process ที่ผู้แกะ stale รายหนึ่งอาจย้ายล็อกใหม่ จึงเพิ่ม breaker อายุสั้นและ re-check
+เจ้าของหลังได้ breaker ก่อน rename
+**หลักออกแบบที่ยืนยัน:** runner ยึดหลาย fixture ตาม path ที่ sort แล้วก่อน snapshot baseline tree,
+ถือผ่านทุก run และเขียนผล แล้วปลดกลับลำดับใน `finally`; adapter ยึดซ้ำเป็นด่านล่างได้
+**ผล:** Finding #11 เปลี่ยนจาก Partial เป็น Closed · Amendment 13 · lock logic เข้า digest
+
+---
+
+### 2026-09-08 — แยก line ending ออกจากตัวเลข token และแก้ summary ที่พูดเกินหลักฐาน
+
+**เจ้าของงาน:** Teerapab
+**ที่มา:** Claude พบว่า `ARMS-EXPLAINED.md` เปลี่ยนตัวเลขตาม checkout เพราะ regex frontmatter
+รับเฉพาะ LF; ระหว่าง integration Codex เจอ S11 เปิดไฟล์ไม่ได้ชั่วคราวหนึ่งรอบและ checker ยังพิมพ์
+“เขียว 11 จาก 11” ทั้งที่ exit 2
+**ตัดสินใจ:** normalize LF/CRLF ก่อนประมาณ token และ parse frontmatter พร้อม regression tests;
+summary ต้องใช้จำนวนที่ผ่านจริงและแจกแจง reference ที่ล้ม
+**ขอบเขตการอ้าง:** ตัวเลขยังเป็นค่าประมาณแบบ character heuristic ไม่ใช่ token ที่วัดจาก tokenizer;
+การแก้นี้ทำให้ค่าคงที่ข้าม checkout เท่านั้น ไม่ยกระดับค่าประมาณให้กลายเป็นค่าที่วัดจริง

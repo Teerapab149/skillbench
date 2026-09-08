@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { verifyInstall } from './install-arm.mjs';
 import { refuseIfCollecting } from '../scripts/collection-guard.mjs';
 import { lockFixtureForProcess } from './fixture-lock.mjs';
+import { estimateTokens, frontmatterBody } from './text-metrics.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -28,8 +29,7 @@ const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), '
 
 /** ประมาณจำนวน token แบบหยาบ — ไทยราว 1 token ต่อ 2 อักขระ, อังกฤษราว 1 ต่อ 4 */
 function estTokens(text) {
-  const thai = (text.match(/[฀-๿]/g) ?? []).length;
-  return Math.round(thai / 2 + (text.length - thai) / 4);
+  return estimateTokens(text);
 }
 
 /**
@@ -40,9 +40,14 @@ function estTokens(text) {
  */
 function armText(arm) {
   let always = '', full = '';
+  const alwaysParts = [], fullParts = [];
   for (const f of arm.contextFiles ?? []) {
     const p = path.join(ROOT, f);
-    if (fs.existsSync(p)) { const s = fs.readFileSync(p, 'utf8') + '\n'; always += s; full += s; }
+    if (fs.existsSync(p)) {
+      const body = fs.readFileSync(p, 'utf8');
+      alwaysParts.push(body); fullParts.push(body);
+      always += body + '\n'; full += body + '\n';
+    }
   }
   if (arm.skillsDir) {
     const dir = path.join(ROOT, arm.skillsDir);
@@ -51,13 +56,15 @@ function armText(arm) {
         const p = path.join(dir, d, 'SKILL.md');
         if (!fs.existsSync(p)) continue;
         const body = fs.readFileSync(p, 'utf8');
+        fullParts.push(body);
         full += body + '\n';
-        const fm = body.match(/^---\n([\s\S]*?)\n---/);
-        always += (fm ? fm[1] : '') + '\n';   // เฉพาะ name+description
+        const frontmatter = frontmatterBody(body) ?? '';
+        alwaysParts.push(frontmatter);
+        always += frontmatter + '\n';   // เฉพาะ name+description
       }
     }
   }
-  return { always, full };
+  return { always, full, alwaysParts, fullParts };
 }
 
 /*
@@ -110,8 +117,13 @@ let fail = 0;
 console.log('1) ขนาด context ต่อ arm  (always = กินทุก request, full = ถ้าโหลด skill ครบทุกตัว)');
 const sizes = {};
 for (const arm of config.arms) {
-  const { always, full } = armText(arm);
-  sizes[arm.id] = { always: estTokens(always), full: estTokens(full), text: always, fullText: full };
+  const { always, full, alwaysParts, fullParts } = armText(arm);
+  sizes[arm.id] = {
+    always: alwaysParts.reduce((sum, part) => sum + estTokens(part), 0),
+    full: fullParts.reduce((sum, part) => sum + estTokens(part), 0),
+    text: always,
+    fullText: full,
+  };
   const s = sizes[arm.id];
   console.log(`   ${arm.id.padEnd(3)} ${arm.name.padEnd(30)} always ~${String(s.always).padStart(5)} tok | full ~${String(s.full).padStart(5)} tok`);
 }

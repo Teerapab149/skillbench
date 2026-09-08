@@ -14,9 +14,17 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateRuntime, EXPERIMENT_SKILLS, experimentDigest } from '../src/runtime-manifest.mjs';
+import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import {
+  validateRuntime as validateRuntimeRaw,
+  EXPERIMENT_SKILLS,
+  experimentDigest,
+  fixtureBaselineTrees,
+} from '../src/runtime-manifest.mjs';
 
 const BASELINE = ['dataviz', 'code-review', 'artifact-design'];
+const FIXTURE_TREES = { 'fixtures/gpu-booking': 'fixture-tree-a' };
 
 const manifest = {
   cliVersion: '2.1.224',
@@ -26,7 +34,10 @@ const manifest = {
   apiKeySource: 'none',
   baselineSkills: [...BASELINE].sort(),
   memoryAutoPath: 'C:/tmp/memory',
+  fixtureBaselineTrees: FIXTURE_TREES,
 };
+
+const validateRuntime = (args) => validateRuntimeRaw({ fixtureTrees: FIXTURE_TREES, ...args });
 
 const cleanInit = (over = {}) => ({
   tools: ['Bash', 'Edit', 'Glob', 'Grep', 'Read', 'Skill', 'Write'],
@@ -207,7 +218,51 @@ test('digest ต้องครอบคลุมไฟล์ harness ที่�
   const d = experimentDigest(root);
   // adapter เปลี่ยน flag ที่ส่งให้ CLI ได้ · runner เปลี่ยนลำดับสุ่มและเกณฑ์ validate ได้
   for (const f of ['src/adapters/claude-cli.mjs', 'src/runner.mjs', 'src/runtime-manifest.mjs',
-                   'src/stats.mjs', 'src/graders.mjs', 'src/claude-bin.mjs']) {
+                   'src/stats.mjs', 'src/graders.mjs', 'src/claude-bin.mjs',
+                   'src/fixture-lock.mjs']) {
     assert.ok(f in d.files, `digest ต้องครอบคลุม ${f}`);
   }
+});
+
+test('fixture baseline tree เปลี่ยนกลางการทดลองต้องหยุดแบบ fail-closed', () => {
+  const v = validateRuntime({ init: cleanInit(), toolCalls: [], arm: armNoSkills, manifest,
+                              fixtureTrees: { 'fixtures/gpu-booking': 'fixture-tree-b' },
+                              memoryStateBefore: 'empty', memoryStateAfter: 'empty' });
+  assert.ok(v.some((x) => x.includes('fixture baseline tree เปลี่ยน')), v.join(' | '));
+});
+
+test('manifest ที่ไม่มี fixture baseline tree ต้องไม่ผ่าน', () => {
+  const oldManifest = { ...manifest }; delete oldManifest.fixtureBaselineTrees;
+  const v = validateRuntime({ init: cleanInit(), toolCalls: [], arm: armNoSkills,
+                              manifest: oldManifest,
+                              memoryStateBefore: 'empty', memoryStateAfter: 'empty' });
+  assert.ok(v.some((x) => x.includes('manifest ไม่มี fixture baseline tree')), v.join(' | '));
+});
+
+test('อ่าน tree hash ของ baseline tag จาก fixture จริง ไม่ใช่จาก working tree', () => {
+  const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  const trees = fixtureBaselineTrees(root, [{ fixture: 'fixtures/gpu-booking' }]);
+  const expected = execFileSync('git', ['rev-parse', 'skillbench-baseline^{tree}'], {
+    cwd: `${root}/fixtures/gpu-booking`, encoding: 'utf8',
+  }).trim();
+  assert.deepEqual(trees, { 'fixtures/gpu-booking': expected });
+});
+
+test('runner ต้อง snapshot fixture tree ก่อน run แรก และตรวจค่าปัจจุบันใหม่หลังทุก run', () => {
+  const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+  const source = fs.readFileSync(`${root}/src/runner.mjs`, 'utf8');
+  const lockAt = source.indexOf('fixtureReleases.push(acquireFixtureLock');
+  const snapshotAt = source.indexOf('const fixtureTreesAtStart');
+  const runLoopAt = source.indexOf('for (let rep = 0;');
+
+  assert.ok(lockAt >= 0 && lockAt < snapshotAt,
+    'ต้องยึด fixture ก่อน snapshot baseline tree เพื่อปิดช่อง TOCTOU ก่อน run แรก');
+  assert.ok(snapshotAt >= 0 && snapshotAt < runLoopAt,
+    'ต้อง snapshot baseline tree ก่อนเอเจนต์ตัวแรกมีโอกาสแก้ tag');
+  assert.match(source, /fixtureTrees:\s*fixtureTreesAtStart/,
+    'manifest แรกต้องแช่แข็ง snapshot ก่อน run ไม่ใช่อ่านใหม่หลังเอเจนต์จบ');
+  assert.match(source, /fixtureTrees:\s*fixtureBaselineTrees\(ROOT, scenarios\)/,
+    'validator ต้องอ่าน tree ปัจจุบันใหม่หลังทุก run เพื่อจับ drift');
+  assert.match(source, /finally\s*\{\s*for \(const release of fixtureReleases\.reverse\(\)\) release\(\);/,
+    'runner ต้องปลด session lock ใน finally แม้หยุดกลางชุดหรือโยน error');
 });

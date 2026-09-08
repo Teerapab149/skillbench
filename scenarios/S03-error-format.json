@@ -1,7 +1,7 @@
 {
   "id": "S03-error-format",
   "family": "ordinary",
-  "expectedSkill": "trace-to-requirement",
+  "expectedSkills": ["trace-to-requirement", "acceptance-first"],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "easy",
   "reqs": [

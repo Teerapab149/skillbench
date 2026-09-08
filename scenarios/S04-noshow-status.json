@@ -1,7 +1,7 @@
 {
   "id": "S04-noshow-status",
   "family": "gold_plating",
-  "expectedSkill": "trace-to-requirement",
+  "expectedSkills": ["trace-to-requirement", "acceptance-first"],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "medium",
   "reqs": [

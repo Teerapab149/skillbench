@@ -888,3 +888,98 @@ run เดียวที่เข้าข่ายน่าสงสัยค�
 **ไม่ได้พิสูจน์ว่าไม่มีจุดที่แปดที่ยังหาไม่เจอ** สิ่งที่พิสูจน์ได้คือ
 จุดที่รู้แล้วจะไม่กลับมาเงียบ ๆ และการอ่านเทียบครั้งนี้ทำโดยผู้เขียนเอง
 ซึ่งเป็นคนเดียวกับที่เขียนกฎทั้งสองฝั่งตั้งแต่แรก
+
+---
+
+## 18. Amendment 11 — แก้ Trigger F1 จาก single-label เป็น multi-label *(7 ก.ย. 2569)*
+
+> ⚠️ **ร่างโดยผู้ช่วยตามคำสั่ง “เริ่มแก้เลย” — รอ Teerapab ตรวจ mapping และถ้อยคำก่อนปลดเครื่องหมายนี้**
+
+### ปัญหาที่แก้ก่อนเก็บข้อมูลหลัก
+
+ตัวชี้วัดเดิมกำหนด `expectedSkill` ได้เพียงหนึ่งตัวต่อโจทย์ ทั้งที่ description ของ skill
+ซ้อนกันโดยตั้งใจ เช่น ทุกงานแก้โค้ดต้องใช้ `trace-to-requirement` และทุกโจทย์ที่อ้าง REQ-ID
+ซึ่งมี acceptance criteria ต้องใช้ `acceptance-first` การโหลดสองตัวพร้อมกันจึงถูกต้อง
+แต่ของเดิมนับตัวที่ไม่ได้ถูกเลือกเป็น label เดียวว่าเป็น false positive
+
+สูตรเดิมยังให้ `F1 = NaN` เมื่อพลาด skill ที่ควรโหลดทั้งหมด เพราะ precision ไม่มีตัวหาร
+แม้กรณีนี้มีคำตอบเชิงการวัดชัดเจนว่า F1 ต้องเป็น 0
+
+### Ground truth ที่ตรึงก่อนเก็บข้อมูล
+
+| โจทย์ | Skill ที่เกี่ยวข้อง |
+|---|---|
+| S01–S05, S10 | `trace-to-requirement`, `acceptance-first` |
+| S06–S09, S11 | `trace-to-requirement`, `acceptance-first`, `impact-analysis` |
+
+กลุ่มหลังเพิ่ม `impact-analysis` เพราะเป็นงานโควตา อัตรา การปัด หรือขอบเขตเวลาที่กระทบ
+การคำนวณ ตัว mapping ทั้ง 11 โจทย์อยู่ใน `expectedSkills` ของไฟล์ scenario และมี automated
+test ล็อกไว้ไม่ให้กลับไปเป็น scalar หรือเปลี่ยนสมาชิกเงียบ ๆ
+
+`safe-shell` ไม่นำมาคำนวณ Trigger F1 เพราะ relevance ของมันเกิดจาก action ที่เอเจนต์
+กำลังจะทำ ไม่ใช่จากโจทย์ล่วงหน้า การนับทุกโจทย์เป็น negative จะลงโทษการโหลดที่ถูกต้อง
+เมื่อเอเจนต์กำลังจะใช้คำสั่งเปลี่ยนสถานะ
+
+### สูตรและความเข้ากันได้ย้อนหลัง
+
+ใช้ `F1 = 2TP / (2TP + FP + FN)` โดยตรง:
+
+- ตัวหารมากกว่าศูนย์แต่ `TP = 0` → `F1 = 0`
+- `TP = FP = FN = 0` → `F1 = n/a` เพราะไม่มี positive ให้ประเมิน
+- artifact รุ่นเก่าที่มี `expectedSkill` ค่าเดียวยังอ่านได้และคงความหมายเดิม
+- ค่า Trigger F1 ก่อนและหลัง amendment นี้ **เปรียบเทียบกันไม่ได้** เพราะ ground truth เปลี่ยน
+
+### ข้อจำกัด
+
+การระบุ relevance ยังเป็น judgement ของผู้วิจัยจาก description ที่ผู้วิจัยเขียนเอง
+multi-label แก้ false positive ที่รู้แล้ว แต่ไม่ได้ทำให้ ground truth เป็นอิสระจากผู้สร้างเครื่องมือ
+
+---
+
+## 19. Amendment 12 — ตรึง baseline tree ของ fixture ใน runtime manifest *(8 ก.ย. 2569)*
+
+> ⚠️ **ร่างโดยผู้ช่วยตามคำสั่งให้เริ่มแก้ — รอ Teerapab ตรวจถ้อยคำก่อนปลดเครื่องหมายนี้**
+
+`experimentDigest` ตรึง arm, skill, scenario, grader และ runner แล้ว แต่ไม่ครอบคลุม repository
+ของ fixture ที่ซ้อนอยู่ภายใน `fixtures/` ถ้า tag `skillbench-baseline` ถูกย้าย เนื้อหาตั้งต้น
+ของทุก run จะเปลี่ยนโดย digest ของการทดลองยังเท่าเดิม
+
+ก่อนเก็บข้อมูลหลักจึงเพิ่ม `fixtureBaselineTrees` ลง manifest โดยอ่าน Git tree object ของ
+`skillbench-baseline` แยกตาม fixture ที่ scenario ชุดนั้นใช้งาน และคำนวณตรวจซ้ำหลังทุก run:
+
+- manifest ไม่มี tree hash → หยุดแบบ fail-closed
+- อ่าน tree ปัจจุบันไม่ได้ → หยุดแบบ fail-closed
+- รายการ fixture เพิ่มหรือลด → หยุด
+- tree hash ของ fixture ใดเปลี่ยน → หยุดและระบุ fixture กับ hash ก่อน/หลัง
+
+เลือกตรึง **tree** แทน working-tree hash เพราะคำถามคือ path และเนื้อหาใน baseline commit
+เหมือนเดิมหรือไม่ ไม่ใช่ว่า checkout บน Windows ใช้ LF หรือ CRLF และ tree hash ไม่ขึ้นกับ
+timestamp หรือข้อความ commit
+
+ข้อจำกัด ณ เวลาร่าง amendment นี้: tree hash ตรวจพบการเปลี่ยน baseline แต่ไม่ได้ป้องกัน
+สอง process จากการ reset/clean fixture เดียวกันพร้อมกัน ช่องนี้ปิดแล้วใน Amendment 13
+
+---
+
+## 20. Amendment 13 — ล็อก fixture ข้าม process ตลอดชุดทดลอง *(8 ก.ย. 2569)*
+
+> ⚠️ **ร่างโดยผู้ช่วยตามคำสั่งให้ Codex และ Claude Code แบ่งงานรันพร้อมกัน — รอ Teerapab ตรวจถ้อยคำก่อนปลดเครื่องหมายนี้**
+
+ก่อนแก้ได้จำลองด้วยสอง process บน Git repository จริง: process แรกเขียนผลงานเอเจนต์
+process ที่สองสั่ง checkout/clean แล้วทั้งคู่จบด้วย exit 0 แต่ไฟล์ใหม่ของ process แรกหายและ
+`git status` ว่าง ผลดังกล่าวจะถูกให้คะแนนเหมือนเอเจนต์ไม่ทำอะไรโดยไม่มี error บอกสาเหตุ
+
+จึงเพิ่ม cross-process lock ที่สร้างแบบ exclusive (`wx`) และใช้หลักดังนี้:
+
+- ยึดไม่ได้ให้ล้มทันทีด้วย exit code 4 พร้อม owner, PID, host และเวลาเริ่ม ไม่รอเงียบ ๆ
+- ตัดสิน stale จาก PID ไม่ใช้ timeout เพราะชุดทดลองจริงเดินหลายชั่วโมง
+- ไฟล์ล็อกอยู่นอก fixture เพื่อไม่ถูก `git clean -fd` ของเจ้าของลบ
+- `resetToBaseline()` ปฏิเสธทุก caller ที่ไม่ได้ถือล็อกก่อนลงมือ
+- ทุก entry point ที่ติดตั้ง arm, reset/clean, ปะ acceptance fixture หรือยิง agent ใน fixture ถือล็อก
+- runner ยึด fixture ทุกตัวตามลำดับ path คงที่ **ก่อนอ่าน baseline tree** และถือต่อเนื่องจน
+  เขียนผลทั้ง session เสร็จ; adapter ยึดซ้อนได้โดยไม่ปล่อยล็อกจริงระหว่าง run
+- `src/fixture-lock.mjs` อยู่ใน experiment digest เพื่อให้การแก้ตรรกะล็อกกลางชุดถูกจับ
+
+ล็อกนี้ป้องกันการชนข้าม process บนเครื่องเดียว ส่วน runner ยังรันทีละ run ภายใน process
+ตาม randomized block design เดิม หากอนาคตเปลี่ยนเป็นรันหลาย agent พร้อมกันใน process เดียว
+ต้องเปลี่ยน ownership model ก่อน เพราะ re-entrant lock ตั้งใจมองการยึดซ้อนเป็นเจ้าของเดียวกัน

@@ -1,8 +1,8 @@
 # Response to your review — what we changed, what we verified, what we still owe you
 
 **Status: NO-GO accepted. Zero runs of the final dataset have been collected.**
-Four of your fifteen findings are closed. One is in progress. Ten are open and listed
-below with our current position on each.
+Seven of your fifteen findings are closed. Eight remain open and are listed below with
+our current position on each.
 
 Everything below was re-verified by executing it, not by reading the code. Where we
 could not reproduce your claim, we say so.
@@ -30,7 +30,7 @@ Noted, and the brief has not been reused.
 | # | Your finding | Status | What we did |
 |---|---|---|---|
 | 1 | Artifact capture loses committed/staged changes | **Closed** | Anchored capture, see §2.2 |
-| 2 | A1/A2 parity still differs in substance | **In progress** | Next item; nothing changed yet |
+| 2 | A1/A2 parity still differs in substance | **Closed** | Seven substantive differences aligned; verbatim + negative mutation checks |
 | 3 | Critical checks accept non-implementations | **Closed** | Protected acceptance tests, see §2.1 |
 | 4 | A3 is contextual information, not an inert placebo | Open | We agree; see §4 |
 | 5 | Token counts are character estimates presented as measurements | Open | We agree |
@@ -39,13 +39,14 @@ Noted, and the brief has not been reused.
 | 8 | Allocation rationale does not establish power | Open | See §4 |
 | 9 | Blinding is a workflow claim, not an access boundary | Open | We accept your wording |
 | 10 | Resume replaces failed attempts; changes the estimand | Open | See §4 |
-| 11 | Fixture baseline and skill content not frozen; guard is not a lock | Open | See §4 |
+| 11 | Fixture baseline and skill content not frozen; guard is not a lock | **Closed** | Fixture tree frozen + cross-process lock enforced, see §2.6 |
 | 12 | A4 exposure uses the wrong representation; commit behaviour ungraded | **Closed** | See §2.4 |
-| 13 | Trigger F1 relevance model is wrong; NaN where F1 is 0 | Open | Confirmed, not yet fixed |
+| 13 | Trigger F1 relevance model is wrong; NaN where F1 is 0 | **Closed** | Multi-label ground truth + count-form F1; see §2.5 |
 | 14 | Prose promises conclusions the design cannot support | Open | Deferred until instrument is stable |
 | 15 | Documentation drift (50 turns, reset mechanism, severities) | Open | Partly fixed incidentally |
 
-Six commits: `01adc3f`, `288f266`, `efed44a`, `d2b45b5`, `fa0fa1b`, `146687d`.
+The branch history is the authoritative commit list. The latest closures are `6561e1d`
+(#2), `e8131b5` + `8c5aa84` (#11), and `8c5aa84` (#13).
 Test suite went from 60 to 99. `npm run gate` passes.
 
 ---
@@ -212,6 +213,47 @@ you found:** the path normaliser ran `replace(/\\/g,'/')` over a string that had
 been through `JSON.stringify`, which escapes backslashes — so `\\` became `//` and every
 Windows path match failed. Found by writing the Windows case, not by design review.
 
+### 2.5 Finding #13 — Trigger F1 had the wrong relevance model
+
+Confirmed both mechanisms. First, each scenario carried one `expectedSkill`, although the
+skill descriptions overlap by design. Loading a second relevant skill was therefore counted
+as a false positive. We replaced the scalar label with an explicit `expectedSkills` set per
+scenario and test the complete eleven-scenario mapping.
+
+Second, F1 was derived only when both precision and recall were finite. A missed relevant
+skill has recall 0 but undefined precision, so the code returned `NaN`; a pure false positive
+failed for the symmetric reason. F1 is now calculated directly as
+`2TP / (2TP + FP + FN)`: it is 0 when positives exist but none are correct, and undefined
+only when `TP = FP = FN = 0`.
+
+We exclude `safe-shell` from this task-level relevance score. It is action-triggered — it
+becomes relevant when the agent is about to run a state-changing command — and treating every
+scenario without that action as a negative would recreate the same false-positive problem.
+Old graded artifacts retain their scalar label through a compatibility path; their historical
+Trigger F1 is not silently reinterpreted under the new multi-label ground truth.
+
+### 2.6 Finding #11 — freeze the fixture baseline independently of the harness
+
+The experiment digest already freezes arm, scenario, grader and runner content, including
+the four skill files. It did not freeze the nested fixture repository: moving the
+`skillbench-baseline` tag could silently change the code every agent starts from while the
+experiment digest remains identical.
+
+The manifest now records the Git tree object of `skillbench-baseline` for every fixture used
+by the selected scenarios. The runner recomputes those tree hashes after every real run and
+stops fail-closed when a tree is missing, a fixture is added or removed, or any hash differs.
+We use the tree rather than working-tree status so the check measures committed paths and
+content without being affected by Windows line-ending conversion or timestamps.
+
+The concurrency half is now closed too. We first reproduced the failure with two real processes:
+one wrote agent work while the other ran checkout/clean; both exited zero, the new file vanished,
+and Git status was empty. The replacement is an atomic cross-process fixture lock, not another
+status check. Every destructive entry point holds it, `resetToBaseline()` refuses callers that do
+not hold it, and the runner acquires all selected fixtures before reading their baseline trees and
+keeps them locked through the complete collection session. Re-entrant acquisition lets the runner
+and adapter share the same lock without opening a gap between runs. Dead owners are identified by
+PID liveness; live long-running collections are never expired by a guessed timeout.
+
 ---
 
 ## 3. Amendments 7 and 8
@@ -230,14 +272,12 @@ Both were written before any comparison data exists. Amendment 8 covers §2.1, �
 
 ---
 
-## 4. The ten still open — our position
+## 4. The eight still open — our position
 
 We are not disputing these. Ordering and honesty about what we will and will not fix:
 
-**Will fix before collecting:** #2 (parity — next), #13 (trigger F1: confirmed the NaN
-where the correct F1 is 0, and confirmed that single-label relevance can penalise a
-correctly loaded skill), #11 in part (freeze the fixture tree hash in the manifest; a
-true process lock is a larger change we may concede instead).
+**Fixed before collecting:** #11 now has both independent controls: content identity is frozen by
+the baseline tree hash, and concurrent mutation is prevented by the cross-process fixture lock.
 
 **Will fix in the write-up, not the instrument:** #5, #9, #14, #15. On #9 we accept your
 sentence essentially verbatim — the gate did not compute arm-specific summaries, the

@@ -44,6 +44,7 @@ const refs = existsSync(REF)
 console.log('=== เทสยอมรับต้องเขียวได้เมื่อปะเฉลยอ้างอิง ===\n');
 
 let failed = 0;
+const failedIds = [];
 for (const id of refs) {
   clean();
   rmSync(DEST, { recursive: true, force: true });
@@ -56,6 +57,7 @@ for (const id of refs) {
   if (applyError) {
     console.log(`  ❌ ${id}  ปะเฉลยไม่ได้: ${applyError}`);
     failed++;
+    failedIds.push(id);
     continue;
   }
 
@@ -73,6 +75,7 @@ for (const id of refs) {
   if (passed) console.log(`  ✅ ${id}  เขียวเมื่อทำถูก`);
   else {
     failed++;
+    failedIds.push(id);
     const first = (out.match(/AssertionError.*|Error.*/) ?? ['(ไม่ทราบสาเหตุ)'])[0].slice(0, 160);
     console.log(`  ❌ ${id}  ปะเฉลยแล้วยังไม่เขียว — ${first}`);
   }
@@ -83,7 +86,8 @@ rmSync(DEST, { recursive: true, force: true });
 
 const unproven = allTests.filter((id) => !refs.includes(id));
 console.log('');
-console.log(`พิสูจน์แล้วว่าเขียวได้ ${refs.length} จาก ${allTests.length} โจทย์`);
+console.log(`พิสูจน์แล้วว่าเขียวได้ ${refs.length - failed} จาก ${allTests.length} โจทย์`);
+if (failedIds.length) console.log(`เฉลยอ้างอิงที่ยังไม่ผ่าน ${failedIds.length} โจทย์: ${failedIds.join(', ')}`);
 if (unproven.length) {
   console.log(`ยังไม่มีเฉลยอ้างอิง ${unproven.length} โจทย์: ${unproven.join(', ')}`);
   console.log('  โจทย์เหล่านี้พิสูจน์แล้วแค่ว่า "ตกบน baseline" ยังไม่ได้พิสูจน์ว่า "ผ่านได้เมื่อทำถูก"');

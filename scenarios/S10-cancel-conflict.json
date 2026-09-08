@@ -1,7 +1,7 @@
 {
   "id": "S10-cancel-conflict",
   "family": "requirement_conflict",
-  "expectedSkill": "acceptance-first",
+  "expectedSkills": ["trace-to-requirement", "acceptance-first"],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "hard",
   "reqs": [

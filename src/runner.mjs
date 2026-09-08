@@ -21,7 +21,11 @@ import { fileURLToPath } from 'node:url';
 import { makeRng } from './stats.mjs';
 import { gradeRun } from './graders.mjs';
 import { runMock } from './adapters/mock.mjs';
-import { queryCliVersion, manifestPath, freezeManifest, loadManifest, validateRuntime, experimentDigest } from './runtime-manifest.mjs';
+import {
+  queryCliVersion, manifestPath, freezeManifest, loadManifest, validateRuntime,
+  experimentDigest, fixtureBaselineTrees, fixtureTreeViolations,
+} from './runtime-manifest.mjs';
+import { acquireFixtureLock, EXIT_LOCK_BUSY } from './fixture-lock.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -168,8 +172,42 @@ async function main() {
   const sigHash = crypto.createHash('sha256').update(signature).digest('hex').slice(0, 12);
   const ckptPath = path.join(outDirEarly, `checkpoint-${sigHash}.json`);
   const mfPath = manifestPath(outDirEarly, sigHash);
+  /*
+   * ยึดทุก fixture ก่อนอ่าน baseline tree และถือต่อเนื่องจนเขียนผลเสร็จ
+   *
+   * ถ้ายึดเฉพาะใน adapter จะยังมีช่องระหว่าง run และถ้ายึดหลัง snapshot
+   * เครื่องมืออื่นอาจย้าย baseline tag ระหว่างที่เราอ่านค่ากับเริ่ม run ได้อีก
+   * เรียง path ให้คงที่เพื่อไม่ให้ runner สองตัวที่ใช้หลาย fixture รอกันคนละลำดับ
+   */
+  const fixtureReleases = [];
+  if (adapterName === 'claude-cli') {
+    const fixtureDirs = [...new Set(scenarios.map((s) =>
+      path.resolve(ROOT, s.fixture ?? 'fixtures/next-mini')))].sort((a, b) => a.localeCompare(b));
+    try {
+      for (const fixtureDir of fixtureDirs) {
+        fixtureReleases.push(acquireFixtureLock(fixtureDir, {
+          owner: `collection ${adapterName} reps=${reps}`,
+        }));
+      }
+    } catch (e) {
+      for (const release of fixtureReleases.reverse()) release();
+      if (e.code !== 'FIXTURE_LOCK_BUSY') throw e;
+      console.error('\n  ⛔ เริ่มเก็บข้อมูลไม่ได้ — มีเครื่องมืออื่นถือ fixture อยู่\n');
+      console.error(e.message);
+      console.error('\n  ดูด้วย npm run lock · แกะล็อกค้างด้วย npm run lock:break\n');
+      process.exitCode = EXIT_LOCK_BUSY;
+      return;
+    }
+  }
+
+  try {
   // digest ของไฟล์ที่นิยามการทดลอง — เทียบกับ manifest ทุก run เพื่อจับการแก้ไฟล์ระหว่างทาง
   const expDigest = experimentDigest(ROOT);
+  // snapshot ก่อนเอเจนต์ตัวแรกเริ่ม — ถ้าเอเจนต์ย้าย baseline tag ใน run แรก
+  // manifest ต้องยังตรึงค่าเดิมและ validator หลัง run ต้องจับความต่างได้
+  const fixtureTreesAtStart = adapterName === 'claude-cli'
+    ? fixtureBaselineTrees(ROOT, scenarios)
+    : null;
   let manifest = loadManifest(mfPath);
   let startedNewExperiment = false;
   if (manifest) {
@@ -191,6 +229,7 @@ async function main() {
         .filter((f) => manifest.experimentFiles?.[f] !== expDigest.files[f]);
       preflight.push(`ไฟล์ที่นิยามการทดลองถูกแก้หลังเริ่มเก็บข้อมูล — เปลี่ยน ${changed.length} ไฟล์: ${changed.slice(0, 6).join(', ')}${changed.length > 6 ? ' …' : ''}`);
     }
+    preflight.push(...fixtureTreeViolations(manifest, fixtureTreesAtStart));
     if (preflight.length) {
       console.error('\n  ⛔ สภาพไม่ตรงกับ manifest ที่ตรึงไว้ — หยุดก่อนเริ่ม run แม้แต่ตัวเดียว\n');
       for (const x of preflight) console.error(`     - ${x}`);
@@ -360,6 +399,7 @@ async function main() {
           }
           manifest = freezeManifest({
             file: mfPath, init: initEv, cliVersion, digest: expDigest,
+            fixtureTrees: fixtureTreesAtStart,
             declared: { model: config.fixedFactors?.model, maxTurns: config.fixedFactors?.maxTurns,
                         toolset: [...new Set([...(config.fixedFactors?.toolset ?? []), 'Skill'])] },
           });
@@ -372,6 +412,7 @@ async function main() {
           // คำนวณ digest ใหม่ "ทุก run" ไม่ใช่ครั้งเดียวก่อนลูป — การทดลองหลักกินเวลา ~38 ชม.
           // ถ้าคำนวณครั้งเดียว การแก้ไฟล์ arm ระหว่างทางจะไม่ถูกจับจนกว่าจะ restart
           digest: experimentDigest(ROOT),
+          fixtureTrees: fixtureBaselineTrees(ROOT, scenarios),
           memoryStateBefore: artifact.control?.memoryStateBefore,
           memoryStateAfter: artifact.control?.memoryStateAfter,
         });
@@ -427,6 +468,9 @@ async function main() {
 
   console.log(`  บันทึกที่ ${path.relative(ROOT, outDir) || "."}/latest.json (+ graded-${stamp}.json, artifacts, rules-long.csv)`);
   console.log(`  ต่อไป: node src/analyze.mjs\n`);
+  } finally {
+    for (const release of fixtureReleases.reverse()) release();
+  }
 }
 
 function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }

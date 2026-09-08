@@ -1,7 +1,7 @@
 {
   "id": "S06-per-booking-quota",
   "family": "counter_intuitive",
-  "expectedSkill": "acceptance-first",
+  "expectedSkills": ["trace-to-requirement", "acceptance-first", "impact-analysis"],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "hard",
   "reqs": [

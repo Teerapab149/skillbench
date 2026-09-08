@@ -235,7 +235,12 @@ const COMPARISONS = [['A2', 'A1'], ['A2', 'A0'], ['A1', 'A3'], ['A2', 'A3'], ['A
   .filter(([a, b]) => armIds.includes(a) && armIds.includes(b));
 
 // ---------- 3. skill trigger ----------
-const allSkills = [...new Set(graded.map((g) => g.expectedSkill).filter(Boolean))];
+// วัดเฉพาะ skill ที่มี ground truth ระดับโจทย์ได้
+// safe-shell เป็น action-triggered (เกี่ยวข้องเมื่อกำลังจะรันคำสั่งอันตราย) จึงห้ามเดาว่า
+// ทุกโจทย์ที่ไม่ได้ระบุชื่อมันคือ negative — แบบนั้นจะลงโทษการโหลดที่ถูกต้อง
+const allSkills = [...new Set(graded.flatMap((g) => Array.isArray(g.expectedSkills)
+  ? g.expectedSkills
+  : g.expectedSkill ? [g.expectedSkill] : []))];
 const trig = {};
 for (const arm of armIds.filter((a) => by(a).some((r) => r.loadedSkills.length))) {
   trig[arm] = triggerMetrics(by(arm), allSkills);
@@ -738,7 +743,9 @@ if (Object.keys(trig).length) {
     }
   }
   p('');
-  p('> False Positive แพงกว่าที่คิด — skill ที่ยิงผิดจังหวะกิน context ที่ควรเป็นของงานจริง');
+  p('> Ground truth เป็นแบบ multi-label: หนึ่งโจทย์มี skill ที่เกี่ยวข้องได้หลายตัว');
+  p('> `safe-shell` ไม่อยู่ในตาราง เพราะความเกี่ยวข้องขึ้นกับ action ที่เอเจนต์กำลังจะทำ ไม่ใช่โจทย์ล่วงหน้า');
+  p('> F1 = 0 เมื่อมี positive แต่ยิงไม่ถูกเลย; `n/a` ใช้เฉพาะเมื่อไม่มีทั้ง actual และ predicted positive');
   p('');
 }
 

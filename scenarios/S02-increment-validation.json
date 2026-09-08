@@ -1,7 +1,7 @@
 {
   "id": "S02-increment-validation",
   "family": "ordinary",
-  "expectedSkill": "acceptance-first",
+  "expectedSkills": ["trace-to-requirement", "acceptance-first"],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "easy",
   "reqs": [

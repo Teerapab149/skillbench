@@ -258,6 +258,98 @@ METRICS.md ระบุไว้ว่า **`A1 ≈ A3` คือข้อค้
     เพื่อให้แยก `error_max_turns` ออกจากความล้มเหลวชนิดอื่นตอนวิเคราะห์ได้
     ส่วนตัว checkpoint ที่ควรตั้งชื่อตาม signature **ยังไม่ได้แก้**
 
+24. **Trigger F1 ให้รางวัลและลงโทษผิด เพราะ ground truth บังคับหนึ่ง label และสูตรกลืนศูนย์เป็น NaN**
+
+    **อาการ:** run ที่พลาด skill ที่เกี่ยวข้องทั้งหมดคืน `F1 = NaN` แทน 0 และการโหลด skill
+    ที่เกี่ยวข้องตัวที่สองถูกนับเป็น false positive เพราะ scenario มี `expectedSkill` ได้ค่าเดียว
+
+    **สาเหตุราก:** โมเดลข้อมูลเป็น single-label ทั้งที่ description ของ skill ซ้อนกัน และสูตร F1
+    คำนวณต่อเมื่อทั้ง precision/recall เป็น finite จึงทิ้งกรณีที่ตัวใดตัวหนึ่งไม่มีตัวหาร
+
+    **แก้:** ใช้ `expectedSkills` หลายค่า คำนวณ `2TP / (2TP + FP + FN)` ตรงจาก confusion
+    counts และใช้ `NaN` เฉพาะเมื่อ `TP = FP = FN = 0` เท่านั้น รองรับ artifact รุ่นเก่าโดย
+    fallback ไปที่ `expectedSkill` ค่าเดียวโดยไม่ตีความข้อมูลเก่าย้อนหลัง
+
+    **ทำไมหลุด:** ไม่มี known-answer test สำหรับ confusion matrix ที่มี predicted positive เป็นศูนย์
+    และ schema ของ scenario ไม่เคยอนุญาตให้ระบุ relevance มากกว่าหนึ่งตัว จึงไม่มี test ใดสร้าง
+    input ที่เปิดเผยปัญหานี้ได้
+
+    **ยืนยันหลังแก้:** `tests/trigger-metrics.test.mjs` ครอบคลุม missed positive, pure false positive,
+    multi-label, artifact เก่า และ mapping ทั้ง 11 scenario; `npm test` ผ่าน 120/120 และ
+    `npm run gate` ผ่านทั้ง pipeline จำลอง 110 run
+
+    **บทเรียน:** metric ที่สูตรถูกต้องบนกระดาษยังผิดได้ถ้า label space ไม่ตรงกับพฤติกรรมจริง
+    และ edge case “ไม่มี prediction” ต้องมี known-answer test ไม่ควรปล่อยให้ JavaScript `NaN`
+    เป็นผู้ตัดสินความหมายแทนงานวิจัย
+
+    Tags: #measurement #multi-label #f1 #silent-failure
+
+25. **Nested fixture เปลี่ยน baseline ได้โดย experiment manifest ไม่รู้ตัว**
+
+    **อาการ:** `experimentDigest()` ยังเท่าเดิมเมื่อ tag `skillbench-baseline` ใน nested fixture
+    ถูกย้ายไปหา tree อื่น ดังนั้น run ก่อนและหลังอาจเริ่มจากโค้ดคนละชุดแต่ถูกเก็บเป็น dataset เดียว
+
+    **สาเหตุราก:** digest ตรึงเฉพาะไฟล์ที่นิยาม harness ใน repository แม่ ส่วน fixture เป็น Git
+    repository แยกและตั้งใจไม่ถูกอ่านเป็นส่วนหนึ่งของ digest
+
+    **แก้:** เก็บ tree hash ของ baseline tag ทุก fixture ลง runtime manifest และคำนวณใหม่หลัง
+    ทุก run; hash หาย รายการ fixture เปลี่ยน หรือค่าไม่ตรงต้องหยุดแบบ fail-closed
+
+    **ทำไมหลุด:** manifest เดิมเริ่มจากการตรึง runtime กับไฟล์ของ repository แม่ จึงตรวจ skill
+    content ได้ แต่ไม่มี test ที่ย้าย baseline tag ของ nested repository แล้วถามว่า validator เห็นหรือไม่
+
+    **ยืนยันหลังแก้:** `tests/runtime-manifest.test.mjs` ยืนยันทั้ง mismatch, manifest รุ่นเก่าที่ไม่มี hash,
+    การอ่าน tree จาก fixture จริง และ snapshot ต้องเกิดก่อน run แรก; ชุดนี้ผ่าน 29/29,
+    `npm test` ผ่าน 121/121 และ `npm run gate` ผ่านครบ
+
+    **บทเรียน:** การตรึงเครื่องมือวัดไม่เท่ากับการตรึงสิ่งที่ถูกป้อนให้เครื่องมือวัด โดยเฉพาะ
+    nested repository ซึ่งมี identity และ lifecycle ของตัวเอง
+
+    Tags: #fixture #manifest #git-tree #reproducibility
+
+26. **เครื่องมือสองตัวล้าง fixture ทับกันแล้วปลอมเป็น run ที่ “ไม่ทำอะไร” โดยทั้งคู่ exit 0**
+
+    **อาการ:** process แรกเขียนไฟล์ผลงานลง fixture ระหว่างที่ process ที่สองสั่ง checkout/clean;
+    ไฟล์หายทั้งหมด `git status` ว่าง และไม่มี process ใดรายงาน error ข้อมูลจึงไหลเข้า grader
+    เหมือนเอเจนต์เลือกไม่แก้โค้ด
+
+    **สาเหตุราก:** `collection-guard` อ่านเวลา checkpoint เพื่อเดาว่ามี collection อยู่หรือไม่
+    ไม่ใช่ mutual exclusion และมองไม่เห็น maintenance command ด้วยกันเอง ทางเข้าหลายตัวจึง
+    reset/clean nested repository เดียวกันได้พร้อมกัน
+
+    **แก้:** เพิ่ม atomic cross-process lock นอก fixture; ต่อทุกทางเข้าที่ mutate หรือยิง agent;
+    บังคับ `resetToBaseline()` ให้ fail หากไม่มี lock; runner ยึดทุก fixture ก่อน snapshot baseline
+    และถือจนจบ session; stale takeover ใช้ breaker อายุสั้นและตรวจเจ้าของซ้ำก่อน rename เพื่อกัน
+    ผู้แกะรายหนึ่งย้ายล็อกใหม่ของผู้ชนะอีกราย; เพิ่มไฟล์ล็อกเข้า experiment digest
+
+    **ทำไมหลุด:** เดิมทดสอบแต่ละ command แยกกัน ไม่มี known-answer test ที่ยิงสอง process
+    พร้อมกันแล้วตรวจว่าไฟล์ของ process แรกรอด และ guard ถูกตีความผิดว่าเป็น lock
+
+    **ยืนยันหลังแก้:** `tests/fixture-lock.test.mjs` พิสูจน์ทั้งฉากไม่มีล็อกที่งานหาย ฉากมีล็อกที่
+    ตัวที่สองได้ exit 4, stale/live PID, token ownership, re-entrant release ทุกลำดับ และด่าน
+    `resetToBaseline`; เทส runner ยืนยันว่าล็อกเกิดก่อน baseline snapshot และปลดใน `finally`
+
+    **บทเรียน:** status check ไม่ใช่ mutual exclusion และความล้มเหลวของ harness ที่จบด้วย
+    exit 0 อันตรายกว่าการ crash เพราะมันถูกตีความเป็นพฤติกรรมของสิ่งที่กำลังวัด
+
+    Tags: #fixture #concurrency #silent-data-corruption #process-lock
+
+27. **เอกสาร token เปลี่ยนตาม line ending และ green checker สรุปผ่านเกินจริงเมื่อมีเคสล้ม**
+
+    **อาการ:** regex frontmatter ใช้ `^---\n` จึงอ่าน skill ที่ checkout เป็น CRLF ไม่ได้ และตัวประมาณ
+    token นับ `\r` เป็นเนื้อหาเพิ่ม ตัวเลข context จึงต่างกันตามวิธี checkout ทั้งที่ไฟล์เชิงเนื้อหาเดียวกัน;
+    อีกด้านหนึ่ง green checker พิมพ์ “11 จาก 11” จากจำนวน reference แม้ S11 ล้มและ process exit 2
+
+    **สาเหตุราก:** parser และ estimator ไม่ normalize line ending ก่อนอ่าน และ summary ใช้
+    `refs.length` แทนจำนวน `refs.length - failed`
+
+    **แก้และยืนยัน:** รวม normalization, token estimate และ frontmatter parser ไว้ใน
+    `src/text-metrics.mjs`; เพิ่มเทส LF/CRLF/CR ให้ผลเดียวกัน; ให้ checker กับเอกสารรวมค่าประมาณ
+    แบบผลบวกต่อไฟล์เหมือนกัน (ไม่ใช่ฝ่ายหนึ่งต่อสตริงรวม อีกฝ่ายต่อไฟล์); summary ระบุจำนวนที่
+    ผ่านจริงและรายชื่อ reference ที่ยังล้ม
+
+    Tags: #crlf #reporting #token-estimate #fail-closed
+
 ---
 
 ## 4. วิธีรับมือ: ทดสอบด้วยข้อมูลที่รู้คำตอบอยู่แล้ว

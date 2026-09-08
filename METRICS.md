@@ -78,6 +78,31 @@
 | **การยิง skill** | Precision / Recall / F1 | skill ยิงถูกจังหวะไหม |
 | **ต้นทุน** | token/run, tool calls, เวลา | ค่าเฉลี่ยต่อ run |
 
+### นิยาม Trigger F1 แบบ multi-label *(แก้ก่อนเก็บข้อมูลหลัก 7 ก.ย. 2569)*
+
+> ⚠️ **ร่างโดยผู้ช่วยตามคำสั่ง “เริ่มแก้เลย” — รอ Teerapab ตรวจถ้อยคำและ mapping ก่อนปลดเครื่องหมายนี้**
+
+หนึ่งโจทย์มี skill ที่เกี่ยวข้องได้หลายตัว เพราะ description ของ skill ซ้อนกันโดยตั้งใจ เช่น
+งานโควตาต้องทั้งผูกการเปลี่ยนแปลงกับข้อกำหนด เขียนเทสจาก acceptance criteria และตรวจผลกระทบ
+ต่อตัวเลข จึงเปลี่ยน ground truth จาก `expectedSkill` ค่าเดียวเป็น `expectedSkills` หลายค่า:
+
+| โจทย์ | Skill ที่เกี่ยวข้อง |
+|---|---|
+| S01–S05, S10 | `trace-to-requirement`, `acceptance-first` |
+| S06–S09, S11 | `trace-to-requirement`, `acceptance-first`, `impact-analysis` |
+
+`safe-shell` ไม่ถูกนำมาคำนวณ F1 เพราะเป็น **action-triggered skill**: ความเกี่ยวข้องเกิดเมื่อเอเจนต์
+กำลังจะรันคำสั่งที่เปลี่ยนสถานะ ไม่สามารถกำหนดจากโจทย์ล่วงหน้าได้ การตีความว่าไม่ระบุ = negative
+จะลงโทษเอเจนต์ที่โหลด skill นี้ถูกจังหวะ
+
+คำนวณราย skill จาก confusion counts โดยตรง:
+
+`F1 = 2TP / (2TP + FP + FN)`
+
+- ถ้ามี actual หรือ predicted positive แต่ไม่ถูกเลย ให้ `F1 = 0`
+- ใช้ `n/a` เฉพาะเมื่อ `TP = FP = FN = 0` ซึ่งไม่มี positive ให้ประเมิน
+- ค่า Trigger F1 จากข้อมูลก่อน Amendment 11 ใช้เทียบกับค่าหลังแก้ไม่ได้ เพราะ ground truth เปลี่ยนจาก single-label เป็น multi-label
+
 ### พื้นของ RCR — ข้อจำกัดที่ต้องเขียนในเล่ม
 
 วัดแล้วด้วยการป้อน artifact ปลอมที่ *"ไม่ทำอะไรเลย"* เข้าตัวตรวจทั้ง 11 โจทย์:
