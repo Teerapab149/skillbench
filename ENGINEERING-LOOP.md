@@ -50,7 +50,10 @@ The required test surface is the failure-mode matrix above. More tests are added
   Turn-budget exhaustion is agent behaviour and counts toward the primary, with a sensitivity analysis that excludes
   it reported alongside every time. Only transient infrastructure failures may be retried — never budget exhaustion,
   never a score. A cell takes the first usable attempt, where usable is defined without reference to the score.
-- Draft amendments 11–13, including Trigger-F1 relevance mapping: preserve pending-review status until actual investigator disposition.
+- Draft amendments 11–13, including Trigger-F1 relevance mapping: **approved by the investigator on 2026-09-12**,
+  recorded as Amendment 16 (PRE-REGISTRATION.md §23). The Trigger-F1 mapping stands as drafted, with the criterion
+  now stated as description-based relevance rather than rule-derived, and a second rule-derived ground truth
+  declared alongside it that the report must print beside the primary every time.
 - Allocation: **closed 2026-09-12 by Amendment 14** (investigator decision, recorded in PRE-REGISTRATION.md §21).
   The declared target stays five arms × eleven scenarios × six repetitions = 330 cells, and now lives in exactly one
   place: `config/arms.json` → `preRegisteredAllocation`. The drop-arm stop-loss is replaced by uniform rep truncation

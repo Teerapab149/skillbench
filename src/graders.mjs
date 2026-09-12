@@ -375,15 +375,22 @@ export function gradeRun(artifact, scenario) {
  *
  * FP (ยิงทั้งที่ไม่ควร) แพงกว่าที่คนคิด เพราะกิน context ของ task จริง
  */
-export function triggerMetrics(graded, allSkills) {
+/**
+ * expectedFor: ใช้แทน ground truth ที่ติดมากับแถว — สำหรับ sensitivity ของ Amendment 16
+ *
+ * ต้องเป็นฟังก์ชันเดียวกับที่ใช้คำนวณชุดหลัก ต่างกันแค่ ground truth ที่ส่งเข้าไป
+ * ถ้าเขียนสูตร F1 ซ้ำอีกชุดสำหรับ sensitivity ความต่างที่เห็นจะแยกไม่ออกว่า
+ * มาจาก ground truth หรือมาจากโค้ดคนละชุด
+ */
+export function triggerMetrics(graded, allSkills, { expectedFor = null } = {}) {
   const m = {};
   for (const s of allSkills) m[s] = { tp: 0, fp: 0, fn: 0, tn: 0 };
   for (const g of graded) {
     // artifact รุ่นเก่าเก็บ expectedSkill ค่าเดียว จึงรองรับไว้เพื่ออ่าน development data เดิม
     // โดยไม่ตีความ ground truth ย้อนหลังเป็น label ชุดใหม่
-    const expected = new Set(Array.isArray(g.expectedSkills)
+    const expected = new Set(expectedFor ? expectedFor(g) : (Array.isArray(g.expectedSkills)
       ? g.expectedSkills
-      : g.expectedSkill ? [g.expectedSkill] : []);
+      : g.expectedSkill ? [g.expectedSkill] : []));
     const loaded = new Set(g.loadedSkills ?? []);
     for (const s of allSkills) {
       const should = expected.has(s);

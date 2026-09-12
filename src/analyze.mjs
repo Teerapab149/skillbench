@@ -330,6 +330,28 @@ for (const arm of armIds.filter((a) => by(a).some((r) => r.loadedSkills.length))
   trig[arm] = triggerMetrics(by(arm), allSkills);
 }
 
+/*
+ * Amendment 16 (12 ก.ย. 2569) — Trigger F1 sensitivity
+ *
+ * ground truth ชุดหลักตัดสิน relevance ของ impact-analysis จากคำบรรยายโจทย์
+ * ซึ่งจัด S06/S07/S11 ว่าเกี่ยวข้อง ทั้งที่สามโจทย์นั้นมีกฎผลกระทบแค่ IM1 เชิงรับ
+ * เหมือนกับ S01-S05/S10 ที่ไม่ถูกจัดว่าเกี่ยวข้อง — ความไม่ลงรอยนี้ผู้วิจัยรับทราบและอนุมัติแล้ว
+ * จึงต้องรายงานชุดที่ตัดสินจากกฎที่วัดจริงคู่กันเสมอ ไม่ใช่รายงานเฉพาะชุดที่ให้ค่าดีกว่า
+ */
+const TRIG_CFG = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms.json'), 'utf8')).triggerF1 ?? null; }
+  catch { return null; }
+})();
+const trigSens = {};
+if (TRIG_CFG?.sensitivity?.impactAnalysisScenarios) {
+  const keep = new Set(TRIG_CFG.sensitivity.impactAnalysisScenarios);
+  const expectedFor = (g) => {
+    const base = Array.isArray(g.expectedSkills) ? g.expectedSkills : (g.expectedSkill ? [g.expectedSkill] : []);
+    return base.filter((s) => s !== 'impact-analysis' || keep.has(g.scenarioId));
+  };
+  for (const arm of Object.keys(trig)) trigSens[arm] = triggerMetrics(by(arm), allSkills, { expectedFor });
+}
+
 // ---------- 4. กฎข้อไหนวัดอะไรไม่ได้บ้าง ----------
 const ruleIds = [...new Set(graded.flatMap((g) => g.rules.map((r) => `${g.scenarioId}/${r.id}`)))];
 const deadRules = ruleIds.filter((rid) => {
@@ -905,6 +927,26 @@ if (Object.keys(trig).length) {
   p('> `safe-shell` ไม่อยู่ในตาราง เพราะความเกี่ยวข้องขึ้นกับ action ที่เอเจนต์กำลังจะทำ ไม่ใช่โจทย์ล่วงหน้า');
   p('> F1 = 0 เมื่อมี positive แต่ยิงไม่ถูกเลย; `n/a` ใช้เฉพาะเมื่อไม่มีทั้ง actual และ predicted positive');
   p('');
+
+  if (Object.keys(trigSens).length) {
+    p('### 8.1 Sensitivity — ground truth ที่ตัดสินจากกฎที่วัดจริง (Amendment 16)');
+    p('');
+    p('> ชุดหลักจัด `impact-analysis` ว่าเกี่ยวข้องกับ ' + (TRIG_CFG.primary?.impactAnalysisScenarios?.length ?? 0) + ' โจทย์ โดยตัดสินจากคำบรรยายโจทย์');
+    p('> ชุดนี้จัดว่าเกี่ยวข้องเฉพาะโจทย์ที่มีกฎผลกระทบ**เชิงรุก** คือ ' + (TRIG_CFG.sensitivity.impactAnalysisScenarios.join(', ') || 'ไม่มี'));
+    p('> โจทย์ที่มีแต่ `IM1` เชิงรับ (ยอดย้อนหลังต้องไม่เปลี่ยน) ไม่นับ เพราะกฎข้อนั้นผ่านได้ด้วยการไม่ทำอะไรผิด');
+    p('> **ถ้าสองชุดชี้คนละทาง ข้อสรุปเรื่องการยิง skill ต้องอ่อนลง ไม่ใช่เลือกชุดที่ค่าดีกว่า**');
+    p('');
+    p('| Arm | Skill | F1 (ชุดหลัก) | F1 (rule-derived) | TP/FP/FN (rule-derived) |');
+    p('|---|---|---|---|---|');
+    for (const [a, m] of Object.entries(trigSens)) {
+      for (const [s, v] of Object.entries(m)) {
+        const base = trig[a]?.[s];
+        const f = (x) => (Number.isFinite(x) ? x.toFixed(3) : 'n/a');
+        p(`| ${a} | ${s} | ${f(base?.f1)} | ${f(v.f1)} | ${v.tp}/${v.fp}/${v.fn} |`);
+      }
+    }
+    p('');
+  }
 }
 
 // ---------- อัตราการผ่านรายกฎ: กฎข้อไหนยากที่สุด ----------

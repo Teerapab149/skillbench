@@ -83,6 +83,25 @@
     "workspaceReset": "git checkout -- . && git clean -fd ก่อนทุก run",
     "runOrder": "randomized block — สลับลำดับ arm ในแต่ละ repetition กัน drift ของ API"
   },
+  "triggerF1": {
+    "_note": "Amendment 16 (12 ก.ย. 2569) — Trigger F1 มี ground truth สองชุดที่ประกาศไว้ล่วงหน้า และรายงานคู่กันเสมอ · ชุดหลักตัดสิน relevance จากคำบรรยายโจทย์เทียบ description ของ skill · ชุด sensitivity ตัดสินจากกฎที่วัดจริงในโจทย์ · ทั้งสองชุดประกาศก่อนเห็นข้อมูลเปรียบเทียบแม้แต่ run เดียว",
+    "primary": {
+      "source": "scenarios/*.json → expectedSkills",
+      "criterion": "relevance ตัดสินจากคำบรรยายโจทย์เทียบ description ของ skill (Amendment 11) — เป็นการตัดสินของผู้วิจัยจาก description ที่ผู้วิจัยเขียนเอง ไม่ได้เป็นอิสระจากผู้สร้างเครื่องมือ",
+      "impactAnalysisScenarios": ["S06-per-booking-quota", "S07-weekly-quota", "S08-rounding-change", "S09-rate-change", "S11-week-boundary"],
+      "approvedOn": "2026-09-12"
+    },
+    "sensitivity": {
+      "name": "rule-derived",
+      "criterion": "นับ impact-analysis ว่าเกี่ยวข้องเฉพาะโจทย์ที่มีกฎผลกระทบเชิงรุก คือสั่งให้ตรวจผลกระทบ อ่านสถาปัตยกรรม หรือค้นหา caller · โจทย์ที่มีแต่ IM1 เชิงรับ (ยอดย้อนหลังต้องไม่เปลี่ยน) ไม่นับ เพราะกฎข้อนั้นผ่านได้ด้วยการไม่ทำอะไรผิด",
+      "impactAnalysisScenarios": ["S08-rounding-change", "S09-rate-change"],
+      "declaredOn": "2026-09-12",
+      "declaredIn": "Amendment 16 (PRE-REGISTRATION.md §23)"
+    },
+    "excludedSkills": {
+      "safe-shell": "relevance เกิดจาก action ที่เอเจนต์กำลังจะทำ ไม่ใช่จากโจทย์ล่วงหน้า การนับทุกโจทย์เป็น negative จะลงโทษการโหลดที่ถูกต้อง"
+    }
+  },
   "preRegisteredAllocation": {
     "_note": "การจัดสรรที่ประกาศไว้ล่วงหน้า — แหล่งความจริงแหล่งเดียวสำหรับ runner, analyze, preflight และเอกสาร · ก่อน Amendment 14 ตัวเลขนี้ถูกประกาศแยกกันสามที่ที่ไม่เคยเช็คกัน (เอกสาร, repetitions ที่ hard-code ใน readiness.mjs, และ --reps ใน package.json) จึงขัดกันได้เงียบ ๆ · ไฟล์นี้อยู่ใน experiment digest แล้ว การแก้ระหว่างเก็บข้อมูลจะถูกจับทันที",
     "arms": ["A0", "A1", "A2", "A3", "A4"],

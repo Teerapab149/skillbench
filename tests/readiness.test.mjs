@@ -30,7 +30,35 @@ test('read-only preflight reports advisory engineering/collection states and doe
   assert.equal(report.advisory, true);
   assert.deepEqual(report.allocation, { arms: 5, scenarios: 11, repetitions: 6, cells: 330, source: 'config/arms.json preRegisteredAllocation' });
   assert.equal(report.collectionReady, false);
-  assert.ok(report.pendingResearchDecisions.length >= 1);
+});
+
+/*
+ * Amendment 16 (12 ก.ย. 2569) — การอนุมัติ Amendment 11–13 ทำให้ pending ว่าง
+ *
+ * ก่อนแก้ collectionReady คือ engineeringReady && pending.length === 0 แปลว่าการอนุมัติ
+ * amendment ตัวสุดท้ายจะพลิก COLLECTION READY เป็น true ทันที ทั้งที่ยังไม่เคยรัน CLI จริง
+ * เลยสักครั้ง — ซึ่งเป็นข้อเดียวที่ซอฟต์แวร์ตัดสินแทนไม่ได้
+ */
+test('collection readiness ไม่พลิกเป็น true เพียงเพราะไม่เหลือ pending decision', () => {
+  const report = collectReadiness({ root: ROOT });
+  assert.deepEqual(report.pendingResearchDecisions, [], 'Amendment 11–13 อนุมัติแล้ว');
+  assert.ok(Array.isArray(report.collectionBlockers));
+  assert.ok(report.collectionBlockers.length >= 1, 'ต้องเหลือ blocker เรื่อง runtime preflight');
+  assert.match(report.collectionBlockers.join(' '), /runtime preflight/);
+  assert.equal(report.collectionReady, false, 'ยังไม่เคยรัน CLI จริง จึงยังไม่พร้อมเก็บข้อมูล');
+});
+
+test('manifest ที่แช่แข็งไว้กับนิยามการทดลองคนละชุดต้องไม่นับเป็นหลักฐาน auth', () => {
+  const report = collectReadiness({ root: ROOT });
+  const mf = report.checks.find((c) => c.name === 'runtime-manifest');
+  const auth = report.checks.find((c) => c.name === 'auth-presence');
+  assert.ok(mf && auth);
+  if (mf.state === "pass") {
+    assert.equal(auth.state, 'pass', 'manifest ตรง digest แล้วต้องนับเป็น init evidence');
+  } else {
+    assert.equal(auth.state, 'unknown', 'manifest ไม่ตรง digest ต้องไม่ทำให้ auth ผ่าน');
+    assert.equal(report.collectionReady, false);
+  }
 });
 
 // Amendment 14: the declared allocation lives in config/arms.json only. Preflight must

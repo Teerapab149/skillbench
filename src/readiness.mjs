@@ -142,28 +142,73 @@ export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPat
   const digest = experimentDigest(root);
   const manifests = fs.existsSync(resultsDir) ? fs.readdirSync(resultsDir).filter((f) => /^manifest-[^/]+\.json$/.test(f) && !f.includes('.retired-')) : [];
   checks.push(status('experiment-digest', 'pass', 'คำนวณ digest ได้', digest.combined));
-  checks.push(status('runtime-manifest', manifests.length === 1 ? 'pass' : 'unknown', manifests.length === 1 ? 'พบ manifest เดียวสำหรับ advisory comparison' : 'ไม่มี/มีหลาย manifest จึงยังเทียบชุดเดียวไม่ได้', manifests));
+
+  /*
+   * manifest ที่แช่แข็งไว้ต้องเป็นของนิยามการทดลองปัจจุบัน ไม่ใช่แค่ "มีไฟล์อยู่"
+   *
+   * ของเดิมนับว่าผ่านเมื่อมี manifest หนึ่งไฟล์ ซึ่งผ่านได้แม้ manifest นั้นถูกแช่แข็งไว้
+   * ตอนที่ arm หรือ grader ยังเป็นอีกเวอร์ชันหนึ่ง — คือกรณีที่เป็นจริงอยู่ตอนนี้
+   * manifest ใน results/ เป็นของชุด rep 0 เมื่อ 5 ก.ย. ซึ่ง digest ไม่ตรงกับปัจจุบันแล้ว
+   *
+   * manifest ที่ตรง digest คือหลักฐานเดียวที่พิสูจน์ว่า CLI จริงเคยรันภายใต้นิยามชุดนี้สำเร็จ
+   * จึงใช้มันเป็นหลักฐาน auth ด้วย — การมี env credential ไม่เคยพิสูจน์สิทธิ์จริง
+   */
+  let manifestDigest = null;
+  if (manifests.length === 1) {
+    try { manifestDigest = jsonFile(path.join(resultsDir, manifests[0]))?.experimentDigest ?? null; } catch { manifestDigest = null; }
+  }
+  const manifestMatches = manifests.length === 1 && manifestDigest === digest.combined;
+  checks.push(status(
+    'runtime-manifest',
+    manifestMatches ? 'pass' : 'unknown',
+    manifests.length !== 1
+      ? 'ไม่มี/มีหลาย manifest จึงยังเทียบชุดเดียวไม่ได้'
+      : manifestMatches
+        ? 'manifest ที่แช่แข็งไว้ตรงกับ digest ปัจจุบัน'
+        : `manifest ถูกแช่แข็งไว้กับนิยามการทดลองคนละชุด (${manifestDigest} != ${digest.combined}) — ชุดเก็บข้อมูลใหม่จะแช่แข็ง manifest ของตัวเอง`,
+    { manifests, manifestDigest, current: digest.combined },
+  ));
 
   const bin = resolveClaudeBin();
   checks.push(status('claude-cli-static', bin.mode === 'direct' && (bin.bin === 'claude' || fs.existsSync(bin.bin)) ? 'pass' : 'unknown', 'ตรวจ path/mode แบบไม่ execute', { mode: bin.mode, how: bin.how }));
-  checks.push(status('auth-presence', process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN ? 'unknown' : 'unknown', 'มี/ไม่มี env credential ไม่ยืนยันสิทธิ์จริง; ต้องใช้ init evidence', { present: Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN) }));
+  checks.push(status(
+    'auth-presence',
+    manifestMatches ? 'pass' : 'unknown',
+    manifestMatches
+      ? 'มี init evidence จาก CLI จริงภายใต้นิยามการทดลองชุดนี้'
+      : 'มี/ไม่มี env credential ไม่ยืนยันสิทธิ์จริง; ต้องรัน CLI จริงหนึ่งครั้งเพื่อให้ได้ init evidence',
+    { envPresent: Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN), fromManifest: manifestMatches },
+  ));
   const attempt = auditAttemptStore(resultsDir);
   checks.push(status('attempt-provenance', attempt.state, attempt.reason, attempt));
   const resultFp = fingerprint(resultsDir);
   checks.push(status('results-fingerprint', resultFp.exists ? 'pass' : 'unknown', resultFp.exists ? 'บันทึก fingerprint ของผลที่มีอยู่; simulated:false ไม่ทำให้เป็น final' : 'ยังไม่มี results', resultFp));
 
-  const pending = [
-    'investigator approval: Amendment 11–13',
-  ];
-  // Unknown means “cannot be established without a real run” (for example
-  // auth validity or an as-yet empty journal), not an offline engineering
-  // defect. Only explicit failures block the technical handoff; collection
-  // readiness remains stricter and is gated by the pending decisions below.
+  // Amendments 11–13 were approved by the investigator on 2026-09-12 (PRE-REGISTRATION.md §23),
+  // which empties this list. It stays in the shape it had so the field keeps its meaning.
+  const pending = [];
+
+  /*
+   * Unknown means “cannot be established without a real run” (for example auth validity
+   * or an as-yet empty journal), not an offline engineering defect. Only explicit failures
+   * block the technical handoff.
+   *
+   * Collection readiness is stricter and must not become true merely because the research
+   * decisions are recorded. Before this change it was `pending.length === 0`, so approving
+   * the last amendment would have flipped COLLECTION READY to true while no real CLI run
+   * had ever been made — the one blocker that software cannot settle on its own.
+   */
   const engineeringReady = checks.every((c) => c.state !== 'fail') && attempt.orphanStarts === 0;
+  const collectionBlockers = [...pending];
+  if (!manifestMatches) {
+    collectionBlockers.push(manifests.length === 1 && manifestDigest !== digest.combined
+      ? `runtime preflight: manifest ที่มีอยู่เป็นของนิยามการทดลองชุดก่อน (${manifestDigest}) — ต้องรัน CLI จริงหนึ่งครั้งเพื่อแช่แข็ง manifest ของชุดนี้และยืนยัน auth`
+      : 'runtime preflight: ยังไม่มี init evidence จาก CLI จริงภายใต้นิยามการทดลองชุดนี้ — ต้องรันหนึ่งครั้งก่อนเก็บข้อมูล');
+  }
   return {
     generatedAt: new Date().toISOString(), advisory: true, allocation, config: { model: fixed.model ?? null, maxTurns: fixed.maxTurns ?? null },
-    checks, pendingResearchDecisions: pending, resultsFingerprint: resultFp,
-    engineeringReady, collectionReady: engineeringReady && pending.length === 0,
+    checks, pendingResearchDecisions: pending, collectionBlockers, resultsFingerprint: resultFp,
+    engineeringReady, collectionReady: engineeringReady && collectionBlockers.length === 0,
     note: 'point-in-time read-only advisory; runner lock/manifest enforcement remains authoritative',
   };
 }
