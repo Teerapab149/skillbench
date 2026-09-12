@@ -16,8 +16,22 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { fingerprint } from '../src/readiness.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+/*
+ * ถ่ายภาพ results/ ไว้ตั้งแต่ก่อนประตูใด ๆ จะรัน
+ *
+ * ประตูนี้เคยตรวจโดยอ่าน results/latest.json แล้วดูว่า meta.simulated เป็นจริงไหม
+ * ซึ่งใช้ได้ตอนที่ไฟล์นั้นมีอยู่ · หลังย้ายชุดพัฒนาไป results/dev-archive/ เมื่อ 12 ก.ย.
+ * โฟลเดอร์ว่างจนกว่าจะเก็บข้อมูลจริง ประตูจึงกลายเป็นไม่ตรวจอะไรเลย
+ *
+ * การเทียบ fingerprint ทั้งโฟลเดอร์แทน ทำให้ประตูทำงานได้ทุกสถานะ: ตอนว่าง
+ * ตอนมีแต่ชุดพัฒนา และตอนมีข้อมูลจริงแล้ว · บั๊กที่เคยเกิดจริงคือ mock เขียนทับ
+ * results/latest.json ซึ่ง fingerprint จับได้แน่นอนกว่าการอ่านฟิลด์เดียว
+ */
+const RESULTS_BEFORE = fingerprint(path.join(ROOT, 'results'));
 let fail = 0;
 const step = (name, fn) => {
   process.stdout.write(`  ${name} ... `);
@@ -122,11 +136,19 @@ step('--new-experiment ต้องไม่ชุบชีวิต checkpoint 
 });
 
 step('results/ ไม่ถูกแตะระหว่างการตรวจ', () => {
+  const after = fingerprint(path.join(ROOT, 'results'));
+  if (after.sha256 !== RESULTS_BEFORE.sha256) {
+    throw new Error(`results/ เปลี่ยนระหว่างประตูทำงาน — ${RESULTS_BEFORE.files} ไฟล์ -> ${after.files} ไฟล์`);
+  }
+
+  // ถ้ามีข้อมูลจริงอยู่แล้ว ต้องไม่ใช่ของจำลองด้วย ไม่ใช่แค่ไม่ถูกแตะ
   const latest = path.join(ROOT, 'results/latest.json');
-  if (!fs.existsSync(latest)) return 'ไม่มี results/latest.json ให้ตรวจ';
-  const d = JSON.parse(fs.readFileSync(latest, 'utf8'));
-  if (d.meta?.simulated === true) throw new Error('results/latest.json เป็นข้อมูลจำลอง — ปนแล้ว');
-  return `ยังเป็นข้อมูลจริง (${d.meta?.adapter}, ${d.graded?.length} run)`;
+  if (fs.existsSync(latest)) {
+    const d = JSON.parse(fs.readFileSync(latest, 'utf8'));
+    if (d.meta?.simulated === true) throw new Error('results/latest.json เป็นข้อมูลจำลอง — ปนแล้ว');
+    return `ไม่เปลี่ยน (${after.files} ไฟล์) · เป็นข้อมูลจริง ${d.meta?.adapter} ${d.graded?.length} run`;
+  }
+  return `ไม่เปลี่ยน (${after.files} ไฟล์) · ยังไม่มีชุดข้อมูลจริง`;
 });
 
 // 3. analyze ต้องอ่าน mock dataset แล้วออกรายงานได้จนจบ
