@@ -6,8 +6,8 @@
  * ทำไมต้องสลับ: ถ้ารัน A0 ทั้งหมดก่อนแล้วค่อย A2 ผลจะปนกับ drift ของ API/โหลดเซิร์ฟเวอร์ในช่วงเวลานั้น
  * การสลับทำให้ drift กระจายเท่าๆ กันทุก arm แทนที่จะไปกองที่ arm เดียว
  *
- * seed ผูกกับ (scenario, repIndex) ไม่ใช่ arm -> ทุก arm เจอเงื่อนไขเดียวกันใน rep เดียวกัน
- * นี่คือสิ่งที่ทำให้ข้อมูล "จับคู่กันได้" และใช้ McNemar ได้ (power สูงกว่าการทดสอบแบบอิสระมาก)
+ * run identity ผูกกับ (scenario, arm, repIndex); seed เป็นเพียงป้ายกำกับและจงใจต่างกันราย arm
+ * การจับคู่ทางสถิติใช้คีย์ scenarioId#rep (ไม่ใช้ seed) เพื่อไม่อ้างความเท่าเทียมของ RNG ที่ไม่มี
  *
  * ใช้งาน:
  *   node src/runner.mjs --adapter mock --reps 20
@@ -26,6 +26,7 @@ import {
   experimentDigest, fixtureBaselineTrees, fixtureTreeViolations,
 } from './runtime-manifest.mjs';
 import { acquireFixtureLock, EXIT_LOCK_BUSY } from './fixture-lock.mjs';
+import { AttemptStore, classifyArtifact, writeProjectionJson } from './attempt-store.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -52,7 +53,30 @@ function shuffle(arr, rnd) {
   return a;
 }
 
-async function main() {
+function canonicalForContainment(target) {
+  const abs = path.resolve(target);
+  const suffix = [];
+  let probe = abs;
+  while (!fs.existsSync(probe)) {
+    const parent = path.dirname(probe);
+    if (parent === probe) return abs;
+    suffix.unshift(path.basename(probe));
+    probe = parent;
+  }
+  const real = (fs.realpathSync.native ?? fs.realpathSync)(probe);
+  return path.join(real, ...suffix);
+}
+
+function isProductionResultsPath(target) {
+  const production = canonicalForContainment(path.join(ROOT, 'results'));
+  const candidate = canonicalForContainment(target);
+  const norm = (p) => process.platform === 'win32' ? p.toLowerCase() : p;
+  const base = norm(path.resolve(production));
+  const value = norm(path.resolve(candidate));
+  return value === base || value.startsWith(`${base}${path.sep}`);
+}
+
+export async function main ({ runAgentOverride = null, cliVersionOverride = null, _testHook = null } = {}) {
   const adapterName = argv('--adapter', 'mock');
   const reps = parseInt(argv('--reps', '20'), 10);
   const armFilter = argv('--arms', '').split(',').filter(Boolean);
@@ -61,6 +85,7 @@ async function main() {
   const configPath = argv('--config', 'config/arms.json');
   const scenFilter = argv('--scenarios', '').split(',').filter(Boolean);
   const resume = process.argv.includes('--resume');
+  const requestedNewExperiment = process.argv.includes('--new-experiment');
   const maxRetries = parseInt(argv('--max-retries', '5'), 10);
   const maxTurnsOverride = argv('--max-turns', '');
   const modelOverride = argv('--model', '');
@@ -92,7 +117,8 @@ async function main() {
   if (!scenarios.length) throw new Error('ไม่มี scenario ที่ตรงกับตัวกรอง');
 
   let runAgent;
-  if (adapterName === 'mock') runAgent = runMock;
+  if (runAgentOverride) runAgent = runAgentOverride;
+  else if (adapterName === 'mock') runAgent = runMock;
   else if (adapterName === 'claude-cli') ({ runClaudeCli: runAgent } = await import('./adapters/claude-cli.mjs'));
   else throw new Error(`unknown adapter: ${adapterName}`);
 
@@ -113,7 +139,7 @@ async function main() {
 
   const total = reps * scenarios.length * arms.length;
   // ลายเซ็นของการทดลอง — ใช้กัน checkpoint ของคนละชุดมาปนกัน
-  const cliVersion = adapterName === 'claude-cli' ? queryCliVersion() : 'mock';
+  const cliVersion = adapterName === 'claude-cli' ? (cliVersionOverride ?? queryCliVersion()) : 'mock';
 
   /*
    * signature กับ manifest ทำหน้าที่คนละอย่าง และการสลับที่กันคือกับดัก
@@ -148,10 +174,10 @@ async function main() {
    * เพิ่มหลังเกิดของจริง 4 ก.ย. 2569 — การรัน mock เพื่อตรวจ pipeline เขียนทับ
    * results/latest.json กับ rules-long.csv ด้วยข้อมูลปลอม (กู้คืนจาก graded-*.json ได้)
    * การตรวจ pipeline ต้องไม่แตะโฟลเดอร์เดียวกับข้อมูลจริงตั้งแต่แรก
-   */
+  */
   const outDirEarly = path.resolve(ROOT, argv('--out', 'results'));
-  if (adapterName === 'mock' && path.basename(outDirEarly) === 'results') {
-    console.log('  ⚠️  รัน mock ลง results/ โดยตรง — ข้อมูลจำลองจะปนกับข้อมูลจริง แนะนำให้ใส่ --out');
+  if (adapterName === 'mock' && isProductionResultsPath(outDirEarly)) {
+    throw new Error('mock ห้ามเขียนลง results/ หรือโฟลเดอร์ย่อยของข้อมูลจริง — ใช้ --out tmp/mock แทน');
   }
   fs.mkdirSync(outDirEarly, { recursive: true });
 
@@ -172,6 +198,7 @@ async function main() {
   const sigHash = crypto.createHash('sha256').update(signature).digest('hex').slice(0, 12);
   const ckptPath = path.join(outDirEarly, `checkpoint-${sigHash}.json`);
   const mfPath = manifestPath(outDirEarly, sigHash);
+  const legacyPath = path.join(outDirEarly, 'checkpoint.json');
   /*
    * ยึดทุก fixture ก่อนอ่าน baseline tree และถือต่อเนื่องจนเขียนผลเสร็จ
    *
@@ -201,6 +228,7 @@ async function main() {
   }
 
   try {
+  if (_testHook) _testHook('fixture-locked', { fixtureReleases });
   // digest ของไฟล์ที่นิยามการทดลอง — เทียบกับ manifest ทุก run เพื่อจับการแก้ไฟล์ระหว่างทาง
   const expDigest = experimentDigest(ROOT);
   // snapshot ก่อนเอเจนต์ตัวแรกเริ่ม — ถ้าเอเจนต์ย้าย baseline tag ใน run แรก
@@ -208,8 +236,14 @@ async function main() {
   const fixtureTreesAtStart = adapterName === 'claude-cli'
     ? fixtureBaselineTrees(ROOT, scenarios)
     : null;
-  let manifest = loadManifest(mfPath);
-  let startedNewExperiment = false;
+  let startedNewExperiment = requestedNewExperiment;
+  if (requestedNewExperiment) {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    if (fs.existsSync(mfPath)) fs.renameSync(mfPath, mfPath.replace(/\.json$/, `.retired-${stamp}.json`));
+    if (fs.existsSync(ckptPath)) fs.renameSync(ckptPath, ckptPath.replace(/\.json$/, `.retired-${stamp}.json`));
+    console.error('  --new-experiment: สร้าง experimentId ใหม่และไม่อ่าน checkpoint ชุดเดิม\n');
+  }
+  let manifest = requestedNewExperiment ? null : loadManifest(mfPath);
   if (manifest) {
     console.log(`  manifest ที่ตรึงไว้: CLI ${manifest.cliVersion} · tool ${manifest.toolset.length} ตัว · baseline skill ${manifest.baselineSkills.length} ตัว`);
 
@@ -237,17 +271,22 @@ async function main() {
       console.error('    1) ทำให้สภาพกลับไปตรงกับ manifest (ปักหมุดเวอร์ชัน CLI เดิม / คืนไฟล์ที่แก้)');
       console.error('    2) ประกาศว่านี่คือการทดลองชุดใหม่ แล้วเริ่ม dataset ใหม่ด้วย --new-experiment');
       console.error('       (ชุดเดิมยังอยู่ครบ ไม่ถูกเขียนทับ — แต่ห้ามเอาสองชุดมารวมกันวิเคราะห์)\n');
-      if (!process.argv.includes('--new-experiment')) { process.exitCode = 1; return; }
-      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const retired = mfPath.replace(/\.json$/, `.retired-${stamp}.json`);
-      fs.renameSync(mfPath, retired);
-      if (fs.existsSync(ckptPath)) fs.renameSync(ckptPath, ckptPath.replace(/\.json$/, `.retired-${stamp}.json`));
-      console.error(`  --new-experiment: ปลดระวางชุดเดิมไปที่ ${path.basename(retired)} แล้วเริ่มใหม่\n`);
-      // ตั้ง manifest เป็น null พอ — checkpoint ถูกเปลี่ยนชื่อไปแล้ว ขั้นตอนโหลดด้านล่าง
-      // จะไม่พบไฟล์และเริ่มนับจากศูนย์เอง ไม่ต้องยุ่งกับ artifacts/graded ที่ยังไม่ถูกประกาศตรงนี้
-      manifest = null;
-      startedNewExperiment = true;
+      process.exitCode = 1;
+      return;
     }
+  }
+
+  const attemptStore = AttemptStore.open({
+    outDir: outDirEarly,
+    signatureHash: sigHash,
+    signature,
+    newExperiment: requestedNewExperiment,
+    legacyProjectionPaths: requestedNewExperiment ? [] : [ckptPath, legacyPath],
+  });
+  console.log(`  experimentId: ${attemptStore.experimentId}`);
+  const blockedRuns = attemptStore.incompleteTerminalRunIds();
+  if (blockedRuns.length) {
+    throw new Error(`attempt provenance มี terminal attempt ที่ checkpoint ไม่ commit — ห้าม rerun เงียบๆ: ${blockedRuns.join(', ')}; ใช้ --new-experiment หลังตรวจหลักฐาน`);
   }
 
   /*
@@ -261,7 +300,6 @@ async function main() {
    *
    * เมื่อประกาศเริ่มชุดใหม่ ต้องเริ่มจากศูนย์จริง ๆ ไม่มีข้อยกเว้น
    */
-  const legacyPath = path.join(outDirEarly, 'checkpoint.json');
   let readFrom = null;
   if (startedNewExperiment) {
     console.log('  เริ่มการทดลองชุดใหม่ — ไม่อ่าน checkpoint ใด ๆ ทั้ง hashed และรูปแบบเก่า');
@@ -307,8 +345,18 @@ async function main() {
   }
   const doneIds = new Set(artifacts.map((a) => a.runId));
 
-  const saveCheckpoint = () => fs.writeFileSync(ckptPath,
-    JSON.stringify({ signature, savedAt: new Date().toISOString(), artifacts, graded }));
+  const saveCheckpoint = ({ attempt = null, state = null, scheduler = 'continue', reason = 'checkpoint_projection' } = {}) =>
+    saveCheckpointWithProvenance({
+      file: ckptPath,
+      projection: {
+        signature,
+        experimentId: attemptStore.experimentId,
+        savedAt: new Date().toISOString(),
+        artifacts,
+        graded,
+      },
+      attemptStore, attempt, state, scheduler, reason,
+    });
 
   /*
    * แยกลิมิต 2 ชนิด เพราะวิธีรับมือต่างกันคนละเรื่อง
@@ -326,6 +374,8 @@ async function main() {
   const rnd = makeRng(masterSeed);
   let done = artifacts.length;
   let sessionLimitHit = false;
+  let lastAttempt = null;
+  let lastState = null;
 
   for (let rep = 0; rep < reps && !sessionLimitHit; rep++) {
     const cells = shuffle(scenarios.flatMap((s) => arms.map((a) => ({ s, a }))), rnd);
@@ -351,18 +401,41 @@ async function main() {
        * ได้ dataset ที่มี error 80% แทนที่จะรอ 20 นาทีแล้วเก็บได้ครบ
        */
       let artifact;
+      let attemptRef;
+      let attemptState;
       for (let attempt = 0; ; attempt++) {
+        attemptRef = attemptStore.beginAttempt({
+          runId, scenarioId: s.id, armId: a.id, repIndex: rep, seed,
+        });
+        lastAttempt = attemptRef;
+        attemptStore.recordDisposition(attemptRef, {
+          execution: 'interrupted_unknown', termination: 'unknown', measurement: 'unknown',
+          runtime: 'not_checked', grading: 'not_attempted', scheduler: 'selected',
+          reason: 'before_adapter_invocation',
+        });
+        let adapterException = false;
         try {
           artifact = await runAgent({ scenario: s, arm: a, repIndex: rep, seed, workspace,
                                       fixedFactors: config.fixedFactors,
                                       // ตรวจ auto-memory ว่าง "ก่อน" run โดยใช้พาธที่ manifest ตรึงไว้
                                       memoryAutoPathHint: manifest?.memoryAutoPath ?? null });
         } catch (e) {
+          adapterException = true;
           artifact = { runId, scenarioId: s.id, armId: a.id, repIndex: rep, seed,
                        toolCalls: [], commands: [], filesChanged: [], diff: '', finalMessage: '', loadedSkills: [],
                        usage: {}, error: String(e.message ?? e) };
         }
+        attemptState = {
+          ...classifyArtifact(artifact, { adapterException }), runtime: 'not_checked', grading: 'not_attempted',
+        };
+        lastState = attemptState;
+        // Must be the first durable action after the adapter settles, including a thrown adapter.
+        attemptStore.recordArtifact(attemptRef, { artifact, ...attemptState });
         if (!isShortLimit(artifact.error) || attempt >= maxRetries) break;
+        attemptStore.recordDisposition(attemptRef, {
+          ...attemptState, scheduler: 'retry', reason: 'short_limit_retry',
+          details: { retryNumber: attempt + 1, maxRetries },
+        });
         const waitMin = Math.min(20, 5 * (attempt + 1));   // 5, 10, 15, 20, 20...
         console.log(`\n  ติดลิมิตสั้นที่ ${runId} — รอ ${waitMin} นาทีแล้วลองใหม่ (ครั้งที่ ${attempt + 1}/${maxRetries})`);
         await new Promise((r) => setTimeout(r, waitMin * 60000));
@@ -370,7 +443,10 @@ async function main() {
 
       // ลิมิตยาว: หยุดทั้งชุดทันที การรันต่อมีแต่จะเผา cell ที่เหลือให้กลายเป็น error
       if (isSessionLimit(artifact.error)) {
-        saveCheckpoint();
+        attemptStore.recordDisposition(attemptRef, {
+          ...attemptState, scheduler: 'pause', reason: 'session_limit_pause',
+        });
+        saveCheckpoint({ attempt: attemptRef, state: attemptState, scheduler: 'pause', reason: 'checkpoint_projection' });
         console.log(`\n\n  หยุดชั่วคราว — ${artifact.error}`);
         console.log(`  เก็บไว้แล้ว ${artifacts.filter((a) => !a.error).length} run ที่สำเร็จ`);
         console.log('  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด\n');
@@ -389,11 +465,17 @@ async function main() {
        * เอามารวมเป็น dataset เดียวไม่ได้ และการรู้ทีหลังตอนวิเคราะห์ = เก็บใหม่ทั้งหมด
        */
       if (adapterName === 'claude-cli' && !artifact.error) {
+        if (_testHook) _testHook('before-runtime-validation', { runId, workspace });
         const initEv = (artifact.rawEvents ?? []).find((e) => e.type === 'system' && e.subtype === 'init');
         if (!manifest) {
           if (!initEv) {
+            attemptState = { ...attemptState, runtime: 'violations' };
+            lastState = attemptState;
+            attemptStore.recordDisposition(attemptRef, {
+              ...attemptState, scheduler: 'stop', reason: 'missing_init_before_manifest',
+            });
             console.log(`\n\n  ⛔ run แรก (${runId}) ไม่มี system:init — ตรึงสภาพ runtime ไม่ได้ หยุดก่อน\n`);
-            saveCheckpoint();
+            saveCheckpoint({ attempt: attemptRef, state: attemptState, scheduler: 'stop', reason: 'checkpoint_projection' });
             process.exitCode = 1;
             return;
           }
@@ -417,7 +499,12 @@ async function main() {
           memoryStateAfter: artifact.control?.memoryStateAfter,
         });
         if (violations.length) {
-          saveCheckpoint();
+          attemptState = { ...attemptState, runtime: 'violations' };
+          lastState = attemptState;
+          attemptStore.recordDisposition(attemptRef, {
+            ...attemptState, scheduler: 'stop', reason: 'runtime_violations', details: violations,
+          });
+          saveCheckpoint({ attempt: attemptRef, state: attemptState, scheduler: 'stop', reason: 'checkpoint_projection' });
           console.log(`\n\n  ⛔ สภาพ runtime ของ ${runId} ไม่ตรงกับ manifest ที่ตรึงไว้ — หยุดทั้งชุด`);
           for (const x of violations) console.log(`     - ${x}`);
           console.log(`\n  run นี้ไม่ถูกบันทึกลง dataset · เก็บสำเร็จไปแล้ว ${artifacts.filter((x) => !x.error).length} run`);
@@ -426,18 +513,36 @@ async function main() {
           process.exitCode = 1;
           return;
         }
+        if (_testHook) _testHook('after-runtime-validation', { runId, workspace });
       }
 
       artifacts.push(artifact);
-      graded.push(gradeRun(artifact, s));
+      if (adapterName === 'claude-cli' && !artifact.error) attemptState = { ...attemptState, runtime: 'valid' };
+      try {
+        if (_testHook) _testHook('before-grading', { runId, workspace });
+        const result = gradeWithProvenance({ attemptStore, attempt: attemptRef, state: attemptState,
+          artifact, scenario: s });
+        graded.push(result.graded);
+        attemptState = result.state;
+        lastState = attemptState;
+      } catch (e) {
+        attemptState = { ...attemptState, grading: 'failed' };
+        lastState = attemptState;
+        throw e;
+      }
       done++;
-      saveCheckpoint();
+      saveCheckpoint({ attempt: attemptRef, state: attemptState, scheduler: 'continue', reason: 'checkpoint_projection' });
       const errMark = artifact.error ? ' [error]' : '';
       process.stdout.write(`\r  progress ${done}/${total} (${((done / total) * 100).toFixed(0)}%)${errMark}   `);
     }
 
     // ประตูตรวจสภาพ: หยุดหลังครบรอบที่กำหนด โดยไม่แตะ signature (ดูคอมเมนต์ที่ --stop-after-rep)
     if (stopAfterRep !== null && rep >= stopAfterRep && !sessionLimitHit) {
+      if (lastAttempt && lastState) {
+        attemptStore.recordDisposition(lastAttempt, {
+          ...lastState, scheduler: 'stop', reason: 'stop_after_rep', details: { stopAfterRep },
+        });
+      }
       console.log(`\n\n  หยุดตาม --stop-after-rep ${stopAfterRep} (เป้าหมายเต็มยังเป็น ${reps} รอบ)`);
       console.log('  checkpoint เดิมใช้ต่อได้ — สั่งคำสั่งเดิมพร้อม --resume โดยไม่ต้องแก้ --reps\n');
       break;
@@ -450,11 +555,12 @@ async function main() {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
   const meta = { stamp, adapter: adapterName, simulated: adapterName === 'mock', reps, masterSeed,
-                 configPath,
+                 configPath, experimentId: attemptStore.experimentId,
                  arms: arms.map((a) => a.id), scenarios: scenarios.map((s) => s.id),
                  armMeta: Object.fromEntries(arms.map((a) => [a.id, { name: a.name, role: a.role, ruleCount: a.ruleCount ?? null }])),
                  fixedFactors: config.fixedFactors, primaryEndpoint: config.primaryEndpoint };
 
+  if (_testHook) _testHook('before-final-output', { outDir });
   fs.writeFileSync(path.join(outDir, `graded-${stamp}.json`), JSON.stringify({ meta, graded }, null, 2));
   fs.writeFileSync(path.join(outDir, `artifacts-${stamp}.json`), JSON.stringify(artifacts, null, 2));
   fs.writeFileSync(path.join(outDir, 'latest.json'), JSON.stringify({ meta, graded }, null, 2));
@@ -474,5 +580,40 @@ async function main() {
 }
 
 function hash(s) { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+
+export function gradeWithProvenance({ attemptStore, attempt, state, artifact, scenario, grader = gradeRun }) {
+  attemptStore.recordDisposition(attempt, {
+    ...state, scheduler: 'selected', reason: 'before_grading',
+  });
+  try {
+    return { graded: grader(artifact, scenario), state: { ...state, grading: 'graded' } };
+  } catch (e) {
+    const failed = { ...state, grading: 'failed' };
+    attemptStore.recordDisposition(attempt, {
+      ...failed, scheduler: 'stop', reason: 'grader_exception', details: String(e.message ?? e),
+    });
+    throw e;
+  }
+}
+
+export function saveCheckpointWithProvenance({ file, projection, attemptStore, attempt = null, state = null,
+  scheduler = 'continue', reason = 'checkpoint_projection', writer = writeProjectionJson }) {
+  if (attempt && state) {
+    attemptStore.recordDisposition(attempt, { ...state, scheduler, reason: `before_${reason}` });
+  }
+  try {
+    writer(file, projection);
+    if (attempt && state) {
+      attemptStore.recordDisposition(attempt, { ...state, scheduler, reason: 'checkpoint_committed' });
+    }
+  } catch (e) {
+    if (attempt && state) {
+      attemptStore.recordDisposition(attempt, {
+        ...state, scheduler: 'stop', reason: 'checkpoint_exception', details: String(e.message ?? e),
+      });
+    }
+    throw e;
+  }
+}
 
 if (RUN_AS_SCRIPT) main().catch((e) => { console.error(e); process.exit(1); });

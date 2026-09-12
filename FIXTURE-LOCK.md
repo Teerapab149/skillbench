@@ -1,163 +1,98 @@
-# ล็อก fixture ข้ามโปรเซส — สิ่งที่ทำ และจุดที่ยังต้องต่อ
+# ล็อก fixture ข้ามโปรเซส
 
-สาขา `claude/fixture-process-lock` · แตกจาก `harden/bucket-a`
+เครื่องมือหลายตัวใช้ fixture เดียวกันและสั่ง `git reset --hard`, `git checkout -- .`
+หรือ `git clean -fd` ก่อนทำงาน ถ้ารันชนกัน ตัวหนึ่งลบงานของอีกตัวได้โดยทั้งคู่ยังจบ
+ด้วย exit code 0 ทำให้ run ถูกให้คะแนนจากหลักฐานที่หายไปอย่างเงียบ ๆ
 
-## ปัญหา (reproduce ได้ ไม่ใช่ความกังวลลอย ๆ)
+`tests/fixture-lock.test.mjs` มี reproduction ด้วย git repo ชั่วคราว: กรณีไม่มีล็อก
+ไฟล์ของ runner หายจริง และกรณีมีล็อก checker ถูกปฏิเสธด้วย exit code 4
 
-เครื่องมือ 7 ตัวใช้ `fixtures/gpu-booking` โฟลเดอร์เดียวกัน และทุกตัวล้างมันด้วย
-`git reset --hard` / `git checkout -- .` / `git clean -fd` ก่อนเริ่มงานของตัวเอง
+## protocol ปัจจุบัน
 
-จำลองด้วยสองโปรเซสยิงพร้อมกันบน git repo จริง:
+`src/fixture-lock.mjs` ใช้ **directory ownership + immutable retirement tombstone**:
 
-| | ทำอะไร | ผล |
-|---|---|---|
-| โปรเซส A (แทน runner) | เขียนไฟล์ลง workspace แล้วรอ | ไฟล์หายไปทั้งหมด · `git status` ว่างเปล่า |
-| โปรเซส B (แทน check-acceptance) | `git checkout -- . && git clean -fd` | จบด้วย exit 0 อย่างสงบ |
+1. ผู้ขอยึดเขียน `owner.json` ให้ครบใน staging directory ชื่อ UUID ของตัวเอง
+2. publish ด้วย `rename(staging, lock)` ไปยัง path ที่ยังไม่มีอยู่ ซึ่งเป็นการเปลี่ยนสถานะ
+   แบบ atomic; ไม่มีช่วงที่คนอื่นอ่าน owner record ครึ่งไฟล์
+3. ทุกทางที่เอา owner ออก—release ปกติ, auto-reclaim, `--break`, และ `--force`—
+   ย้าย lock directory ไปยัง retirement path ที่คำนวณจาก token ของ owner ที่อ่านไว้
+4. retirement directory **ไม่ถูกลบ** เพราะมันเป็น tombstone ของ owner นั้น ถ้า reclaimer
+   ที่อ่าน owner เก่าไว้ช้ากว่าคนอื่น และมี owner ใหม่ publish เข้ามาแล้ว การ rename ของ
+   ตัวที่ช้าจะชน tombstone เก่าที่มีข้อมูลอยู่และล้ม แทนที่จะย้าย owner ใหม่ออก
 
-ไม่มี error ไม่มี exit code ที่ผิด **run นั้นจะถูกให้คะแนนว่า "เอเจนต์เลือกที่จะไม่ทำอะไรเลย"**
-ซึ่งเป็นข้อมูลที่ผิดแบบเงียบ — อันตรายกว่าการรันพัง เพราะมันไหลเข้าไปถึงตาราง p-value ได้
+ไม่มี `.breaker` หรือ coordinator lock อีกชั้นที่ตายแล้วต้องหา lock มาครอบเพื่อกู้มัน
+ถ้า reclaimer ถูก kill ก่อน rename ล็อกเก่ายังอยู่; ถ้าถูก kill หลัง rename lock path ว่าง
+และ owner ใหม่ publish ได้ทันที ส่วน staging ที่ค้างและ tombstone เป็นชื่อ UUID/token
+เฉพาะตัวและไม่ขวาง lock path
 
-เทสข้อแรกใน `tests/fixture-lock.test.mjs` จำลองการชนนี้และยืนยันว่ามันเกิดขึ้นจริง
+### identity และการตรวจเจ้าของ
 
-### ทำไม `collection-guard.mjs` ยังไม่พอ
+lock key มาจาก `realpath` พร้อม `dev`/`ino` ของ fixture และเก็บใน
+`os.tmpdir()/skillbench-fixture-locks-v2` ไม่ได้ผูกกับตำแหน่งของโมดูลที่ import
+ดังนั้นโมดูลคนละ copy/worktree ที่รับ fixture จริงอันเดียวกันจะชน lock เดียวกัน และ
+path alias ที่ resolve ไป directory เดียวกันไม่สร้าง lock แยก
 
-มันอ่าน `mtime` ของ checkpoint แล้ว**เดา**ว่ามีการเก็บข้อมูลเดินอยู่ไหม
+owner record เก็บ canonical fixture identity ซ้ำไว้บนดิสก์ `inspectLock()` จะยอมใช้ pid
+ตัดสิน stale ต่อเมื่อ schema, token ที่เป็น UUID และ identity ตรงทั้งหมด
+`isFixtureLockHeld()` และ
+`assertFixtureLockHeld()` ก็อ่าน owner บนดิสก์และเทียบทั้ง token, fixture identity และ
+disk identity (`dev`/`ino`/birth time) ของ lock directory จริง ไม่เชื่อเพียง held map
+ในหน่วยความจำ และไม่ยอมรับ directory ใหม่ที่ copy token เก่ามาใส่
 
-* เป็นการตรวจสถานะ ไม่ใช่การกันชน — มีช่องว่างระหว่าง "ตรวจ" กับ "ลงมือ" เสมอ
-* **มันมองไม่เห็นเครื่องมือด้วยกันเองเลย** `npm run check` กับ `npm run check:acceptance`
-  ชนกันได้เต็ม ๆ เพราะไม่มีตัวไหนเขียน checkpoint ให้มันเห็น
-* ใช้ timeout 20 นาที ซึ่งเดาไว้ — การเก็บข้อมูลจริงกินเวลาหลายชั่วโมง
+owner ที่ hostname เดียวกันและ pid ยังอยู่ **ไม่หมดอายุด้วยเวลา** ไม่ว่า run จะนานเท่าไร
+`EPERM` จากการ probe pid นับว่ายังอยู่ ล็อกจากเครื่องอื่นหรือข้อมูลที่พิสูจน์ไม่ได้จะ
+fail closed
 
-เก็บไว้ทั้งคู่: ล็อกเป็นตัวกันจริง ส่วน guard เดิมให้ข้อความที่ตรงกว่าเมื่อชนกับการเก็บข้อมูล
+## ทางเข้าที่ต่อล็อกแล้ว
 
-## สิ่งที่ทำ
-
-`src/fixture-lock.mjs` — ล็อกตัวเดียวที่ทุกทางเข้าต้องผ่าน
-
-* **atomic** ด้วย `fs.openSync(path, 'wx')` ซึ่ง exclusive ทั้ง Windows และ POSIX
-  ไม่ใช่ "อ่านแล้วค่อยเขียน" ที่มีช่องว่างตรงกลาง
-* **ยึดไม่ได้ = ล้มทันที** พร้อม owner / pid / hostname / เวลาที่เริ่ม / คำสั่งเต็ม
-  ออกด้วย exit code `4` ไม่มีการรอ (การรอทำให้คนเข้าใจว่างานค้างแล้วไปกด Ctrl-C
-  ตัวที่กำลังเก็บข้อมูลอยู่ ซึ่งแย่กว่าการถูกปฏิเสธ)
-* **ล็อกค้างตัดสินด้วย pid ไม่ใช่เวลา** — `process.kill(pid, 0)`
-  timeout อะไรก็ตามที่เดาไว้ จะกลายเป็นตัวลบล็อกของ run ที่ยังทำงานอยู่
-  `EPERM` (มีอยู่แต่ไม่มีสิทธิ์) นับว่า **ยังอยู่** · pid ของเครื่องอื่นไม่แกะเด็ดขาด
-* **แกะล็อกค้างด้วย breaker อายุสั้น + re-check + `rename`** — breaker serialize เฉพาะ
-  ผู้แกะ stale และบังคับให้อ่านเจ้าของปัจจุบันซ้ำก่อนแตะไฟล์ จึงไม่เผลอย้ายล็อกใหม่ที่ process
-  อื่นสร้างแทรกหลัง stale เดิมถูกย้ายออก
-* **ปลดได้เฉพาะล็อกของตัวเอง** เทียบ `token` ก่อน unlink
-* **ไฟล์ล็อกอยู่นอก fixture** (`.locks/` ที่รากโปรเจกต์) เพราะถ้าวางไว้ข้างใน
-  `git clean -fd` ของตัวที่ถืออยู่จะลบล็อกของตัวเองทิ้ง — มีเทสยืนยันข้อนี้
-* **ยึดซ้อนในโปรเซสเดียวกันได้** นับเป็นชั้น เพื่อให้ runner ถือคลุมทั้งรอบ
-  ขณะที่ adapter ยึดซ้ำรอบ run แต่ละอันโดยไม่ฟ้องว่าตัวเองชนกับตัวเอง
-
-### ทางเข้าที่ต่อล็อกแล้ว
-
-| ไฟล์ | ยึดตอนไหน |
+| ทางเข้า | ขอบเขตการถือ |
 |---|---|
-| `src/adapters/claude-cli.mjs` | คลุมทั้ง run — ก่อน `installArm` จนหลัง `uninstallArm` |
+| `src/runner.mjs` | ยึดทุก fixture ของ scenario ก่อน snapshot/validation และถือต่อจนเขียน artifacts, graded, `latest.json`, CSV เสร็จ; ปลดใน `finally` |
+| `src/adapters/claude-cli.mjs` | ยึดซ้อนรอบ run ตั้งแต่ก่อนติดตั้ง arm ถึงหลังเก็บ artifact |
 | `src/check-arms.mjs` | ทั้งโปรเซส |
-| `scripts/check-acceptance.mjs` | ทั้งโปรเซส |
-| `scripts/check-acceptance-green.mjs` | ทั้งโปรเซส |
-| `scripts/check-acceptance-variants.mjs` | ทั้งโปรเซส |
-| `scripts/dump-arm.mjs` | ทั้งโปรเซส |
-| `scripts/make-arms-explained.mjs` | ทั้งโปรเซส |
-| `scripts/probe-runtime.mjs` | ทั้งโปรเซส |
+| `scripts/check-acceptance*.mjs` | ทั้งโปรเซส |
+| `scripts/dump-arm.mjs`, `scripts/make-arms-explained.mjs`, `scripts/probe-runtime.mjs` | ทั้งโปรเซส |
 | `scripts/setup-fixtures.mjs` | ทีละ fixture ใน loop |
 
-`src/install-arm.mjs` เพิ่มด่านล่างสุด: `resetToBaseline()` **โยน error ถ้าผู้เรียกไม่ได้ถือล็อก**
-ตั้งใจให้ล้มแรง ไม่ใช่เตือนแล้วทำต่อ เพราะทางเรียกที่ลืมยึดล็อกคือทางที่จะไปลบงานของคนอื่น
+`resetToBaseline()` ใน `src/install-arm.mjs` เป็นด่านล่างสุดและโยน error ก่อนลบอะไร
+ถ้าผู้เรียกไม่ได้เป็น owner จริงบนดิสก์ การยึดซ้อนในโปรเซสเดียวกันรองรับ runner ชั้นนอก
+กับ adapter ชั้นใน โดยปลด lock จริงเมื่อ depth สุดท้ายจบเท่านั้น
 
-### เครื่องมือ
+## คำสั่ง
 
-```
-npm run lock          # ใครถืออยู่ · แกะได้ไหม
-npm run lock:break    # แกะล็อกที่เจ้าของตายไปแล้ว (ปฏิเสธถ้า pid ยังอยู่)
-```
-
-`--break --force` มีไว้สำหรับกรณี pid ถูกใช้ซ้ำโดยโปรเซสอื่น ซึ่งทำให้ระบบเห็นว่า
-"เจ้าของยังอยู่" ทั้งที่ตายไปแล้ว — เป็นการตัดสินใจของคน ไม่ใช่ของสคริปต์
-
----
-
-## จุดที่ยังไม่ได้ต่อ — `src/runner.mjs` (Codex ถือไฟล์นี้อยู่)
-
-ตอนนี้ adapter ยึดล็อก **ต่อ run** ซึ่งกันการชนได้ทุกกรณีที่ทดสอบมา
-แต่ยัง **เปิดช่องระหว่าง run** — เครื่องมืออื่นแทรกเข้ามาตอนที่ run หนึ่งจบและอีก run
-ยังไม่เริ่มได้ ผลคือ arm ของ run ถัดไปถูกติดตั้งทับสภาพที่เครื่องมืออื่นทิ้งไว้
-
-ปิดช่องนี้ด้วยล็อกระดับรอบเก็บข้อมูลใน `runner.mjs` — **สองจุด**
-
-**1. เพิ่ม import**
-
-```js
-import { acquireFixtureLock } from './fixture-lock.mjs';
+```text
+npm run lock                       # ดู owner ของ fixtures/gpu-booking
+npm run lock:break                 # แกะเมื่อ owner บนเครื่องนี้ตายแล้วเท่านั้น
+node scripts/fixture-lock.mjs --break --force
+                                   # ข้าม liveness แต่ยังผูกการย้ายกับ owner token ที่อ่านไว้
 ```
 
-**2. ครอบลูปเก็บข้อมูลทั้งหมด** (ลูป `for (let rep = 0; ...)` ที่ราวบรรทัด 286)
+`--force` มีไว้ให้คนตัดสินใจกรณี pid ถูก reuse, lock ข้ามเครื่อง หรือ metadata เสีย
+มันไม่ใช่ “unlink path ปัจจุบัน”: แม้ใช้ force ถ้า owner ถูกแทนระหว่างตรวจ คำสั่งจะ
+ปฏิเสธและไม่แตะ replacement owner
 
-ต้องยึดทุก fixture ที่ scenario ในรอบนี้ใช้ เพราะ `workspace` ถูกคิดต่อ scenario
-(`s.fixture ?? 'fixtures/next-mini'` บรรทัด 306) ไม่ใช่ค่าเดียวทั้งรอบ
+## ข้อจำกัดและ recovery boundary
 
-```js
-// ก่อนลูป
-const fixtureDirs = [...new Set(scenarios.map((s) => path.join(ROOT, s.fixture ?? 'fixtures/next-mini')))];
-const releases = [];
-try {
-  for (const dir of fixtureDirs) {
-    releases.push(acquireFixtureLock(dir, { owner: `collection ${adapterName} reps=${reps}` }));
-  }
-} catch (e) {
-  if (e.code !== 'FIXTURE_LOCK_BUSY') throw e;
-  console.error(`\n⛔ เริ่มเก็บข้อมูลไม่ได้ — มีเครื่องมืออื่นถือ fixture อยู่\n`);
-  console.error(e.message.split('\n').slice(1).join('\n'));
-  console.error('\n   ดูด้วย npm run lock · แกะล็อกค้างด้วย npm run lock:break\n');
-  for (const r of releases) r();
-  process.exitCode = 4;
-  return;
-}
-
-try {
-  ... ลูปเก็บข้อมูลเดิมทั้งหมด ...
-} finally {
-  for (const r of releases) r();
-}
-```
-
-การยึดซ้อนถูกออกแบบมารองรับกรณีนี้อยู่แล้ว — adapter จะยึดซ้ำแล้วปลดชั้นในทุก run
-โดยล็อกจริงยังอยู่กับ runner ตลอด ไม่ต้องแก้ adapter เพิ่ม
-
-**3. เพิ่ม `src/fixture-lock.mjs` เข้า digest** ใน `src/runtime-manifest.mjs` บรรทัด 58-61
-
-```js
-'src/adapters/claude-cli.mjs', 'src/fixture-lock.mjs']) add(rel);
-```
-
-จำเป็นเพราะตอนนี้ `install-arm.mjs` พึ่งไฟล์นี้เป็นด่านความปลอดภัย
-ถ้าไม่อยู่ใน digest จะแก้ตรรกะล็อกกลางการเก็บข้อมูลได้โดยไม่มีอะไรจับ
-
-> **หมายเหตุเรื่อง digest:** สาขานี้แก้ `src/install-arm.mjs` และ `src/adapters/claude-cli.mjs`
-> ซึ่งอยู่ใน digest อยู่แล้ว → `experimentDigest()` เปลี่ยนค่า
-> การเก็บข้อมูลชุดใดที่ค้างอยู่จะ resume ไม่ได้และต้องประกาศชุดใหม่ ซึ่งถูกต้องแล้ว
-> ตอนนี้ยังไม่มีชุดข้อมูลจริงถูกเก็บ จึงไม่กระทบอะไร
-
----
-
-## สิ่งที่เจอระหว่างทางแต่ไม่ได้แก้
-
-`runClaudeCliLocked()` เรียก `uninstallArm(cwd)` เป็นบรรทัดสุดท้าย **ไม่ได้อยู่ใน `finally`**
-ถ้า run โยน error กลางคัน ไฟล์ของ arm จะค้างใน fixture
-
-ไม่แก้เพราะมันหายเองอยู่แล้ว — `installArm` ของ run ถัดไปเรียก `resetToBaseline` ก่อนเสมอ
-และการย้ายไปไว้ใน `finally` จะไปลบหลักฐานของ run ที่พังก่อนที่จะเก็บ artifact ได้ทัน
-บันทึกไว้ให้รู้ ไม่ใช่ให้แก้ทันที
-
-## ข้อจำกัดที่ต้องรู้
-
-* ล็อกกันได้ **ข้ามโปรเซสเท่านั้น** การยึดซ้อนในโปรเซสเดียวกันแยกไม่ออกจาก
-  "โค้ดสองส่วนในโปรเซสเดียวใช้ fixture พร้อมกัน" — ตั้งอยู่บนข้อเท็จจริงที่ว่า
-  runner รันทีละ run ถ้าวันหนึ่งมันรันขนานในโปรเซสเดียว ต้องเปลี่ยนวิธีนับชั้น
-* pid ที่ถูกใช้ซ้ำโดยโปรเซสอื่นทำให้ระบบเห็นว่าเจ้าของยังอยู่ → ปฏิเสธทั้งที่ควรแกะได้
-  เลือกทางนี้เพราะพลาดไปทางปฏิเสธ เสียแค่เวลา ส่วนพลาดไปทางแกะ เสียข้อมูลทั้ง run
-* ล็อกข้ามเครื่อง (fixture บน network share) ตรวจ pid ไม่ได้ จึงไม่แกะให้เลย
-  ต้องใช้ `--break --force` เท่านั้น
+- Node core ไม่มี portable compare-and-unlink และไม่มี advisory file lock API ที่ใช้ได้
+  เหมือนกันบน Windows/POSIX จึงต้องเก็บ tombstone เล็ก ๆ ไว้เพื่อปิด replacement race
+  ไม่ควรลบ `.retired-*` ระหว่างที่อาจมี process รุ่นเก่ายังค้างอยู่
+- staging directory ของ process ที่ถูก kill และ tombstone จะสะสมใน temp directory
+  แต่ไม่ขวางการยึด การ cleanup เป็นงานบำรุงรักษาแบบ offline หลังยืนยันว่าไม่มี process
+  SkillBench ทำงานอยู่ ไม่ใช่ส่วนหนึ่งของ recovery อัตโนมัติ
+- lock **ไฟล์** schema รุ่นเก่า fail closed เพราะไม่มี non-empty directory tombstone
+  ที่รับประกัน conditional rename ได้อย่าง portable ต้องหยุด process รุ่นเก่าทั้งหมดและ
+  เอาไฟล์เก่าออกใน maintenance window ก่อนใช้ protocol รุ่นนี้; คำสั่ง `--break` จะไม่
+  แกล้งอ้างว่าแกะรูปแบบเก่าได้อย่างปลอดภัย
+- ตอนเริ่มยึด v2 จะตรวจ path รุ่นเก่าที่ checkout ปัจจุบันเคยใช้
+  (`ROOT/.locks/<slug>-<hash-8>.lock`) และปฏิเสธพร้อมข้อความ maintenance window
+  ไม่ว่าไฟล์นั้นจะสมบูรณ์, เสีย, pid ยังอยู่ หรือตายแล้ว แต่ rolling upgrade ยังต้องทำ
+  แบบ offline: **หยุด process รุ่นเก่าทั้งหมดก่อน** เพราะโค้ดเก่ามองไม่เห็น lock v2 และ
+  เราป้องกัน process รุ่นเก่าที่ถูกเปิดขึ้น *ภายหลัง* จากฝั่ง v2 ไม่ได้ นอกจากนี้รุ่นเก่า
+  ผูก lock root กับ checkout ของโมดูล จึงไม่เคย coordinate ข้าม worktree ได้อยู่แล้ว
+- อ่านสถานะ lock แล้วได้ error อื่นนอกจาก `ENOENT` จะ fail closed; permission/I/O error
+  ไม่ถูกแปลว่า “ว่าง” และ rename ที่ล้มทุกกรณีจะอ่าน current lock กับ tombstone ซ้ำ
+  รายงาน state แล้วหยุด invocation นั้น ไม่ retry snapshot เก่า
+- hostname อื่นตรวจ pid ไม่ได้ การ break ปกติจึงไม่แกะ ต้องยืนยันนอกระบบว่าไม่มี owner
+  แล้วจึงใช้ `--force`
+- การยึดซ้อนกันได้เฉพาะโค้ด synchronous/serial ใน process เดียว ถ้า runner เปลี่ยนเป็น
+  รันหลาย fixture task ขนานใน process เดียว ต้องแยก ownership context แทน depth map

@@ -23,7 +23,7 @@ const force = process.argv.includes('--force');
 
 const holder = inspectLock(FIXTURE);
 console.log(`\nfixture : ${FIXTURE}`);
-console.log(`ไฟล์ล็อก: ${lockPathFor(FIXTURE)}\n`);
+console.log(`ไฟล์ล็อก: ${holder?.lockPath ?? lockPathFor(FIXTURE)}\n`);
 
 if (!holder) {
   console.log('  ว่าง — ไม่มีใครถืออยู่\n');
@@ -35,7 +35,7 @@ console.log(`  ถือโดย : ${holder.info?.owner ?? '(ไม่ทรา
 console.log(`  เริ่ม  : ${holder.info?.startedAt ?? '(ไม่ทราบ)'}  (${mins} นาทีที่แล้ว)`);
 if (holder.info?.command) console.log(`  คำสั่ง : ${holder.info.command}`);
 console.log(`  สถานะ : ${holder.reason}`);
-console.log(`  แกะได้ : ${holder.stale ? 'ได้ — เจ้าของไม่อยู่แล้ว' : 'ไม่ได้ — ต้องรอ'}\n`);
+console.log(`  แกะปกติ: ${holder.stale ? 'ได้ — เจ้าของไม่อยู่แล้ว' : 'ไม่ได้ — ต้องรอหรือยืนยันแล้วใช้ --force'}\n`);
 
 if (!wantBreak) {
   if (holder.stale) console.log('  แกะด้วย: node scripts/fixture-lock.mjs --break\n');
@@ -48,6 +48,10 @@ if (r.broken) {
   process.exit(0);
 }
 console.error(`  ไม่แกะให้ — ${r.reason}`);
-console.error('  ถ้าแน่ใจว่าเจ้าของตายไปแล้วและ pid ถูกใช้ซ้ำ ให้สั่ง --break --force');
-console.error('  เดาผิดเมื่อไร งานของ run ที่กำลังเดินอยู่จะถูกลบทิ้งกลางคัน\n');
+if (holder.format === 'legacy-file') {
+  console.error('  ล็อก schema เก่าต้องเอาออกใน maintenance window หลังหยุด SkillBench รุ่นเก่าทุก process');
+} else {
+  console.error('  ถ้าแน่ใจว่าไม่มีเจ้าของจริง (เช่น pid ถูกใช้ซ้ำ/metadata เสีย) ให้สั่ง --break --force');
+  console.error('  force ยังตรวจ owner token ซ้ำ และจะไม่ย้าย replacement owner\n');
+}
 process.exit(1);

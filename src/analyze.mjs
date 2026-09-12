@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  wilson, cohensH, mcnemarExact, clusterBootstrapDiff, passHatK, exactSignFlipTest, tostFromCI,
+  wilson, cohensH, mcnemarExact, clusterBootstrapDiff, passHatK, exactSignFlipTest, leaveOneScenarioOut, tostFromCI,
   meanPairwiseJaccard, normalizedEntropy, fmtPct, fmtP,
 } from './stats.mjs';
 import { triggerMetrics } from './graders.mjs';
@@ -212,7 +212,7 @@ function pairedCompare(armA, armB, metric) {
    * ผลต่างค่าเฉลี่ยรายโจทย์ d_i = mean(armA ในโจทย์ i) - mean(armB ในโจทย์ i)
    * แล้วทดสอบด้วย exact paired sign-flip ซึ่งใช้ k หน่วยตรงๆ
    *
-   * นับเฉพาะโจทย์ที่ **มีข้อมูลทั้งสองฝั่ง** (matched cells) โจทย์ที่ขาดข้างใดข้างหนึ่ง
+   * นับเฉพาะโจทย์ที่ **มีข้อมูลทั้งสองฝั่ง** (matched scenarios) โจทย์ที่ขาดข้างใดข้างหนึ่ง
    * ไม่ใช่หลักฐานของผลต่าง และการเติม 0 หรือข้ามแบบเงียบๆ จะบิดผลไปคนละทาง
    */
   const perScenDiff = [];
@@ -228,7 +228,7 @@ function pairedCompare(armA, armB, metric) {
   const ties = perScenDiff.filter((x) => x.d === 0).length;
 
   return { armA, armB, metric, mcnemar: mcnemarExact(b, c), both, neither, boot, pA, pB,
-           h: cohensH(pA, pB), signFlip, perScenDiff, unmatched, wins, losses, ties };
+           h: cohensH(pA, pB), signFlip, perScenDiff, loso: leaveOneScenarioOut(perScenDiff), unmatched, wins, losses, ties };
 }
 
 const COMPARISONS = [['A2', 'A1'], ['A2', 'A0'], ['A1', 'A3'], ['A2', 'A3'], ['A4', 'A2']]
@@ -289,7 +289,7 @@ for (const a of armIds) {
   p(`| ${a} | ${s.n} | ${f('RCR')} | ${f('FULL')} | ${f('CRIT')} | ${f('SCOPE')} |`);
 }
 p('');
-p('> CI ของสัดส่วนใช้ Wilson score interval, ของ RCR ใช้ bootstrap percentile');
+p('> ช่วงของสัดส่วนราย arm เป็น Wilson แบบพรรณนาระดับ run และ RCR ใช้ bootstrap percentile แบบพรรณนา — ทั้งคู่ไม่แก้ within-scenario dependence');
 p('');
 
 p('## 2. ความสม่ำเสมอ (ตอบโจทย์คำว่า stochasticity โดยตรง)');
@@ -310,7 +310,7 @@ for (const a of armIds) {
   p(`| ${a} | ${fmtPct(s.passHatK.value)} (${s.passHatK.passed}/${s.passHatK.total}) | ${ciTxt} | ${s.jaccard.toFixed(3)} | ${s.entropy.toFixed(3)} |`);
 }
 p('');
-p('> `pass^k` = สัดส่วนโจทย์ที่ผ่าน **ทุก** repetition — เอเจนต์ที่ผ่าน 8/10 ครั้งใช้งานจริงไม่ได้');
+p('> `pass^k` = สัดส่วนโจทย์ที่ผ่าน **ทุก** repetition — CI เป็น Wilson ระดับ scenario แบบพรรณนา; ไม่มีช่วงผลต่างระหว่าง arm ที่ implement อยู่');
 p('> Jaccard สูง = แตะไฟล์ชุดเดิมทุกครั้ง (คาดเดาได้) | Entropy ต่ำ = ผลลัพธ์นิ่ง');
 p(`> **CI กว้างเพราะตัวหารคือจำนวนโจทย์ ไม่ใช่จำนวน run** (${scenIds.length} โจทย์) — ช่วงที่กว้างคือความจริง ไม่ใช่ข้อบกพร่องของการคำนวณ`);
 {
@@ -447,7 +447,7 @@ const hasPrimary = armIds.includes(PRIMARY.armA) && armIds.includes(PRIMARY.armB
 p('### 6.1 PRIMARY — `CRIT` · A2 เทียบ A1 · exact paired sign-flip ที่ระดับ scenario');
 p('');
 p('> **ตารางนี้มีแถวเดียวโดยเจตนา** — pre-registration ประกาศ primary endpoint ไว้ตัวเดียว');
-p('> หน่วยข้อมูลคือ **scenario** ไม่ใช่ run · ผลต่างคือค่าเฉลี่ยรายโจทย์ · CI จาก cluster bootstrap');
+p('> หน่วยข้อมูลคือ **scenario** ไม่ใช่ run · ผลต่างคือค่าเฉลี่ยรายโจทย์ · ช่วง pairwise effect จาก scenario-cluster bootstrap (k จำกัดที่ 11)');
 p('> ประกาศไว้ใน `PRE-REGISTRATION.md` §1 (Amendment 4)');
 p('');
 if (!hasPrimary) {
@@ -460,13 +460,25 @@ if (!hasPrimary) {
   p(`| **A2 vs A1** | **CRIT** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
   p('');
   if (r.unmatched.length) {
-    p(`> ⚠️ โจทย์ที่มีข้อมูลข้างเดียวจึงถูกตัดออก (matched cells เท่านั้น): ${r.unmatched.join(', ')}`);
+    p(`> ⚠️ โจทย์ที่มีข้อมูลเพียงฝั่งเดียวจึงถูกตัดออกจาก scenario-level effect: ${r.unmatched.join(', ')}`);
     p('');
   }
   if (r.signFlip.k < scenIds.length) {
     p(`> ⚠️ ใช้ ${r.signFlip.k} จาก ${scenIds.length} โจทย์ — k ที่ลดลงกระทบ power โดยตรง`);
     p('');
   }
+  p('### 6.1a Exploratory influence — leave-one-scenario-out');
+  p('');
+  p('> วิเคราะห์อิทธิพลเชิงสำรวจเท่านั้น ไม่เปลี่ยน primary p/CI, RCR gate หรือการเลือกข้อมูล');
+  if (!r.loso.available) {
+    p(`> ยังทำไม่ได้: มี matched scenarios ${r.loso.k} รายการ (ต้องมีอย่างน้อย 2)`);
+  } else {
+    p(`> ผลต่างเฉลี่ยเต็มชุด = ${fmtPct(r.loso.fullMean)} · k = ${r.loso.k}`);
+    p('| scenario ที่ตัดออก | k ที่เหลือ | ผลต่างเฉลี่ยที่เหลือ |');
+    p('|---|---:|---:|');
+    for (const x of r.loso.rows) p(`| ${x.omitted} | ${x.k} | ${fmtPct(x.mean)} |`);
+  }
+  p('');
 }
 
 /*
@@ -527,7 +539,7 @@ p('');
 {
   const anyUnmatched = COMPARISONS.map(([x, y]) => pairedCompare(x, y, 'CRIT')).filter((r) => r.unmatched.length);
   if (anyUnmatched.length) {
-    p('> ⚠️ โจทย์ที่มีข้อมูลข้างเดียวถูกตัดออกจากทุกการเปรียบเทียบ (matched cells เท่านั้น):');
+    p('> ⚠️ โจทย์ที่มีข้อมูลข้างเดียวถูกตัดออกจากทุกการเปรียบเทียบ (matched scenarios เท่านั้น):');
     for (const r of anyUnmatched) p(`> - ${r.armA} vs ${r.armB}: ${r.unmatched.join(', ')}`);
     p('');
   }

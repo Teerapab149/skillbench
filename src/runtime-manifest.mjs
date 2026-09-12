@@ -58,7 +58,7 @@ export function experimentDigest(root) {
    */
   for (const rel of ['arms', 'scenarios', 'config/arms.json', 'config/rules-canonical.json',
                      'src/graders.mjs', 'src/install-arm.mjs', 'src/stats.mjs',
-                     'src/runner.mjs', 'src/runtime-manifest.mjs', 'src/claude-bin.mjs',
+                     'src/runner.mjs', 'src/attempt-store.mjs', 'src/runtime-manifest.mjs', 'src/claude-bin.mjs',
                      'src/adapters/claude-cli.mjs', 'src/fixture-lock.mjs']) add(rel);
   const combined = createHash('sha256').update(files.map((f) => f.join(':')).join('\n')).digest('hex').slice(0, 16);
   return { combined, files: Object.fromEntries(files) };

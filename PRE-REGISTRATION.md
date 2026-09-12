@@ -1,5 +1,18 @@
 # ประกาศแผนวิเคราะห์ล่วงหน้า (Pre-registration)
 
+> **คำตีความสถานะปัจจุบัน — 8 ก.ย. 2569:** แผนที่ configure อยู่คือ
+> `claude-sonnet-5`, `maxTurns = 80`, 5 arm × 11 scenario × 6 repetition = **330 cells**.
+> เนื้อหาด้านล่างเป็นบันทึกตามลำดับเวลาและไม่ให้ผู้ช่วยมีอำนาจอนุมัติงานวิจัย:
+> Amendment 11–13 ยังรอผู้วิจัยทบทวน, estimand ของ failed attempt ยังรอคำตอบ,
+> และ fixed allocation 330 cells ยังขัดกับข้อความ adaptive/drop-arm บางส่วน จึงห้ามเริ่มชุดหลัก
+> จนกว่าจะมีคำตัดสินของผู้วิจัยบันทึกไว้ชัดเจน ค่าประมาณ token จากไฟล์เป็น character heuristic
+> ไม่ใช่ measured adapter usage; A3 เป็น contextual control ที่ยังไม่พิสูจน์ semantic inertness.
+> Primary sign-flip ต้องอาศัย sign-exchangeability ภายใต้ H0; randomized order ไม่ได้พิสูจน์ข้อนี้.
+> Wilson/bootstrap ราย arm เป็น descriptive และไม่แก้ within-scenario dependence;
+> pairwise interval ใช้ scenario-cluster bootstrap และ `pass^k` มีตัวหารเป็นจำนวน scenario.
+> Gate output ไม่แสดง contrast แต่ artifact ยังติดป้าย arm และเข้าถึงได้; "ไม่ดูผล" จึงเป็น
+> reported non-inspection practice ไม่ใช่ blinding/access boundary ที่ระบบบังคับ
+
 > **ประกาศวันที่ 9 สิงหาคม 2569** — ก่อนเก็บข้อมูลการทดลองหลักแม้แต่ run เดียว
 > สถานะ ณ วันประกาศ: เก็บข้อมูล calibration ของ A1 ครบแล้ว 55 run (ใช้ได้ 53) · **ยังไม่มีข้อมูลของ A0, A2, A3, A4 เลย**
 >

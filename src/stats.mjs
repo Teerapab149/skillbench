@@ -107,10 +107,11 @@ export function mcnemarExact(b, c) {
  * แล้วสุ่มพลิกเครื่องหมายทุกรูปแบบที่เป็นไปได้ (2^k แบบ) เพื่อสร้างการแจกแจงภายใต้ H0
  *
  * ทำไมต้องเป็นตัวนี้ ไม่ใช่ McNemar:
- *   McNemar ต้องการผลลัพธ์ทวิภาคที่จับคู่กันราย run และนับ b/c จาก 605 run
+ *   McNemar ต้องการผลลัพธ์ทวิภาคที่จับคู่กันราย run และนับ b/c จากคีย์ scenarioId#rep
  *   ซึ่งเป็นการเคลม information ที่ไม่มีอยู่ — run ในโจทย์เดียวกันไม่เป็นอิสระต่อกัน
  *   (วัด ICC ได้ 0.335) การรายงานที่ระดับ run จึงให้ CI แคบเกินจริง
- *   sign-flip ที่ระดับโจทย์ใช้ k หน่วยตรงๆ ไม่ต้องสมมติอะไรเรื่องการแจกแจง
+ *   sign-flip ที่ระดับโจทย์ใช้ k หน่วยตรงๆ และ exact conditional on the
+ *   sign-exchangeability assumption under H0; randomized execution order does not prove it
  *   และเป็น exact จริงเมื่อ k เล็ก (k = 11 -> เพียง 2048 แบบ enumerate ครบได้)
  *
  * McNemar ยังคำนวณอยู่ใน analyze.mjs แต่สถานะเปลี่ยนเป็น sensitivity analysis
@@ -136,6 +137,18 @@ export function exactSignFlipTest(diffs) {
     if (Math.abs(sum / k) >= target - 1e-12) atLeastAsExtreme++;
   }
   return { p: atLeastAsExtreme / total, k, observed, permutations: total };
+}
+
+/** Exploratory leave-one-scenario-out influence values; never an inferential test. */
+export function leaveOneScenarioOut(diffs) {
+  const rows = (diffs ?? []).filter((x) => Number.isFinite(x?.d) && x.id != null);
+  if (rows.length < 2) return { available: false, k: rows.length, fullMean: rows.length ? rows[0].d : NaN, rows: [] };
+  const mean = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length;
+  const fullMean = mean(rows.map((x) => x.d));
+  return {
+    available: true, k: rows.length, fullMean,
+    rows: rows.map((omit, i) => ({ omitted: omit.id, k: rows.length - 1, mean: mean(rows.filter((_, j) => j !== i).map((x) => x.d)) })),
+  };
 }
 
 /**
@@ -183,7 +196,7 @@ export function makeRng(seed = 42) {
  * ที่ถูกคือ resample scenario (cluster) แล้วเอาทุก run ในนั้นมาด้วย
  */
 export function clusterBootstrapDiff(clustersA, clustersB, { iters = 5000, seed = 42, conf = 0.95 } = {}) {
-  // matched cells เท่านั้น — cluster ที่มีชื่ออยู่ทั้งสองฝั่งแต่ข้างใดข้างหนึ่งว่าง ไม่ใช่คู่ที่เทียบได้
+  // matched scenarios เท่านั้น — scenario ที่มีชื่ออยู่ทั้งสองฝั่งแต่ข้างใดข้างหนึ่งว่าง ไม่ใช่คู่ที่เทียบได้
   // ถ้าไม่กรองความยาวด้วย ค่าเฉลี่ยรวมจะถูกดึงโดยฝั่งที่มีข้อมูลมากกว่าโดยไม่มีใครเห็น
   const keys = Object.keys(clustersA)
     .filter((k) => k in clustersB && (clustersA[k]?.length ?? 0) > 0 && (clustersB[k]?.length ?? 0) > 0);

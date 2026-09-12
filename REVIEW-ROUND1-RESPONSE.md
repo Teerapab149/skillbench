@@ -1,11 +1,11 @@
 # Response to your review — what we changed, what we verified, what we still owe you
 
 **Status: NO-GO accepted. Zero runs of the final dataset have been collected.**
-Seven of your fifteen findings are closed. Eight remain open and are listed below with
+Six of your fifteen findings are closed. Nine remain open and are listed below with
 our current position on each.
 
-Everything below was re-verified by executing it, not by reading the code. Where we
-could not reproduce your claim, we say so.
+This response distinguishes reproduced evidence from implementation claims. It does not claim
+independent verification where the current root review has not rerun the relevant check.
 
 ---
 
@@ -39,19 +39,19 @@ Noted, and the brief has not been reused.
 | 8 | Allocation rationale does not establish power | Open | See §4 |
 | 9 | Blinding is a workflow claim, not an access boundary | Open | We accept your wording |
 | 10 | Resume replaces failed attempts; changes the estimand | Open | See §4 |
-| 11 | Fixture baseline and skill content not frozen; guard is not a lock | **Closed** | Fixture tree frozen + cross-process lock enforced, see §2.6 |
+| 11 | Fixture baseline and skill content not frozen; guard is not a lock | **Reopened** | Mechanisms exist, but stale-breaker/manual-break behaviour and current root verification remain open; see §2.6 |
 | 12 | A4 exposure uses the wrong representation; commit behaviour ungraded | **Closed** | See §2.4 |
 | 13 | Trigger F1 relevance model is wrong; NaN where F1 is 0 | **Closed** | Multi-label ground truth + count-form F1; see §2.5 |
 | 14 | Prose promises conclusions the design cannot support | Open | Deferred until instrument is stable |
 | 15 | Documentation drift (50 turns, reset mechanism, severities) | Open | Partly fixed incidentally |
 
-The branch history is the authoritative commit list. The latest closures are `6561e1d`
-(#2), `e8131b5` + `8c5aa84` (#11), and `8c5aa84` (#13).
-Test suite went from 60 to 99. `npm run gate` passes.
+The branch history is the authoritative commit list. `2c6b03b` is the current documented
+ancestor for this update; it is not a self-referential hash of the final documentation state.
+No current gate result is asserted here until the root review completes it on the intended fixture state.
 
 ---
 
-## 2. The four we closed
+## 2. Implemented responses and their evidence
 
 ### 2.1 Finding #3 — CRIT could be satisfied by a comment
 
@@ -81,15 +81,15 @@ the route layer or the domain layer and both are correct, so binding to a call s
 would measure implementation similarity and penalise agents that were right in another
 way. A missing or unrunnable test counts as failure.
 
-**Two known-answer gates keep the tests honest, and both run in `npm run gate`:**
+**Two known-answer gate designs are included in `npm run gate`:**
 
 - Every test must **fail on a pristine baseline** — a test that is green before anything
   is done measures nothing, which is the original bug restated.
 - It must fail **at an assertion**, not at an import error. A test that cannot load also
   fails on baseline, and would keep failing no matter what the agent does. That is a
   grader that rejects everyone, which is as broken as one that accepts everyone.
-- Every test must **pass once a reference solution is applied**. We wrote reference
-  solutions for all eleven; 11/11 go green.
+- Every test must **pass once a reference solution is applied**. Reference solutions exist
+  for all eleven; their current status is accepted only after the root review reruns the gate.
 
 Your recommendation was to "define the endpoint honestly as selected scenario checks."
 We did the stronger version instead — we made the checks actually measure the work — but
@@ -110,9 +110,9 @@ obeyed, the evidence of obeying would have vanished with the work, and the run w
 have been wrong in two directions at once — scope rules passing because no forbidden
 file was visible, implementation rules failing because nothing was visible at all.
 
-**New evidence you could not have had.** We checked the 55 rep-0 development runs:
+**Development evidence.** The recorded inspection of the 55 rep-0 development runs found:
 **0 of 55 ran `git commit` or `git push`.** So this bug never corrupted collected data.
-It was a trap that had not yet sprung, and 330 runs give it six times the chances.
+It was a trap that had not yet occurred; the configured main design contains 330 cells.
 
 **Fix.** `installArm` now returns `startCommit`, the full SHA the agent starts from
 (the baseline tag's commit for A0, which has no arm commit). Capture stages everything
@@ -232,7 +232,7 @@ scenario without that action as a negative would recreate the same false-positiv
 Old graded artifacts retain their scalar label through a compatibility path; their historical
 Trigger F1 is not silently reinterpreted under the new multi-label ground truth.
 
-### 2.6 Finding #11 — freeze the fixture baseline independently of the harness
+### 2.6 Finding #11 — freeze the fixture baseline independently of the harness *(reopened)*
 
 The experiment digest already freezes arm, scenario, grader and runner content, including
 the four skill files. It did not freeze the nested fixture repository: moving the
@@ -245,20 +245,26 @@ stops fail-closed when a tree is missing, a fixture is added or removed, or any 
 We use the tree rather than working-tree status so the check measures committed paths and
 content without being affected by Windows line-ending conversion or timestamps.
 
-The concurrency half is now closed too. We first reproduced the failure with two real processes:
+The concurrency implementation addresses a reproduced failure with two real processes:
 one wrote agent work while the other ran checkout/clean; both exited zero, the new file vanished,
 and Git status was empty. The replacement is an atomic cross-process fixture lock, not another
 status check. Every destructive entry point holds it, `resetToBaseline()` refuses callers that do
 not hold it, and the runner acquires all selected fixtures before reading their baseline trees and
 keeps them locked through the complete collection session. Re-entrant acquisition lets the runner
 and adapter share the same lock without opening a gap between runs. Dead owners are identified by
-PID liveness; live long-running collections are never expired by a guessed timeout.
+PID liveness rather than a guessed timeout.
+
+**Why this finding is reopened:** implementation is not closure evidence. The stale-breaker and
+manual-break paths still require current root review and a clean-state rerun of the relevant checks.
+Until that review closes the item, this response must not call the lock independently verified or
+rely on it as authorization to collect production data.
 
 ---
 
 ## 3. Amendments 7 and 8
 
-Both were written before any comparison data exists. Amendment 8 covers §2.1, §2.2 and
+Both were written before any final-dataset comparison existed; development evidence and earlier
+diagnostic comparisons already existed and remain labelled as such. Amendment 8 covers §2.1, §2.2 and
 §2.4 together, because those three change **what `CRIT` means**, and records:
 
 - The rep-0 55-run set remains development evidence and **may not be regraded with the
@@ -270,14 +276,17 @@ Both were written before any comparison data exists. Amendment 8 covers §2.1, �
   agent that is correct in a way the tests do not cover will be scored as failing. Going
   through the API rather than internals reduces this; it does not remove it.
 
+Amendments 11–13 were drafted by assistants and remain pending human review. Research autonomy
+does not approve them; implementation status and scientific approval are separate.
+
 ---
 
-## 4. The eight still open — our position
+## 4. The nine still open — our position
 
 We are not disputing these. Ordering and honesty about what we will and will not fix:
 
-**Fixed before collecting:** #11 now has both independent controls: content identity is frozen by
-the baseline tree hash, and concurrent mutation is prevented by the cross-process fixture lock.
+**Implemented but reopened:** #11 has baseline-tree and cross-process-lock mechanisms in code,
+but closure awaits the stale-breaker/manual-break review and current root verification described above.
 
 **Will fix in the write-up, not the instrument:** #5, #9, #14, #15. On #9 we accept your
 sentence essentially verbatim — the gate did not compute arm-specific summaries, the
@@ -319,8 +328,8 @@ question.
 
 3. **On acceptance tests generally** — we have replaced a weak measure with a strong one
    that we authored. What would you want to see to believe the tests are not simply a
-   different bias? We have red-on-baseline, fail-at-assertion, and green-with-reference
-   for all eleven. A blinded human labelling of a sample of runs is the obvious next
+   different bias? The gate is designed to check red-on-baseline, fail-at-assertion, and
+   green-with-reference; current results await the root rerun. A blinded human labelling of a sample of runs is the obvious next
    step; is it worth the remaining time, or is the coverage map you recommended in #3 the
    better use of it?
 

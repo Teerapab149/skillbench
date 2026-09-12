@@ -16,7 +16,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   passHatK, exactSignFlipTest, mcnemarExact, wilson, iccOneWay, designEffect, clusterBootstrapDiff,
-  tostFromCI,
+  tostFromCI, leaveOneScenarioOut,
 } from '../src/stats.mjs';
 
 // ---------- passHatK ----------
@@ -132,6 +132,27 @@ test('cluster bootstrap: ใช้เฉพาะ cluster ที่มีทั�
   const r = clusterBootstrapDiff(A, B, { iters: 200 });
   assert.equal(r.clusters, 2, 'S9 ที่มีข้างเดียวต้องไม่ถูกนับ');
   assert.equal(r.diff, 1);
+});
+
+// ---------- leave-one-scenario-out influence ----------
+
+test('LOSO: คำนวณค่าเฉลี่ยใหม่โดยตัดทีละ scenario และคง id ไว้', () => {
+  const r = leaveOneScenarioOut([
+    { id: 'S1', d: 1 },
+    { id: 'S2', d: 0 },
+    { id: 'S3', d: -1 },
+  ]);
+  assert.equal(r.available, true);
+  assert.equal(r.k, 3);
+  assert.equal(r.fullMean, 0);
+  assert.deepEqual(r.rows.map((x) => [x.omitted, x.k, x.mean]), [
+    ['S1', 2, -0.5], ['S2', 2, 0], ['S3', 2, 0.5],
+  ]);
+});
+
+test('LOSO: มีน้อยกว่าสอง scenario ต้องรายงานว่าใช้ไม่ได้', () => {
+  assert.equal(leaveOneScenarioOut([]).available, false);
+  assert.equal(leaveOneScenarioOut([{ id: 'S1', d: 0.2 }]).available, false);
 });
 
 // ---------- TOST (equivalence) ----------
