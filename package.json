@@ -19,6 +19,7 @@
     "results:slides": "node scripts/make-slide-numbers.mjs",
     "results:all": "node src/analyze.mjs && node scripts/make-results-doc.mjs && node scripts/make-slide-numbers.mjs && node scripts/check-numbers.mjs",
     "check:numbers": "node scripts/check-numbers.mjs",
+    "evidence:archive": "node scripts/evidence-archive.mjs --copy",
     "regrade": "node scripts/regrade.mjs",
     "fixture:test": "node --test \"fixtures/gpu-booking/tests/*.test.ts\"",
     "test": "node --test \"tests/*.test.mjs\"",

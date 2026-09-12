@@ -33,14 +33,47 @@ const NUMBERS_FILE = path.join(ROOT, 'results', 'numbers.json');
 
 console.log('=== ตัวเลขในเอกสารต้องตรงกับข้อมูล ===\n');
 
+/*
+ * ประตูหลักฐาน transcript — เครื่องเตือนแทนคน
+ *
+ * artifact.json ในสมุด attempt มี rawEvents ของทุก run อยู่แล้ว แต่บทสนทนาดิบ
+ * (.jsonl ใน ~/.claude/projects/) ละเอียดกว่านั้นอีกชั้น และอยู่ **นอก repo**
+ * ในโฟลเดอร์ที่ถูกลบหรือหมุนทิ้งได้ · scripts/evidence-archive.mjs คัดลอกมาพร้อม
+ * ผูก sha256 แต่ต้องสั่งเอง
+ *
+ * ผู้วิจัยสั่งไว้เมื่อ 12 ก.ย. 2569 ว่าต้องเก็บทุกเฟส ไม่ใช่แค่ตอนจบทั้งหมด
+ * การฝากไว้กับความจำของคนที่กำลังรีบตอนใกล้เส้นตายคือวิธีที่จะลืม
+ * ข้อนี้จึงเป็นประตูที่ล้มได้ ไม่ใช่คำเตือนที่ข้ามได้
+ *
+ * ตรวจเฉพาะเมื่อมีข้อมูลจริงแล้ว — ก่อนเก็บข้อมูลยังไม่มีอะไรให้เก็บหลักฐาน
+ */
+let failedTranscripts = false;
+const LATEST = path.join(ROOT, 'results', 'latest.json');
+const TRANSCRIPTS = path.join(ROOT, 'evidence', 'transcripts');
+if (fs.existsSync(LATEST)) {
+  const archived = fs.existsSync(TRANSCRIPTS)
+    ? fs.readdirSync(TRANSCRIPTS).filter((f) => f.endsWith('.jsonl')).length
+    : 0;
+  if (archived === 0) {
+    console.log('  ❌ มีข้อมูลจริงใน results/ แล้ว แต่ยังไม่ได้เก็บ transcript ดิบ');
+    console.log('      บทสนทนาดิบอยู่นอก repo ในโฟลเดอร์ที่ถูกลบได้ · เก็บด้วย:');
+    console.log('        npm run evidence:archive');
+    console.log('      ต้องเก็บทุกครั้งที่จบเฟสการเก็บข้อมูล ไม่ใช่แค่ตอนจบทั้งหมด');
+    failedTranscripts = true;
+  } else {
+    console.log(`  ✅ เก็บ transcript ดิบแล้ว ${archived} ไฟล์`);
+  }
+  console.log('');
+}
+
 if (!fs.existsSync(NUMBERS_FILE)) {
   console.log('  ยังไม่มี results/numbers.json — ยังไม่เคยวิเคราะห์ข้อมูลจริง จึงยังไม่มีอะไรให้ตรวจ');
   console.log('  ข้อนี้จะเริ่มตรวจจริงหลัง npm run analyze ครั้งแรก\n');
-  process.exit(0);
+  process.exit(failedTranscripts ? 1 : 0);
 }
 
 const numbers = loadNumbers(NUMBERS_FILE);
-let failed = 0;
+let failed = failedTranscripts ? 1 : 0;
 
 const GENERATED = [
   { file: path.join(ROOT, 'report', 'ch5-results.md'), render: renderResultsDoc, cmd: 'npm run results:doc' },

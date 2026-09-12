@@ -220,6 +220,8 @@ fewer-permission-prompts  doctor  loop  claude-api  run  run-skill-generator
 
 #### สิ่งที่ยังต้องระวัง
 
+- **ห้ามรัน `npm test` หรือ `npm run gate` ระหว่างเก็บข้อมูล** — เทส runner ขับ runner ตัวจริง
+  บน fixture ตัวเดียวกับที่ collection ถืออยู่ จะได้ผลล้มปลอม ๆ (collection ไม่เสียหาย เพราะ lock กันไว้)
 - **ห้ามอัปเดต Claude Code ระหว่างเก็บข้อมูล** — `cliVersion` และ `baselineSkills` ถูกแช่แข็ง
   ใน manifest การอัปเดตตัวเองจะทำให้ `validateRuntime` หยุดทั้งชุด
 - **ถ้าเอเจนต์เรียก skill ของ CLI** (เช่น `debug`, `code-review`, `verify`, `simplify`, `run`)
@@ -233,10 +235,37 @@ fewer-permission-prompts  doctor  loop  claude-api  run  run-skill-generator
 contrast ที่วัดได้จริงจึงเป็น **"skill ของการทดลอง 4 ตัว เทียบกับไม่มี บนพื้นเดียวกัน"**
 ไม่ใช่ "มี skill เทียบกับไม่มี skill เลย" ซึ่งเป็นคนละข้อความ
 
+### หลักฐานที่ต้องเก็บทุกเฟส — ผู้วิจัยสั่งไว้ 12 ก.ย. 2569
+
+สามชั้น สองชั้นแรกอัตโนมัติ ชั้นที่สามต้องสั่งเอง:
+
+| ชั้น | เก็บเมื่อไหร่ | อยู่ที่ไหน |
+|---|---|---|
+| สมุดบันทึก attempt | อัตโนมัติทุก run — `start.json` ก่อนยิงเอเจนต์ · `artifact.json` ทันทีที่คืนค่า · `disposition-*.json` แยกต่างหาก | `results/attempt-provenance/experiments/<expId>/cells/<runId>/` |
+| artifact + คะแนน | อัตโนมัติตอนจบ run ทั้งชุด | `results/artifacts-*.json` · `graded-*.json` · `latest.json` |
+| **บทสนทนาดิบ `.jsonl`** | **ต้องสั่งเอง** | `evidence/transcripts/` พร้อม `INDEX.md` ที่ผูก sha256 |
+
+`artifact.json` มี `rawEvents` ของทุก run อยู่แล้ว (ตัวอย่างจริง: 48 event, 119 KB ต่อ run)
+แต่ `.jsonl` ละเอียดกว่านั้นอีกชั้น และอยู่ **นอก repo** ใน `~/.claude/projects/` ซึ่งถูกลบหรือหมุนทิ้งได้
+
+```bash
+npm run evidence:archive
+```
+
+**ต้องสั่งทุกครั้งที่จบเฟสการเก็บข้อมูล** คือหลัง rep 0 และหลัง rep 1–5 ไม่ใช่แค่ตอนจบทั้งหมด
+
+ไม่ต้องพึ่งความจำ — `npm run check:numbers` (อยู่ใน `npm run gate`) **ล้ม** ถ้ามี
+`results/latest.json` แล้วแต่ `evidence/transcripts/` ยังว่าง
+
+---
+
 ### เฟส 2 — rep 0 และประตู GO/NO-GO (55 run ประมาณ 2.5–3 ชั่วโมง)
 
 ```bash
 npm run gate0
+```
+```bash
+npm run evidence:archive
 ```
 ```bash
 npm run gate:rep0
@@ -254,6 +283,12 @@ npm run main
 ```
 
 เช็คทุกเช้าว่าไม่หยุดกลางทาง ถ้าหยุดเพราะลิมิตยาว สั่งคำสั่งเดิมซ้ำได้เลย — `--resume` อยู่ในนั้นแล้ว
+
+พอครบ 330 cell **เก็บ transcript อีกครั้งทันที** ก่อนทำอย่างอื่น:
+
+```bash
+npm run evidence:archive
+```
 **ห้ามแก้ `--reps`** เพราะอยู่ใน signature · งานเขียนบทที่ 1–2 ทำคู่ขนานได้ แต่แย่งโควตาเดียวกัน
 ถ้าเปิด Claude ทำงานอื่นไปด้วย
 
