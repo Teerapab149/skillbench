@@ -371,6 +371,21 @@ export async function main ({ runAgentOverride = null, cliVersionOverride = null
   const isSessionLimit = (err) => err && /session limit|usage limit|weekly limit|hit your limit|limit.*reset/i.test(String(err));
 
   /*
+   * auth ตาย = หยุดทั้งชุดทันที ไม่ใช่เดินหน้าต่อ
+   *
+   * เกิดขึ้นจริงเมื่อ 12 ก.ย. 2569: OAuth หมดอายุระหว่าง probe กับ gate0 แล้ว runner
+   * เผาครบทั้ง 55 cell ของ rep 0 ได้ error เดียวกันทุกอัน เพราะ Amendment 15 บอกแค่ว่า
+   * auth ห้าม retry แต่ไม่ได้บอกว่าให้หยุด พอไม่ retry มันก็เดินไป cell ถัดไปเรื่อย ๆ
+   *
+   * ลิมิตยาวหยุดทั้งชุดอยู่แล้วด้วยเหตุผลเดียวกันเป๊ะ คือการรันต่อมีแต่จะเผา cell ที่เหลือ
+   * ให้กลายเป็น error · auth หนักกว่าด้วยซ้ำเพราะไม่หายเองตามเวลา ต้องมีคนไป login
+   *
+   * หยุดตั้งแต่ครั้งแรกที่เจอ ไม่ต้องรอให้ติดกันหลายครั้ง เพราะ OAuth ที่ตายแล้ว
+   * ไม่ฟื้นกลางการรัน และ --resume รันซ่อม cell ที่ล้มเหลวให้เองอยู่แล้ว
+   */
+  const isAuthFailure = (err) => err && /oauth|authenticate|authentication|not logged in|unauthorized|invalid api key|credential/i.test(String(err));
+
+  /*
    * Amendment 15 (12 ก.ย. 2569) — นโยบาย retry และการเลือก attempt
    *
    * retry ได้เฉพาะความล้มเหลว "ชั่วคราวของโครงสร้างพื้นฐาน" คือสิ่งที่ลองใหม่แล้วมีโอกาสต่างออกไป
@@ -460,6 +475,24 @@ export async function main ({ runAgentOverride = null, cliVersionOverride = null
         const waitMin = Math.min(20, 5 * (attempt + 1));   // 5, 10, 15, 20, 20...
         console.log(`\n  ความล้มเหลวชั่วคราวที่ ${runId} — รอ ${waitMin} นาทีแล้วลองใหม่ (ครั้งที่ ${attempt + 1}/${maxRetries})`);
         await new Promise((r) => setTimeout(r, waitMin * 60000));
+      }
+
+      // auth ตาย: หยุดทั้งชุดทันที ต้องมีคน login ใหม่ก่อน เวลาไม่ช่วยอะไร
+      if (isAuthFailure(artifact.error) && !isSessionLimit(artifact.error)) {
+        attemptStore.recordDisposition(attemptRef, {
+          ...attemptState, scheduler: 'stop', reason: 'auth_failure',
+        });
+        saveCheckpoint({ attempt: attemptRef, state: attemptState, scheduler: 'stop', reason: 'checkpoint_projection' });
+        console.log('');
+        console.log('');
+        console.log(`  ⛔ หยุดทั้งชุด — ${artifact.error}`);
+        console.log(`  เก็บไว้แล้ว ${artifacts.filter((a) => !a.error).length} run ที่สำเร็จ · ที่เหลือยังไม่ได้เก็บ`);
+        console.log('  auth ไม่หายเองตามเวลา ต้อง login ใหม่ก่อน:  claude');
+        console.log('  ยืนยันด้วย  node scripts/probe-runtime.mjs  แล้วสั่งคำสั่งเดิมพร้อม --resume');
+        console.log('  --resume จะรันซ่อมเฉพาะ cell ที่ล้มเหลว ไม่ข้ามอะไรทิ้ง');
+        console.log('');
+        sessionLimitHit = true;
+        break;
       }
 
       // ลิมิตยาว: หยุดทั้งชุดทันที การรันต่อมีแต่จะเผา cell ที่เหลือให้กลายเป็น error

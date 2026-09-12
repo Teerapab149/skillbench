@@ -92,3 +92,97 @@ test('actual runner releases fixture lock after an early adapter error', async (
   assert.match(result.observed['fixture-locked'], /BUSY/);
   assert.match(probe(FIXTURE), /ACQUIRED/);
 });
+
+/*
+ * เทสด้านล่างอยู่ไฟล์เดียวกับข้างบนโดยเจตนา
+ *
+ * node --test รันไฟล์เทสขนานกัน และเทสทั้งสองกลุ่มนี้ขับ runner ตัวจริงบน fixture
+ * ตัวเดียวกัน ถ้าแยกไฟล์ มันจะแย่ง fixture lock กันแล้วล้มสลับกันแบบสุ่ม:
+ * กลุ่มหนึ่ง main() return เงียบ ๆ เพราะยึด lock ไม่ได้ (adapter ไม่เคยถูกเรียก)
+ * อีกกลุ่ม assert ว่า lock ถูกปล่อยแล้วแต่เจอว่า BUSY เพราะอีกไฟล์ถืออยู่
+ * เกิดขึ้นจริงเมื่อ 12 ก.ย. 2569 ตอนแยกไฟล์ — อยู่ไฟล์เดียวกันแล้วรันเรียงกันเสมอ
+ */
+
+/*
+ * auth ตายต้องหยุดทั้งชุด — เกิดขึ้นจริงเมื่อ 12 ก.ย. 2569 ตอนเริ่มเก็บ rep 0 ครั้งแรก
+ *
+ * OAuth หมดอายุระหว่าง probe กับ gate0 · runner เผาครบทั้ง 55 cell ได้ error เดียวกัน
+ * ทุกอัน แล้วจบด้วย exit 0 เหมือนรันสำเร็จ
+ *
+ * Amendment 15 ตัดสินไว้ว่า auth ห้าม retry เพราะไม่ใช่ของชั่วคราว ต้องมีคนไป login
+ * แต่ไม่ได้บอกว่าให้หยุด พอไม่ retry มันจึงเดินไป cell ถัดไปเรื่อย ๆ ขณะที่ลิมิตยาว
+ * หยุดทั้งชุดอยู่แล้วด้วยเหตุผลเดียวกันเป๊ะ
+ */
+
+const AUTH_ERROR = 'Failed to authenticate: OAuth session expired and could not be refreshed';
+
+/** รัน 4 cell โดย adapter คืน error ที่กำหนดทุกครั้ง แล้วนับว่าถูกเรียกกี่ครั้ง */
+async function runWithError(t, error) {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'runner-auth-halt-'));
+  t.after(() => fs.rmSync(outDir, { recursive: true, force: true }));
+
+  const originalArgv = process.argv;
+  process.argv = ['node', 'runner.mjs', '--adapter', 'claude-cli',
+    '--arms', 'A0,A1', '--scenarios', 'S01,S02', '--reps', '1', '--out', outDir];
+
+  let calls = 0;
+  const fake = async (input) => {
+    calls++;
+    const artifact = await runMock(input);
+    return {
+      ...artifact, adapter: 'claude-cli', simulated: false, error,
+      rawEvents: [initEvent()],
+      control: { memoryStateBefore: 'empty', memoryStateAfter: 'empty', resultSubtype: 'success' },
+    };
+  };
+
+  try {
+    await main({ runAgentOverride: fake, cliVersionOverride: 'test-cli' });
+  } finally {
+    process.argv = originalArgv;
+  }
+
+  const latest = path.join(outDir, 'latest.json');
+  const rows = fs.existsSync(latest) ? JSON.parse(fs.readFileSync(latest, 'utf8')).graded : [];
+  return { calls, rows, outDir };
+}
+
+test('auth ตายต้องหยุดทั้งชุดที่ run แรก ไม่ใช่เผาทุก cell', async (t) => {
+  const { calls, rows } = await runWithError(t, AUTH_ERROR);
+
+  assert.equal(calls, 1,
+    `auth ตายแล้วต้องเรียก adapter ครั้งเดียวแล้วหยุด แต่เรียกไป ${calls} ครั้ง — นี่คือบั๊กที่เผา 55 cell`);
+  // run ที่ทำให้หยุดไม่ถูกบันทึกเป็นแถวข้อมูล เหมือนกับตอนชนลิมิตยาว
+  // เพราะมันจะถูกรันซ่อมตอน --resume · หลักฐานอยู่ในสมุดบันทึก attempt
+  assert.equal(rows.length, 0, 'ห้ามนับ run ที่ล้มเหลวเพราะ auth เป็นข้อมูล');
+});
+
+test('ความล้มเหลวที่ไม่ใช่ auth และไม่ใช่ของชั่วคราว ต้องไม่หยุดทั้งชุด', async (t) => {
+  // ต้องไม่ตรงทั้ง isAuthFailure, isSessionLimit และ isRetryableInfra
+  // มิฉะนั้นเทสจะไปรอ backoff เป็นสิบนาที
+  const { calls } = await runWithError(t, 'ข้อผิดพลาดที่ไม่รู้จัก');
+
+  assert.equal(calls, 4,
+    'error ทั่วไปต้องเดินต่อจนครบทุก cell — การหยุดต้องสงวนไว้สำหรับ auth กับลิมิตยาวเท่านั้น');
+});
+
+test('attempt journal บันทึกเหตุผลที่หยุดไว้ ไม่ใช่หยุดเงียบ', async (t) => {
+  const { outDir } = await runWithError(t, AUTH_ERROR);
+  const root = path.join(outDir, 'attempt-provenance');
+  assert.ok(fs.existsSync(root), 'ต้องมีสมุดบันทึก attempt');
+
+  const found = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const child = path.join(dir, e.name);
+      if (e.isDirectory()) walk(child);
+      else if (e.name.startsWith('disposition-')) found.push(JSON.parse(fs.readFileSync(child, 'utf8')));
+    }
+  };
+  walk(root);
+
+  const reasons = found.map((d) => d.reason);
+  assert.ok(reasons.includes('auth_failure'),
+    `ต้องบันทึกเหตุผล auth_failure ไว้ แต่พบ ${reasons.join(', ') || '(ไม่มี)'}`);
+  assert.equal(found.find((d) => d.reason === 'auth_failure').state.scheduler, 'stop');
+});
