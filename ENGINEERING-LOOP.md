@@ -42,7 +42,7 @@ The required test surface is the failure-mode matrix above. More tests are added
 | 3 | GPT-6 Astra | GPT-5.6 Sol high | Read-only readiness preflight and isolated simulation output | Implemented; 3 preflight/isolation tests pass |
 | 4 | GPT-6 Astra | GPT-5.6 Sol high | Scenario sensitivity and inferential labels (#7) | Implemented; LOSO exploratory output and known-answer tests pass |
 | 5 | GPT-6 Astra | GPT-5.6 Sol high | Claims, estimated token units, allocation limitations, blinding, operational docs (#4/#5/#8/#9/#14/#15) | Bounded docs packet accepted by Astra; generator/code-dependent follow-ups remain |
-| 6 | GPT-6 Astra | GPT-5.6 Sol high | Final offline gate, readiness artifact, review and launch handoff | In progress; offline gate passed, handoff artifact next |
+| 6 | GPT-6 Astra | GPT-5.6 Sol high | Final offline gate, readiness artifact, review and launch handoff | Complete; offline gate passed at `1d8fbf8`, handoff artifact regenerated 2026-09-12 |
 
 ## Research decisions
 
@@ -66,10 +66,12 @@ Tests must exercise injected adapters and disposable child-process crashes, retr
 
 At loop start, the recursive SHA-256 fingerprint of the sorted `results/` path/content-hash list was `feb7710ccb105da0aa93022ebd47f5bb6aeb872975e0825470ac4c98b8e25b0d` across 66 files. Verify it again at handoff.
 
+Verified 2026-09-12: the production results are intact but this value is superseded. The canonical `fingerprint()` in `src/readiness.mjs` reports `11f3370b3562f7615c8988cdd4dd54a4df76194b0454c4d42580d271db945cd0` across the same 66 files, and no file under `results/` has been modified since 2026-09-05 — three days before this loop opened. The historical value could not be reproduced by the documented method or by plausible variants of it, so its method is unknown. Use the `src/readiness.mjs` method from here on.
+
 ## Coordination
 
 The main Sol implementer owns the lock protocol, lock CLI/tests and narrow runner testability changes. A second Sol high worker executes Astra's independent documentation packet in README, METRICS, chapter 3, SLIDES-ARMS, reviewer response and top-level historical-document banners. It does not edit code/config or approve research decisions. This avoids file overlap while Astra reviews the proposed lock protocol. Root exclusively maintains this loop record.
 
 ## Readiness
 
-ENGINEERING READY (offline). COLLECTION NOT READY: research-policy decisions and a real runtime/auth preflight remain intentionally unresolved. Research-policy changes must be distinguished from engineering fixes; an assistant recommendation is not recorded as an investigator-approved amendment.
+ENGINEERING READY (offline) at `1d8fbf8`, handoff recorded in `ENGINEERING-READINESS.md`. COLLECTION NOT READY: research-policy decisions and a real runtime/auth preflight remain intentionally unresolved. Research-policy changes must be distinguished from engineering fixes; an assistant recommendation is not recorded as an investigator-approved amendment.
