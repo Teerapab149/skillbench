@@ -408,8 +408,23 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
    * ล้วนให้หน้าตาแบบเดียวกันหมด และล้วนต้องถูกทิ้ง ไม่ใช่นับเป็นข้อมูล
    */
   const resultEv = events.find((e) => e.type === 'result');
+
+  /*
+   * Amendment 15 (12 ก.ย. 2569): การชนเพดาน turn ไม่ใช่ความล้มเหลวของเครื่องมือวัด
+   *
+   * CLI คืน is_error: true พร้อม subtype error_max_turns เมื่อเอเจนต์ใช้ turn จนหมดงบ
+   * ของเดิมจึงกวาดมันเข้า infraError รวมกับ auth หมดอายุและเน็ตหลุด แล้ว analyze ตัดทิ้ง
+   * ทั้งที่ workspace มีงานจริงอยู่ (run ที่ถูกตัดใน rep 0 แก้ไฟล์ไป 4 ไฟล์)
+   *
+   * การใช้ turn จนหมดคือพฤติกรรมของเอเจนต์ภายใต้ context ที่กำลังวัด ไม่ใช่ของเครื่องมือ
+   * และการตัดมันทิ้งไม่ใช่การตัดแบบสุ่ม — มันตัดเฉพาะ run ที่ arm ทำงานละเอียดที่สุด
+   * ซึ่งดันผลไปทาง "ไม่ต่างกัน" อย่างเป็นระบบ (PRE-REGISTRATION.md §12)
+   */
+  const budgetExhausted = /error_max_turns/i.test(String(resultEv?.subtype ?? ''));
+
   const infraError =
     killedByTimeout ? `timeout เกิน ${Math.round(timeoutMs / 1000)} วินาที — run ถูกฆ่ากลางคัน`
+    : budgetExhausted ? null
     : resultEv?.is_error === true ? (resultEv.result ?? 'CLI รายงาน is_error')
     : resultEv?.terminal_reason === 'api_error' ? 'api_error'
     : events.some((e) => e.error === 'authentication_failed') ? 'authentication_failed'
@@ -550,6 +565,9 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
     // ถ้าปล่อยผ่าน run นั้นจะมี filesChanged ว่างและ diff ว่าง แล้วถูกให้คะแนนว่า
     // "เอเจนต์เลือกที่จะไม่ทำอะไรเลย" ซึ่งเป็นข้อสรุปที่ข้อมูลไม่รองรับ
     error: infraError ?? captureError,
+    // ชนเพดานงบ turn — ไม่ใช่ error แต่ต้องติดไปกับแถวที่ให้คะแนนแล้ว
+    // เพราะ primary นับ run พวกนี้ และ sensitivity ต้องตัดมันออกได้โดยไม่ต้องเดาจากสตริง
+    budgetExhausted,
     captureError,
     agentCommits,
     rawEvents: events,   // เก็บ transcript ดิบไว้ เพื่อให้ตรวจซ้ำย้อนหลังได้

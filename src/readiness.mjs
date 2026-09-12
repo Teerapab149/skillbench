@@ -154,7 +154,6 @@ export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPat
 
   const pending = [
     'investigator approval: Amendment 11–13',
-    'investigator choice: failed-attempt estimand/retry selection',
   ];
   // Unknown means “cannot be established without a real run” (for example
   // auth validity or an as-yet empty journal), not an offline engineering

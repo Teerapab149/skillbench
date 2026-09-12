@@ -5,7 +5,8 @@
 > **สถานะ 12 ก.ย. 2569:** ชุดหลักที่ประกาศไว้คือ `claude-sonnet-5`, 80 turn,
 > 5 arm × 11 scenario × 6 repetition = 330 cells ประกาศที่ `config/arms.json` → `preRegisteredAllocation`
 > **allocation/stop-loss ปิดแล้วด้วย Amendment 14** — กฎสำรองคือตัดรอบเท่ากันทุก arm ไม่ใช่ทิ้ง arm
-> Amendment 11–13 ยังรอผู้วิจัยทบทวน และ estimand ของ failed attempt ยังเป็นการตัดสินใจที่เปิดอยู่
+> **estimand ของ failed attempt ปิดแล้วด้วย Amendment 15** — ชนเพดาน turn นับเข้าผลหลัก
+> และรายงาน sensitivity ที่ตัดออกคู่กันเสมอ · Amendment 11–13 ยังรอผู้วิจัยทบทวน
 
 ---
 

@@ -368,8 +368,29 @@ export async function main ({ runAgentOverride = null, cliVersionOverride = null
    *   "You've hit your session limit · resets 6:40am (Asia/Bangkok)"
    * ผลคือไม่รอ ไม่หยุด ไล่รันต่อจนพังรวด 33 run ภายในสองนาที
    */
-  const isShortLimit = (err) => err && /rate.?limit|429|overloaded|too many requests|try again/i.test(String(err));
   const isSessionLimit = (err) => err && /session limit|usage limit|weekly limit|hit your limit|limit.*reset/i.test(String(err));
+
+  /*
+   * Amendment 15 (12 ก.ย. 2569) — นโยบาย retry และการเลือก attempt
+   *
+   * retry ได้เฉพาะความล้มเหลว "ชั่วคราวของโครงสร้างพื้นฐาน" คือสิ่งที่ลองใหม่แล้วมีโอกาสต่างออกไป
+   * โดยไม่เกี่ยวกับพฤติกรรมของเอเจนต์เลย: rate limit, timeout, api_error, process error
+   * และการอ่าน workspace ไม่สำเร็จ (captureError)
+   *
+   * ห้าม retry สองอย่าง และเหตุผลคนละแบบกัน:
+   *   - ชนเพดาน turn — เป็นพฤติกรรมของเอเจนต์ ลองใหม่จนกว่าจะไม่ชน = เลือกผลลัพธ์
+   *     (หลัง Amendment 15 มันไม่ใช่ error อยู่แล้ว จึงถือว่า "ใช้ได้" ตั้งแต่ครั้งแรก)
+   *   - auth — ไม่ใช่ของชั่วคราว ต้องมีคนแก้ การรอ 5-20 นาทีแล้วลองใหม่ห้าครั้งเผาเวลาเปล่า
+   *
+   * การเลือก: cell หนึ่งเอา attempt แรกที่ใช้ได้ ไม่ใช่ attempt ที่คะแนนดีที่สุด
+   * ลูปข้างล่างจึงหยุดทันทีที่ได้ attempt ที่ใช้ได้ และ artifact ตัวนั้นคือตัวที่ถูกเลือก
+   * ถ้า retry ครบแล้วยังใช้ไม่ได้ cell นั้นจะเป็น error แถวหนึ่ง แล้ว analyze จะนับว่าขาด
+   * ซึ่งถูกต้อง — ห้ามเติมค่าแทน cell ที่วัดไม่ได้
+   */
+  const isRetryableInfra = (err) => Boolean(err) && !isSessionLimit(err)
+    && /rate.?limit|429|overloaded|too many requests|try again|timed?\s*out|timeout|api_error|โปรเซสจบผิดปกติ|no events from CLI|อ่านผลกระทบจาก git ไม่สำเร็จ|stash ค้างอยู่/i.test(String(err));
+  /** attempt ที่ "ใช้ได้" = ได้ artifact ที่วัดได้จริง · ไม่เกี่ยวกับคะแนนที่ได้ */
+  const isUsableAttempt = (artifact) => !artifact?.error;
 
   const rnd = makeRng(masterSeed);
   let done = artifacts.length;
@@ -431,13 +452,13 @@ export async function main ({ runAgentOverride = null, cliVersionOverride = null
         lastState = attemptState;
         // Must be the first durable action after the adapter settles, including a thrown adapter.
         attemptStore.recordArtifact(attemptRef, { artifact, ...attemptState });
-        if (!isShortLimit(artifact.error) || attempt >= maxRetries) break;
+        if (isUsableAttempt(artifact) || !isRetryableInfra(artifact.error) || attempt >= maxRetries) break;
         attemptStore.recordDisposition(attemptRef, {
-          ...attemptState, scheduler: 'retry', reason: 'short_limit_retry',
-          details: { retryNumber: attempt + 1, maxRetries },
+          ...attemptState, scheduler: 'retry', reason: 'transient_infra_retry',
+          details: { retryNumber: attempt + 1, maxRetries, error: String(artifact.error).slice(0, 200) },
         });
         const waitMin = Math.min(20, 5 * (attempt + 1));   // 5, 10, 15, 20, 20...
-        console.log(`\n  ติดลิมิตสั้นที่ ${runId} — รอ ${waitMin} นาทีแล้วลองใหม่ (ครั้งที่ ${attempt + 1}/${maxRetries})`);
+        console.log(`\n  ความล้มเหลวชั่วคราวที่ ${runId} — รอ ${waitMin} นาทีแล้วลองใหม่ (ครั้งที่ ${attempt + 1}/${maxRetries})`);
         await new Promise((r) => setTimeout(r, waitMin * 60000));
       }
 

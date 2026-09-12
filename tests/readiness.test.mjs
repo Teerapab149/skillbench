@@ -30,7 +30,7 @@ test('read-only preflight reports advisory engineering/collection states and doe
   assert.equal(report.advisory, true);
   assert.deepEqual(report.allocation, { arms: 5, scenarios: 11, repetitions: 6, cells: 330, source: 'config/arms.json preRegisteredAllocation' });
   assert.equal(report.collectionReady, false);
-  assert.ok(report.pendingResearchDecisions.length >= 2);
+  assert.ok(report.pendingResearchDecisions.length >= 1);
 });
 
 // Amendment 14: the declared allocation lives in config/arms.json only. Preflight must

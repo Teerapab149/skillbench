@@ -361,6 +361,10 @@ export function gradeRun(artifact, scenario) {
       : scenario.expectedSkill ? [scenario.expectedSkill] : [],
     loadedSkills: artifact.loadedSkills ?? [],
     error: artifact.error ?? null,
+    // Amendment 15: primary นับ run ที่ชนเพดาน sensitivity ตัดออก
+    // เก็บเป็นฟิลด์ของแถว ไม่ใช่ให้ analyze ไปอ่าน control ของ artifact ที่อาจไม่ถูกส่งต่อ
+    budgetExhausted: Boolean(artifact.budgetExhausted
+      ?? /error_max_turns/i.test(String(artifact.control?.resultSubtype ?? ''))),
     apiKeySource: artifact.control?.apiKeySource ?? null,
   };
 }

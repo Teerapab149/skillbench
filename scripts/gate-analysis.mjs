@@ -325,6 +325,55 @@ step('analyze ยอมรับกฎสำรองตัดรอบเท่
   return `ปฏิเสธเมื่อไม่ประกาศและเมื่อต่ำกว่าขอบล่าง · ยอมรับที่ ${cut} รอบพร้อมประทับหัวและ n_eff`;
 });
 
+/*
+ * Amendment 15 — run ที่ชนเพดานงบ turn อยู่ในผลหลัก และ sensitivity ต้องพิมพ์คู่กันเสมอ
+ *
+ * ก่อนแก้: การชนเพดานถูกกวาดเข้า infraError รวมกับ auth หมดอายุ แล้ว analyze ตัดทิ้ง
+ * ซึ่งตัดเฉพาะ run ที่ arm ทำงานละเอียดที่สุด — อคติที่เอกสารของโปรเจกต์เขียนเตือนตัวเองไว้
+ * ข้อนี้จึงต้องพิสูจน์สองอย่าง: แถวที่ชนเพดานไม่ถูกตัด และตารางเทียบสองชุดมีจริง
+ */
+step('analyze นับ run ที่ชนเพดานเข้าผลหลัก และพิมพ์ sensitivity คู่กัน', () => {
+  const full = JSON.parse(fs.readFileSync(path.join(tmp, 'latest.json'), 'utf8'));
+  // ทำให้ A2 ชนเพดานเกิน 5% และ A1 ไม่ชนเลย เพื่อให้เห็นทั้งตารางอัตราและคำเตือนตามกฎ §8 ข้อ 3
+  let marked = 0;
+  const graded = full.graded.map((g) => {
+    if (g.armId === 'A2' && g.rep === 0 && marked < 3) { marked++; return { ...g, budgetExhausted: true, error: null }; }
+    return { ...g, budgetExhausted: false };
+  });
+  if (marked === 0) throw new Error('เตรียมข้อมูลผิด — ไม่มีแถว A2 ให้ทำเครื่องหมาย');
+  const f = path.join(tmp, 'budget.json');
+  fs.writeFileSync(f, JSON.stringify({ meta: full.meta, graded }));
+  const outDir = path.join(tmp, 'budget-out');
+
+  execFileSync(process.execPath, ['src/analyze.mjs', '--in', f, '--out', outDir], { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+  const txt = fs.readFileSync(path.join(outDir, 'report.md'), 'utf8');
+
+  // 1. ไม่ถูกตัด: เมทริกซ์ต้องยังครบ ถ้าถูกตัด analyze จะปฏิเสธไปแล้วตั้งแต่ประตูความครบ
+  if (!txt.includes('ถูกนับในผลหลัก')) throw new Error('รายงานไม่ได้บอกจำนวน run ที่ชนเพดานที่ถูกนับ');
+  if (!txt.includes(`: ${marked}/`)) throw new Error(`นับ run ที่ชนเพดานได้ไม่ตรง — คาด ${marked}`);
+
+  // 2. ตารางเทียบสองชุดต้องมีจริงทั้งสองแถว
+  if (!txt.includes('### 6.1c')) throw new Error('ไม่มีหัวข้อ sensitivity 6.1c');
+  if (!txt.includes('primary — นับ run ที่ชนเพดาน')) throw new Error('ไม่มีแถว primary ในตาราง sensitivity');
+  if (!txt.includes('sensitivity — ตัดออก')) throw new Error('ไม่มีแถว sensitivity ในตาราง');
+
+  // 3. กฎ 5% ที่ประกาศไว้เองต้องถูกตรวจในรายงาน ไม่ใช่ด้วยความจำ
+  if (!txt.includes('ชนเพดานเกิน 5%')) throw new Error('A2 ชนเพดานเกิน 5% แต่รายงานไม่เตือนตามกฎ §8 ข้อ 3');
+
+  // 4. แถวที่มี error จริงยังต้องถูกตัดและทำให้ cell ขาดเหมือนเดิม
+  const withError = graded.map((g, i) => (i === 0 ? { ...g, error: 'authentication_failed' } : g));
+  const f2 = path.join(tmp, 'budget-and-error.json');
+  fs.writeFileSync(f2, JSON.stringify({ meta: full.meta, graded: withError }));
+  let rejected = false;
+  try {
+    execFileSync(process.execPath, ['src/analyze.mjs', '--in', f2, '--out', path.join(tmp, 'budget-error-out')],
+      { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+  } catch { rejected = true; }
+  if (!rejected) throw new Error('run ที่ล้มเหลวจริงต้องยังทำให้ cell ขาดและถูกปฏิเสธ');
+
+  return `นับ ${marked} run ที่ชนเพดานเข้าผลหลัก · ตาราง sensitivity ครบสองแถว · เตือนกฎ 5% · run ที่ error จริงยังถูกตัด`;
+});
+
 // 4. artifact ต้องมีฟิลด์ที่การวิเคราะห์ปลายทางต้องใช้ ครบตั้งแต่ก่อนเก็บข้อมูล
 //    ถ้าขาด จะรู้ตอนวิเคราะห์ = ต้องเก็บใหม่ทั้งหมด
 /*

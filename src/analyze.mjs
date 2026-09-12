@@ -122,6 +122,10 @@ if (FALLBACK) {
   console.log(`  กฎสำรอง Amendment 14: ตัดจาก ${FALLBACK.from} รอบเหลือ ${FALLBACK.to} รอบเท่ากันทุก arm · ทิ้ง ${alloc.discarded.length} run ที่เก็บมาแล้ว`);
 }
 
+// Amendment 15: run ที่ชนเพดานงบ turn ไม่ใช่ run ที่ล้มเหลว จึงอยู่ใน graded ตามปกติ
+// เก็บรายการไว้ต่างหากเพื่อรายงานจำนวนและทำ sensitivity ไม่ใช่เพื่อคัดออกจากผลหลัก
+const budgetRows = graded.filter((g) => g.budgetExhausted);
+
 const armIds = meta.arms;
 const scenIds = meta.scenarios;
 const by = (armId) => graded.filter((g) => g.armId === armId);
@@ -262,10 +266,15 @@ function bootstrapMeanCI(vals, iters = 3000) {
 }
 
 // ---------- 2. การเปรียบเทียบแบบจับคู่ ----------
-function pairedCompare(armA, armB, metric) {
+/*
+ * filter: ใช้สำหรับ sensitivity ของ Amendment 15 เท่านั้น — ต้องเป็นฟังก์ชันเดียวกับ primary
+ * ถ้าเขียนสถิติซ้ำอีกชุดสำหรับ sensitivity ความต่างที่เห็นจะแยกไม่ออกว่ามาจากข้อมูลหรือจากโค้ด
+ */
+function pairedCompare(armA, armB, metric, { filter = null } = {}) {
   const key = (r) => `${r.scenarioId}#${r.rep}`;
-  const A = new Map(by(armA).map((r) => [key(r), r]));
-  const B = new Map(by(armB).map((r) => [key(r), r]));
+  const rows = (armId) => (filter ? by(armId).filter(filter) : by(armId));
+  const A = new Map(rows(armA).map((r) => [key(r), r]));
+  const B = new Map(rows(armB).map((r) => [key(r), r]));
   let b = 0, c = 0, both = 0, neither = 0;
   for (const [k, ra] of A) {
     const rb = B.get(k); if (!rb) continue;
@@ -365,6 +374,8 @@ p(`- **Primary endpoint (ประกาศล่วงหน้า): ${meta.pri
 p(`- **สถิติหลัก: exact paired sign-flip ที่ระดับ scenario** · CI: cluster bootstrap`);
 p(`- McNemar exact ระดับ run = **sensitivity analysis** ไม่ใช่ผลหลัก`);
 p(`- ความครบของข้อมูล: ${expectedCells - missingCells}/${expectedCells || '?'} cell · เมทริกซ์ที่ประกาศ ${armIds.length} arm x ${scenIds.length} โจทย์ x ${DECLARED_REPS} รอบ · ทุก (scenario, arm, rep) มีหนึ่งรายการพอดี · run ทั้งหมด ${usableCells}`);
+// Amendment 15: run ที่ชนเพดานอยู่ในผลหลัก ต้องบอกจำนวนไว้ตรงหัวรายงาน ไม่ใช่ซ่อนไว้ท้ายเล่ม
+p(`- run ที่ชนเพดานงบ turn และ**ถูกนับในผลหลัก**: ${budgetRows.length}/${graded.length} (${fmtPct(graded.length ? budgetRows.length / graded.length : 0)}) — ดู §6.1c`);
 p('');
 
 p('## 1. ตัวชี้วัดหลักต่อ arm (พร้อม 95% CI)');
@@ -567,6 +578,53 @@ if (!hasPrimary) {
     for (const x of r.loso.rows) p(`| ${x.omitted} | ${x.k} | ${fmtPct(x.mean)} |`);
   }
   p('');
+
+  /*
+   * §6.1c — sensitivity ของ Amendment 15
+   *
+   * primary นับ run ที่ชนเพดาน sensitivity ตัดออก ต้องพิมพ์ทั้งสองค่าคู่กันเสมอ
+   * ไม่ใช่พิมพ์อันที่ดูดีกว่า และไม่ใช่พิมพ์เฉพาะตอนที่สองค่าต่างกัน
+   * ถ้าสองค่าชี้คนละทาง ข้อสรุปต้องอ่อนลง ไม่ใช่เลือกข้าง
+   */
+  p('### 6.1c Sensitivity — ตัด run ที่ชนเพดานงบ turn ออก (Amendment 15)');
+  p('');
+  p('> **ผลหลักนับ run ที่ชนเพดานเข้ามา** เพราะการใช้ turn จนหมดคือพฤติกรรมของเอเจนต์');
+  p('> ภายใต้ context ที่กำลังวัด ไม่ใช่ความล้มเหลวของเครื่องมือวัด · ตารางนี้คือผลเดียวกัน');
+  p('> เมื่อตัด run เหล่านั้นออก ซึ่งเป็นเกณฑ์เดิมก่อน Amendment 15');
+  p('');
+  p('| arm | run ทั้งหมด | ชนเพดาน | อัตรา |');
+  p('|---|---:|---:|---:|');
+  for (const a of armIds) {
+    const rows = by(a);
+    const hit = rows.filter((x) => x.budgetExhausted).length;
+    p(`| ${a} | ${rows.length} | ${hit} | ${fmtPct(rows.length ? hit / rows.length : 0)} |`);
+  }
+  p('');
+  // เกณฑ์ที่ประกาศไว้เองใน PRE-REGISTRATION.md §8 ข้อ 3 — ต้องตรวจในรายงาน ไม่ใช่ตรวจด้วยความจำ
+  const overCap = armIds.filter((a) => {
+    const rows = by(a);
+    return rows.length && rows.filter((x) => x.budgetExhausted).length / rows.length > 0.05;
+  });
+  if (overCap.length) {
+    p(`> ⚠️ **arm ที่ชนเพดานเกิน 5%: ${overCap.join(', ')}** — ตามกฎที่ประกาศไว้ใน PRE-REGISTRATION.md §8 ข้อ 3`);
+    p('> ให้ถือว่าเพดาน turn ยัง binding และต้องขึ้นอีก ผลชุดนี้จึงยังตีความเป็นผลสุดท้ายไม่ได้');
+    p('');
+  }
+  if (!budgetRows.length) {
+    p('ไม่มี run ที่ชนเพดานในชุดนี้ — sensitivity ให้ผลเหมือน primary ทุกประการ');
+    p('');
+  } else {
+    const rs = pairedCompare(PRIMARY.armA, PRIMARY.armB, PRIMARY.metric, { filter: (x) => !x.budgetExhausted });
+    p('| ชุด | A2 | A1 | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | p (sign-flip) |');
+    p('|---|---|---|---|---|---:|---|');
+    p(`| **primary — นับ run ที่ชนเพดาน** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | ${fmtP(r.signFlip.p)} |`);
+    p(`| sensitivity — ตัดออก | ${fmtPct(rs.pA)} | ${fmtPct(rs.pB)} | ${fmtPct(rs.boot.diff)} [${fmtPct(rs.boot.lo)}, ${fmtPct(rs.boot.hi)}] | ${rs.wins}/${rs.losses}/${rs.ties} | ${rs.signFlip.k} | ${fmtP(rs.signFlip.p)} |`);
+    p('');
+    if (rs.signFlip.k < r.signFlip.k) {
+      p(`> การตัดออกทำให้ k ลดจาก ${r.signFlip.k} เหลือ ${rs.signFlip.k} โจทย์ — ความต่างของ p ส่วนหนึ่งจึงมาจาก k ที่หายไป ไม่ใช่จากผลล้วน ๆ`);
+      p('');
+    }
+  }
 }
 
 /*
