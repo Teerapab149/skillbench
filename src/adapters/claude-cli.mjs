@@ -22,6 +22,20 @@ import { fileURLToPath } from 'node:url';
 export { resolveClaudeBin };
 
 /**
+ * เวลาที่ fixture ถูกตรึงไว้ตลอดการทดลอง (Amendment 17)
+ *
+ * ต้องเป็นค่าเดียวกันทั้งตอนเอเจนต์ทำงานและตอนให้คะแนน มิฉะนั้นโจทย์ที่ไวต่อเวลา
+ * จะให้คำตอบคนละอย่างกับที่ตัวให้คะแนนเห็น โดยความต่างขึ้นกับวันที่รัน
+ *
+ * export ไว้เพื่อให้สคริปต์ที่รันเทสยอมรับใช้ค่าเดียวกัน ไม่ใช่พิมพ์สตริงซ้ำ
+ * ค่าที่พิมพ์ซ้ำสามที่คือค่าที่จะ drift ออกจากกันสักวัน
+ *
+ * 4 มี.ค. 2026 เป็นวันพุธ · สัปดาห์นั้นคือ จ. 2 ถึง อา. 8 มี.ค. ซึ่งเป็นกรอบที่
+ * เทสยอมรับของ S07 และ S11 ใช้คำนวณขอบเขตสัปดาห์
+ */
+export const FIXTURE_NOW = '2026-03-04T09:00:00.000Z';
+
+/**
  * ใส่เครื่องหมายคำพูดให้ argument สำหรับ cmd.exe บน Windows
  *
  * ทำไมต้องมี: บน Windows เราจำเป็นต้องใช้ shell เพราะ claude เป็น .cmd launcher
@@ -161,7 +175,7 @@ function runAcceptance(cwd, scenario) {
     try {
       output = execFileSync(process.execPath, ['--test', `__acceptance__/${file}`], {
         cwd, encoding: 'utf8', timeout: 120000, stdio: ['ignore', 'pipe', 'pipe'],
-        env: { ...process.env, GPU_BOOKING_NOW: '2026-03-04T09:00:00.000Z' },
+        env: { ...process.env, GPU_BOOKING_NOW: FIXTURE_NOW },
       });
     } catch (e) {
       passed = false;
@@ -319,12 +333,29 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
   let stderr = '';
   let killedByTimeout = false;
 
+  /*
+   * Amendment 17 (12 ก.ย. 2569) — เอเจนต์ต้องเห็นนาฬิกาเดียวกับตัวให้คะแนน
+   *
+   * ของเดิมตรึง GPU_BOOKING_NOW เฉพาะตอนรันเทสยอมรับเพื่อให้คะแนน ส่วนโปรเซส claude
+   * ของเอเจนต์ spawn ด้วย { cwd } เปล่า ๆ เอเจนต์จึงทำงานในโลกที่เวลาเดินจริง
+   * แล้วถูกให้คะแนนในโลกที่เวลาหยุดอยู่ที่ 4 มี.ค. 2026
+   *
+   * ผลกระทบจำกัดเพราะ tests/domain.test.ts ของ fixture ตรึงนาฬิกาเอง เอเจนต์ที่สั่ง
+   * npm test จึงเห็นเวลาเดียวกัน แต่คำสั่งเฉพาะกิจที่เอเจนต์เขียนเอง เช่น node -e
+   * ที่เรียก now() ตรง ๆ จะเห็นเวลาจริงของเครื่อง ซึ่งเปลี่ยนไปทุกวันที่รัน
+   *
+   * โจทย์ที่ไวต่อเวลา (โควตารายสัปดาห์ ขอบเขตสัปดาห์ ช่วงผ่อนผัน ยกเลิกก่อนเริ่ม)
+   * จึงเป็นชุดที่เอเจนต์อาจสำรวจแล้วได้คำตอบคนละอย่างกับที่ตัวให้คะแนนจะเห็น
+   * และความต่างนั้นขึ้นกับ "วันที่รัน" ซึ่งเป็นตัวแปรที่การทดลองไม่ได้ตั้งใจให้มี
+   */
+  const childEnv = { ...process.env, GPU_BOOKING_NOW: FIXTURE_NOW };
+
   await new Promise((resolve) => {
     // ทางหลัก: spawn ไฟล์ปฏิบัติการตรงๆ ไม่ผ่าน shell -> ไม่มีปัญหาการ quote เลย
     // ทางถอย: ถ้าหา binary ไม่เจอ ใช้ shell พร้อม quoteWin (กัน prompt ขาด แต่ยังกัน %VAR% ไม่ได้)
     const child = claudeBin.mode === 'direct'
-      ? spawn(claudeBin.bin, args, { cwd })
-      : spawn([claudeBin.bin, ...args.map(quoteWin)].join(' '), { cwd, shell: true });
+      ? spawn(claudeBin.bin, args, { cwd, env: childEnv })
+      : spawn([claudeBin.bin, ...args.map(quoteWin)].join(' '), { cwd, shell: true, env: childEnv });
     let buf = '';
     const timer = setTimeout(() => { killedByTimeout = true; child.kill('SIGKILL'); }, timeoutMs);
     child.stdout.on('data', (d) => {

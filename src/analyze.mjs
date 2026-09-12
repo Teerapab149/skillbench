@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   wilson, cohensH, mcnemarExact, clusterBootstrapDiff, passHatK, exactSignFlipTest, leaveOneScenarioOut, tostFromCI,
-  meanPairwiseJaccard, normalizedEntropy, fmtPct, fmtP, effectiveN,
+  meanPairwiseJaccard, normalizedEntropy, fmtPct, fmtP, effectiveN, iccOneWay,
 } from './stats.mjs';
 import { triggerMetrics } from './graders.mjs';
 
@@ -125,6 +125,29 @@ if (FALLBACK) {
 // Amendment 15: run ที่ชนเพดานงบ turn ไม่ใช่ run ที่ล้มเหลว จึงอยู่ใน graded ตามปกติ
 // เก็บรายการไว้ต่างหากเพื่อรายงานจำนวนและทำ sensitivity ไม่ใช่เพื่อคัดออกจากผลหลัก
 const budgetRows = graded.filter((g) => g.budgetExhausted);
+
+/*
+ * ตัวเลขทุกตัวที่รายงานพูด ถูกเก็บลง numbers.json ด้วย
+ *
+ * เหตุผล: เล่มกับเด็คต้องอ้างตัวเลขชุดเดียวกับรายงาน แต่ถ้าให้คนคัดลอกด้วยมือ
+ * หรือให้สคริปต์อื่นคำนวณซ้ำ จะได้ตัวเลขสองชุดที่ drift ออกจากกันเมื่อไหร่ก็ไม่รู้
+ * แผน 14 วันเขียนข้อนี้ไว้เป็นงานมือสองข้อ (D9 ล็อกตัวเลขไว้ที่เดียว · D13 กวาดเลขที่ drift)
+ * ซึ่งเป็นคำกล่าวอ้างเดียวในโปรเจกต์ที่ไม่มีโค้ดบังคับ
+ *
+ * numbers.json คือแหล่งเดียวที่ make-results-doc, make-slide-numbers และ check-numbers ใช้
+ */
+const NUMBERS = {
+  generatedAt: new Date().toISOString(),
+  source: path.relative(ROOT, IN_FILE).split(path.sep).join("/"),
+  simulated: Boolean(meta.simulated),
+  adapter: meta.adapter ?? null,
+  // ตัวแปรควบคุมอยู่ใน meta.fixedFactors ไม่ใช่ที่ราก — ต้องเขียนลงเล่มทุกตัว
+  model: meta.fixedFactors?.model ?? meta.model ?? null,
+  maxTurns: meta.fixedFactors?.maxTurns ?? meta.maxTurns ?? null,
+  masterSeed: meta.masterSeed ?? null,
+  experimentId: meta.experimentId ?? null,
+  stamp: meta.stamp ?? null,
+};
 
 const armIds = meta.arms;
 const scenIds = meta.scenarios;
@@ -576,6 +599,11 @@ if (!hasPrimary) {
   p('');
 } else {
   const r = pairedCompare(PRIMARY.armA, PRIMARY.armB, PRIMARY.metric);
+  NUMBERS.primary = {
+    metric: PRIMARY.metric, armA: PRIMARY.armA, armB: PRIMARY.armB,
+    rateA: r.pA, rateB: r.pB, diff: r.boot.diff, ciLo: r.boot.lo, ciHi: r.boot.hi,
+    wins: r.wins, losses: r.losses, ties: r.ties, k: r.signFlip.k, p: r.signFlip.p,
+  };
   p('| เปรียบเทียบ | metric | A2 | A1 | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | **p (sign-flip)** |');
   p('|---|---|---|---|---|---|---:|---|');
   p(`| **A2 vs A1** | **CRIT** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
@@ -637,6 +665,11 @@ if (!hasPrimary) {
     p('');
   } else {
     const rs = pairedCompare(PRIMARY.armA, PRIMARY.armB, PRIMARY.metric, { filter: (x) => !x.budgetExhausted });
+    NUMBERS.primarySensitivity = {
+      rateA: rs.pA, rateB: rs.pB, diff: rs.boot.diff, ciLo: rs.boot.lo, ciHi: rs.boot.hi,
+      wins: rs.wins, losses: rs.losses, ties: rs.ties, k: rs.signFlip.k, p: rs.signFlip.p,
+      excluded: alloc.discarded.length,
+    };
     p('| ชุด | A2 | A1 | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | p (sign-flip) |');
     p('|---|---|---|---|---|---:|---|');
     p(`| **primary — นับ run ที่ชนเพดาน** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | ${fmtP(r.signFlip.p)} |`);
@@ -660,6 +693,81 @@ if (!hasPrimary) {
  * ไม่ใช่เงียบไป เพราะการเงียบทำให้อ่านไม่ออกว่าไม่ได้ทดสอบหรือทดสอบแล้วไม่มีนัยสำคัญ
  */
 const ALPHA = 0.05;
+/*
+ * §6.1d — ICC ที่วัดจากข้อมูลชุดนี้จริง
+ *
+ * PRE-REGISTRATION.md §10 (Amendment 2.1) ผูกมัดไว้เองว่า ICC = 0.335 วัดมาจาก Opus
+ * จึงใช้เป็นค่าวางแผนได้เท่านั้น และ "ต้องวัดใหม่จากชุดนี้แล้วรายงานทั้งสองค่า"
+ *
+ * ก่อนแก้ รายงานมีแต่เลข 0.335 ที่เขียนตายไว้เป็นข้อความ ส่วนตัวประมาณที่ใช้ได้จริง
+ * (stats.iccOneWay) มีอยู่แล้วแต่ถูกเรียกจาก scripts/estimate-icc.mjs เท่านั้น
+ * ผลคือเลขที่เล่มสัญญาว่าจะรายงาน จะไปอยู่คนละไฟล์กับตารางผล ซึ่งคือ drift
+ *
+ * ตัวที่กำหนด design effect ของการทดสอบแบบจับคู่คือ ICC ของ "ผลต่าง" รายโจทย์
+ * ไม่ใช่ ICC ภายใน arm — รายงานทั้งสองตัว และบอกว่าตัวไหนคือตัวที่ใช้
+ */
+p('### 6.1d ICC ที่วัดได้จากชุดนี้ เทียบกับค่าที่ใช้วางแผน');
+p('');
+const planningIcc = PREREG?.planningIcc ?? 0.335;
+const iccByArm = {};
+for (const a of armIds) {
+  const cl = {};
+  for (const r of by(a)) (cl[r.scenarioId] ??= []).push(r[PRIMARY.metric]);
+  iccByArm[a] = iccOneWay(cl);
+}
+let iccDiff = null;
+if (hasPrimary) {
+  const key = (r) => `${r.scenarioId}#${r.rep}`;
+  const A = new Map(by(PRIMARY.armA).map((r) => [key(r), r]));
+  const diffByScen = {};
+  for (const rb of by(PRIMARY.armB)) {
+    const ra = A.get(key(rb));
+    if (!ra) continue;
+    (diffByScen[rb.scenarioId] ??= []).push(ra[PRIMARY.metric] - rb[PRIMARY.metric]);
+  }
+  iccDiff = iccOneWay(diffByScen);
+  NUMBERS.icc = {
+    planning: planningIcc,
+    byArm: Object.fromEntries(armIds.map((a) => [a, iccByArm[a].icc])),
+    ofDifference: iccDiff.icc,
+    kDifference: iccDiff.k,
+  };
+}
+
+p(`| สิ่งที่วัด | ICC | k | N | ที่มา |`);
+p('|---|---:|---:|---:|---|');
+p(`| **ค่าที่ใช้วางแผน** | ${planningIcc.toFixed(3)} | 11 | 53 | calibration ของ A1 บน \`claude-opus-5\` — **ไม่ใช่ค่ารับรองของชุดนี้** |`);
+for (const a of armIds) {
+  const r = iccByArm[a];
+  p(`| ${PRIMARY.metric} ภายใน ${a} | ${Number.isFinite(r.icc) ? r.icc.toFixed(3) : 'n/a'} | ${r.k} | ${r.N} | วัดจากชุดนี้ |`);
+}
+if (iccDiff) {
+  p(`| **ผลต่าง ${PRIMARY.armA} − ${PRIMARY.armB} รายโจทย์** | ${Number.isFinite(iccDiff.icc) ? iccDiff.icc.toFixed(3) : 'n/a'} | ${iccDiff.k} | ${iccDiff.N} | วัดจากชุดนี้ — **ตัวนี้คือตัวที่กำหนด design effect ของการทดสอบแบบจับคู่** |`);
+}
+p('');
+
+if (iccDiff && Number.isFinite(iccDiff.icc)) {
+  const planned = effectiveN(scenIds.length, DECLARED_REPS, planningIcc);
+  const actual = effectiveN(scenIds.length, DECLARED_REPS, iccDiff.icc);
+  p(`| n_eff ต่อ arm ที่ k = ${scenIds.length}, m = ${DECLARED_REPS} | DE | n_eff | เพดาน k/ICC |`);
+  p('|---|---:|---:|---:|');
+  p(`| ใช้ ICC ที่วางแผน ${planningIcc.toFixed(3)} | ${planned.de.toFixed(2)} | ${planned.nEff.toFixed(1)} | ${Number.isFinite(planned.ceiling) ? planned.ceiling.toFixed(1) : '∞'} |`);
+  p(`| **ใช้ ICC ที่วัดได้ ${iccDiff.icc.toFixed(3)}** | ${actual.de.toFixed(2)} | **${actual.nEff.toFixed(1)}** | ${Number.isFinite(actual.ceiling) ? actual.ceiling.toFixed(1) : '∞'} |`);
+  p('');
+  if (iccDiff.icc > planningIcc) {
+    p(`> ⚠️ **ICC ที่วัดได้สูงกว่าค่าที่ใช้วางแผน** (${iccDiff.icc.toFixed(3)} > ${planningIcc.toFixed(3)})`);
+    p('> แปลว่าข้อมูลจริงให้จำนวนหน่วยอิสระน้อยกว่าที่แผนคิดไว้ · ช่วงความเชื่อมั่นจึงกว้างกว่าที่คาด');
+    p('> และผล null ต้องอ่านว่า **สรุปไม่ได้** ชัดเจนยิ่งกว่าเดิม ไม่ใช่ว่าไม่ต่างกัน');
+  } else {
+    p(`> ICC ที่วัดได้ไม่สูงกว่าค่าที่ใช้วางแผน (${iccDiff.icc.toFixed(3)} ≤ ${planningIcc.toFixed(3)})`);
+    p('> สมมติฐานเรื่องความสัมพันธ์ภายในโจทย์ที่ใช้วางแผนจึงไม่ได้มองข้ามความแปรปรวนของข้อมูลจริง');
+  }
+  p('');
+}
+p('> ค่าที่ใช้วางแผนมาจากโมเดลคนละตัว (Opus) จึงห้ามนำไปอ้างเป็น power ของชุดนี้');
+p('> ทั้งสองค่าต้องปรากฏในเล่มคู่กันตามที่ประกาศไว้ใน `PRE-REGISTRATION.md` §10');
+p('');
+
 p('### 6.1b CO-PRIMARY — `RCR` · A2 เทียบ A1 · ทดสอบต่อเมื่อ primary ผ่านประตู');
 p('');
 p(`> fixed-sequence gatekeeping: ทดสอบแถวนี้**ก็ต่อเมื่อ** §6.1 ให้ p < ${ALPHA} เท่านั้น`);
@@ -1015,6 +1123,43 @@ if (excluded.length) {
 fs.mkdirSync(OUT_DIR, { recursive: true });
 fs.writeFileSync(path.join(OUT_DIR, 'report.md'), L.join('\n'));
 
+/*
+ * เก็บส่วนที่เหลือตอนท้าย เพราะตัวเลขบางตัวคำนวณระหว่างเขียนรายงาน
+ * ไม่ได้คำนวณไว้ก่อนทั้งหมด การดึงตอนนี้จึงได้ค่าเดียวกับที่พิมพ์ไปจริง
+ */
+NUMBERS.allocation = {
+  arms: armIds, scenarios: scenIds.length, reps: DECLARED_REPS,
+  declaredCells: expectedCells, missingCells, usableCells,
+  completeness, fallbackUsed: FALLBACK ? { from: FALLBACK.from, to: FALLBACK.to } : null,
+  structurallyExcluded: excluded.length,
+};
+NUMBERS.budgetExhausted = {
+  total: budgetRows.length,
+  byArm: Object.fromEntries(armIds.map((a) => {
+    const rows = by(a);
+    const hit = rows.filter((x) => x.budgetExhausted).length;
+    return [a, { runs: rows.length, hit, rate: rows.length ? hit / rows.length : 0 }];
+  })),
+};
+NUMBERS.perArm = Object.fromEntries(armIds.map((a) => [a, {
+  n: summary[a].n,
+  CRIT: summary[a].CRIT?.mean ?? null,
+  RCR: summary[a].RCR?.mean ?? null,
+  FULL: summary[a].FULL?.mean ?? null,
+  SCOPE: summary[a].SCOPE?.mean ?? null,
+  TASK: summary[a].TASK?.mean ?? null,
+  passHatK: summary[a].passHatK?.value ?? null,
+  jaccard: summary[a].jaccard ?? null,
+  entropy: summary[a].entropy ?? null,
+}]));
+NUMBERS.triggerF1 = {
+  primary: Object.fromEntries(Object.entries(trig).map(([a, m]) =>
+    [a, Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.f1]))])),
+  sensitivity: Object.fromEntries(Object.entries(trigSens).map(([a, m]) =>
+    [a, Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.f1]))])),
+};
+fs.writeFileSync(path.join(OUT_DIR, 'numbers.json'), JSON.stringify(NUMBERS, null, 2));
+
 const csv = ['arm,n,RCR,RCR_lo,RCR_hi,FULL,FULL_lo,FULL_hi,SCOPE,passHatK,jaccard,entropy,tok_in,tok_cache_read,tok_out,cost_usd,tools,wall_s'];
 for (const a of armIds) {
   const s = summary[a];
@@ -1026,4 +1171,4 @@ for (const a of armIds) {
 fs.writeFileSync(path.join(OUT_DIR, 'summary.csv'), csv.join('\n'));
 
 console.log(L.join('\n'));
-console.log(`\n[เขียนแล้ว] ${path.relative(ROOT, OUT_DIR) || '.'}/report.md, summary.csv\n`);
+console.log(`\n[เขียนแล้ว] ${path.relative(ROOT, OUT_DIR) || '.'}/report.md, summary.csv, numbers.json\n`);

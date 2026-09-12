@@ -20,6 +20,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { refuseIfCollecting } from './collection-guard.mjs';
 import { applyPatches } from './patch-fixture.mjs';
 import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
+import { FIXTURE_NOW } from '../src/adapters/claude-cli.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 refuseIfCollecting(ROOT, 'check-acceptance-green');
@@ -65,7 +66,7 @@ for (const id of refs) {
   try {
     execFileSync(process.execPath, ['--test', `${DEST_NAME}/${id}.test.ts`], {
       cwd: FIXTURE, encoding: 'utf8', stdio: 'pipe', timeout: 120000,
-      env: { ...process.env, GPU_BOOKING_NOW: '2026-03-04T09:00:00.000Z' },
+      env: { ...process.env, GPU_BOOKING_NOW: FIXTURE_NOW },
     });
   } catch (e) {
     passed = false;

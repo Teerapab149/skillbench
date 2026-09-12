@@ -305,7 +305,7 @@ model, ชุด tool, max turns, fixture, สภาพ runtime (MCP/skills/CLI 
 | **รีวิวชุดกฎโดยคนนอก** | ให้อาจารย์ที่ปรึกษาหรือเพื่อนดู `spec/` ก่อนเก็บข้อมูล ← ลดอคติจากการให้คะแนน skill ตัวเอง |
 | ~~**ตัดสินใจวิจัยที่ยังเปิด**~~ | ✅ ปิดครบแล้วเมื่อ 12 ก.ย. 2569 — Amendment 14 (allocation), 15 (estimand ของ failed attempt), 16 (อนุมัติ Amendment 11–13 + sensitivity ของ Trigger F1) |
 | **เก็บข้อมูลจริง** | หลังปิดข้อข้างบน ใช้ `npm run gate0` → `npm run gate:rep0` (ต้องได้ GO) → `npm run main` ตามแผน 330 allocated cells |
-| **วิเคราะห์และเขียนเล่ม** | สัปดาห์ที่ 4 |
+| **วิเคราะห์และเขียนเล่ม** | `npm run results:all` สร้างบทที่ 5 กับบล็อกตัวเลขของเด็คจากข้อมูลชุดเดียว แล้วตรวจว่าตรงกัน |
 
 > ⚠️ `results/latest.json` ปัจจุบันระบุ `adapter: claude-cli` และ `simulated: false` แต่เป็น
 > **development evidence ไม่ใช่ final dataset** จึงห้ามนำไปอ้างเป็นผลหลัก ชุด final ต้องเริ่มภายใต้

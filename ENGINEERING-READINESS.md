@@ -1,6 +1,6 @@
 # Engineering readiness handoff
 
-Generated 2026-09-12 on branch `harden/bucket-a`, re-run after Amendments 14, 15 and 16. The engineering work is committed; the working tree is clean apart from the investigator's own report files, which remain untracked on purpose.
+Generated 2026-09-12 on branch `harden/bucket-a`, re-run after Amendments 14 to 17 and the results-document pipeline. The engineering work is committed; the working tree is clean apart from the investigator's own report files, which remain untracked on purpose.
 
 Supersedes the 2026-09-08 draft of this artifact, which was written from a working tree still being edited and therefore recorded an experiment digest that no longer existed by the time it was read.
 
@@ -14,14 +14,14 @@ The implementation and the offline gate are ready for a reviewer to launch after
 
 All commands below were re-run on 2026-09-12 after the Amendment 14, 15 and 16 changes to `config/arms.json`, `src/adapters/claude-cli.mjs`, `src/graders.mjs`, `src/runner.mjs`, `src/analyze.mjs`, `src/readiness.mjs` and `scripts/gate-analysis.mjs`.
 
-- `npm test`: **178/178 passed**.
+- `npm test`: **189/189 passed**.
 - `npm run check`: **passed** (design, spec traceability, and CLI prompt path).
 - `npm run check:acceptance`: **passed** (11 baseline failures, 11 reference-green proofs, 10 wrong-answer and 7 alternate-answer variants; S05, S07 and S11 still have no alternate-answer variant).
-- `npm run gate`: **passed** (178 known-answer tests, mock pipeline of 110 simulated runs, drift refusal, experiment isolation, analyzer and artifact gates, A4 exposure recomputation, the two allocation gates, and the budget-exhaustion estimand gate).
+- `npm run gate`: **passed** (189 known-answer tests, mock pipeline of 110 simulated runs, drift refusal, experiment isolation, analyzer and artifact gates, A4 exposure recomputation, the two allocation gates, and the budget-exhaustion estimand gate).
 - Focused suites: lock + attempt journal **34/34**; runner lock lifetime **2/2**; trigger metrics + readiness + budget exhaustion **22/22**.
 - `node scripts/preflight.mjs --json`: read-only; engineering `true`, collection `false`; allocation `5 arms × 11 scenarios × 6 repetitions = 330 cells` **read from `config/arms.json` rather than hard-coded**, and checked against the arms and scenario files actually on disk (`allocation-declared` passes); model `claude-sonnet-5`, turn cap `80`.
 - Fixture baseline: tag `skillbench-baseline` in the `fixtures/gpu-booking` repository points at tree `879c307bd9e3c67d88fbc7c9292d824785959afb`. Fixture working tree clean; current lock status empty; legacy v1 lock absent.
-- Experiment digest: **`92da347019659fe2`**. It moved three times today, every time on purpose: Amendment 14 added `preRegisteredAllocation` to `config/arms.json`, Amendment 15 changed the adapter, graders and runner, and Amendment 16 added the `triggerF1` ground truths and the grader override. All of those files are inside the digest because they can change what the experiment measures.
+- Experiment digest: **`b8e22316f822f605`**. It moved three times today, every time on purpose: Amendment 14 added `preRegisteredAllocation` to `config/arms.json`, Amendment 15 changed the adapter, graders and runner, and Amendment 16 added the `triggerF1` ground truths and the grader override, and Amendment 17 pinned the fixture clock for the agent as well as the grader. All of those files are inside the digest because they can change what the experiment measures.
 - `results/` inventory: 66 files, fingerprint `11f3370b3562f7615c8988cdd4dd54a4df76194b0454c4d42580d271db945cd0`.
 - Preflight states not established offline: `runtime-manifest` **unknown** (the only manifest present, `manifest-1b83634ad939.json`, was frozen for the 2026-09-05 rep-0 set at digest `51aa4ded5c0c259d`, which no longer matches), `auth-presence` **unknown** (auth evidence now comes from a manifest matching the current digest, not from an environment variable) and `attempt-provenance` **unknown** (journal empty, 0 records, 0 orphan starts). None is an engineering defect; all require a real run.
 - `pendingResearchDecisions` is now **empty** and `collectionBlockers` holds **one** entry: the runtime preflight.

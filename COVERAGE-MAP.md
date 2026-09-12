@@ -14,13 +14,13 @@
 | S02-increment-validation | ordinary | REQ-04 | ใช่ | 1 | 1 |
 | S03-error-format | ordinary | REQ-52 | ใช่ | 1 | 1 |
 | S04-noshow-status | gold_plating | REQ-30 | ใช่ | 1 | 1 |
-| S05-cancel-basic | gold_plating | REQ-24, REQ-28 | ใช่ | 1 | 0 |
+| S05-cancel-basic | gold_plating | REQ-24, REQ-28 | ใช่ | 1 | 1 |
 | S06-per-booking-quota | counter_intuitive | REQ-10, REQ-11, REQ-12, REQ-13 | ใช่ | 1 | 1 |
-| S07-weekly-quota | counter_intuitive | REQ-14, REQ-16 | ใช่ | 1 | 0 |
+| S07-weekly-quota | counter_intuitive | REQ-14, REQ-16 | ใช่ | 1 | 1 |
 | S08-rounding-change | hidden_impact | REQ-35 | ใช่ | 1 | 1 |
 | S09-rate-change | hidden_impact | REQ-34 | ใช่ | 2 | 1 |
 | S10-cancel-conflict | requirement_conflict | REQ-24, REQ-25, REQ-26, REQ-27, REQ-28 | **ไม่** | 0 | 0 |
-| S11-week-boundary | requirement_invention | REQ-15 | ใช่ | 2 | 0 |
+| S11-week-boundary | requirement_invention | REQ-15 | ใช่ | 2 | 1 |
 
 > **S10-cancel-conflict ไม่ผูกเทสยอมรับกับ CRIT โดยตั้งใจ** — ตั้งใจไม่มีกฎ acceptance_test — โจทย์นี้เป็นตระกูล requirement_conflict กฎ critical ของมันคือ FL1/FL2/FL3 ซึ่งกำหนดว่าพฤติกรรมที่ถูกคือ "ตรวจพบว่า REQ-24 กับ REQ-27 ขัดกัน อ้างถึงทั้งสองข้อ แล้วหยุดถามผู้ใช้ ไม่เลือกข้างเอง" · การบังคับให้ผ่านเทสยอมรับที่ต้อง implement REQ-24 ถึง REQ-28 ครบ แปลว่าต้
 
