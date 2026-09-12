@@ -142,7 +142,28 @@ for (const r of rows) {
   console.log(`| ${r.id} | ${r.tools} | ${r.mcpTools} | ${r.mcpServers} | ${r.armSkills} | ${r.foreignSkills} | ${r.slash} | ${r.auth} | ${r.memory} |`);
 }
 
+/*
+ * เกณฑ์แก้เมื่อ 12 ก.ย. 2569 หลังรัน probe จริงครั้งแรก
+ *
+ * ของเดิมเขียนว่า foreign skills ต้อง = 0 ซึ่ง **เป็นไปไม่ได้** และเกณฑ์ที่ไม่มีวันผ่าน
+ * แย่กว่าไม่มีเกณฑ์ เพราะมันสอนให้คนมองข้ามบรรทัดนั้นไปเลย
+ *
+ * สิ่งที่วัดได้จริงเมื่อ 12 ก.ย.: skill 17 ตัวที่เห็นไม่ใช่ skill ส่วนตัวของเครื่อง
+ * แต่เป็น skill ที่ติดมากับ Claude Code เอง (deep-research, dataviz, debug, code-review,
+ * verify, simplify, run, doctor, loop, batch, claude-api, artifact-*, design-sync,
+ * update-config, fewer-permission-prompts, run-skill-generator)
+ *
+ * พิสูจน์แล้วด้วยการย้าย ~/.claude/skills ออกทั้งโฟลเดอร์แล้ว probe ใหม่: ยังได้ 17 เท่าเดิม
+ * ส่วน combo `nosrc` ลดจาก 30 เหลือ 17 — แปลว่า `--setting-sources project` ที่ adapter ใช้อยู่
+ * กัน skill ส่วนตัวออกได้อยู่แล้ว 13 ตัว และกันได้ครบ
+ *
+ * baseline ชุดนี้จึงเป็น "อุปกรณ์มาตรฐานของ CLI" ที่เท่ากันทุก arm ไม่ใช่การปนเปื้อนจากเครื่อง
+ * สิ่งที่ต้องคุมคือมันต้อง **ไม่เปลี่ยน** ระหว่างเก็บข้อมูล ซึ่ง manifest แช่แข็งไว้แล้ว
+ * และเอเจนต์ต้อง **ไม่เรียกใช้** ซึ่ง validateRuntime บังคับไว้แบบ fail-closed
+ */
 console.log('\nสิ่งที่ต้องได้จึงจะเรียกว่าสะอาด:');
-console.log(`  tools = ${DECLARED.length} เป๊ะ · mcp tool = 0 · mcp srv = 0 · foreign skills = 0`);
+console.log(`  tools = ${DECLARED.length} เป๊ะ · mcp tool = 0 · mcp srv = 0`);
+console.log('  foreign skills = skill ที่ติดมากับ CLI เท่านั้น (17 ตัว ณ CLI 2.1.224) และต้องเท่ากันทุก run');
+console.log('    ถ้าตัวเลขนี้เปลี่ยนระหว่างเก็บข้อมูล แปลว่า CLI อัปเดตตัวเอง -> การรันจะหยุดทั้งชุด');
 console.log(`  auth ต้องยังเป็น "none" (= subscription) ถ้าเปลี่ยนไปเป็น ANTHROPIC_API_KEY แปลว่าเริ่มจ่ายรายโทเคนจริง`);
 if (arm === 'A2' || arm === 'A4') console.log('  และ arm skills ต้อง = 4 มิฉะนั้น flag นั้นฆ่าตัวแปรต้นทิ้ง');
