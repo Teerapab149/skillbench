@@ -48,7 +48,12 @@ The required test surface is the failure-mode matrix above. More tests are added
 
 - Primary estimand/retry eligibility: user asked asynchronously on 2026-09-08; awaiting answer. Durable attempt provenance can proceed independently.
 - Draft amendments 11–13, including Trigger-F1 relevance mapping: preserve pending-review status until actual investigator disposition.
-- Allocation: configured target is five arms × eleven scenarios × six repetitions = 330 cells. Reconcile contradictory adaptive/dropping provisions against recorded authorization before declaring collection readiness.
+- Allocation: **closed 2026-09-12 by Amendment 14** (investigator decision, recorded in PRE-REGISTRATION.md §21).
+  The declared target stays five arms × eleven scenarios × six repetitions = 330 cells, and now lives in exactly one
+  place: `config/arms.json` → `preRegisteredAllocation`. The drop-arm stop-loss is replaced by uniform rep truncation
+  (minimum four repetitions, every arm and scenario always present, declared at analysis time with `--fallback-reps N`).
+  The surplus rule that would have added scenarios is void and `k = 11` is locked. `analyze.mjs` now compares the
+  realized matrix against the declared one instead of against itself, which is what made a dropped arm report as complete.
 
 ## Acceptance boundary
 

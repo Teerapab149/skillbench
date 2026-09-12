@@ -259,6 +259,72 @@ step('analyze ปฏิเสธข้อมูลไม่ครบ เว้�
   return 'ปฏิเสธเมื่อไม่ครบ · ประทับหัวเมื่อใส่ --partial';
 });
 
+/*
+ * Amendment 14 — ประตูการจัดสรรต้องเทียบกับสิ่งที่ประกาศไว้ ไม่ใช่กับเมทริกซ์ของ run เอง
+ *
+ * ก่อนแก้: ถ้าทิ้ง A0 ทั้ง arm ตามกฎ stop-loss เดิม meta.arms จะเหลือ 4 ตัว
+ * เมทริกซ์ที่ประกาศจะหดตาม แล้วรายงานจะบอกว่าครบ 100% โดยไม่มีอะไรเตือน
+ * สองข้อนี้จึงต้องรันบนข้อมูลที่ทำท่าเป็นของจริง (simulated: false) เพราะชุดจำลองได้รับยกเว้น
+ */
+step('analyze ปฏิเสธชุดที่ทิ้ง arm ทั้ง arm แม้ใส่ --partial', () => {
+  const full = JSON.parse(fs.readFileSync(path.join(tmp, 'latest.json'), 'utf8'));
+  const prereg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms.json'), 'utf8')).preRegisteredAllocation;
+  const dropped = prereg.arms[0];
+  const meta = { ...full.meta, simulated: false, reps: prereg.reps, arms: prereg.arms.filter((a) => a !== dropped) };
+  const graded = full.graded.filter((g) => g.armId !== dropped);
+  const f = path.join(tmp, 'dropped-arm.json');
+  fs.writeFileSync(f, JSON.stringify({ meta, graded }));
+
+  for (const extra of [[], ['--partial']]) {
+    let err = null;
+    try {
+      execFileSync(process.execPath, ['src/analyze.mjs', '--in', f, '--out', path.join(tmp, 'dropped-out'), ...extra],
+        { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+    } catch (e) { err = e; }
+    if (!err) throw new Error(`ทิ้ง ${dropped} แล้วแต่ analyze ยังออกรายงาน (${extra.join(' ') || 'ไม่มี flag'})`);
+    const out = `${err.stdout ?? ''}${err.stderr ?? ''}`;
+    if (!out.includes(dropped)) throw new Error('ปฏิเสธแล้วแต่ไม่ได้บอกว่า arm ไหนหายไป');
+  }
+  return `ปฏิเสธการทิ้ง ${dropped} ทั้งมีและไม่มี --partial · ระบุชื่อ arm ที่หาย`;
+});
+
+step('analyze ยอมรับกฎสำรองตัดรอบเท่ากันทุก arm และประทับหัวรายงาน', () => {
+  const full = JSON.parse(fs.readFileSync(path.join(tmp, 'latest.json'), 'utf8'));
+  const prereg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms.json'), 'utf8')).preRegisteredAllocation;
+  const cut = prereg.fallback.minReps;
+  // ขยายชุดจำลองให้ครบทุก arm x โจทย์ x cut รอบ — ค่าไม่สำคัญ รูปร่างเมทริกซ์สำคัญ
+  const base = full.graded.filter((g) => g.rep === 0);
+  const graded = [];
+  for (let r = 0; r < cut; r++) for (const g of base) graded.push({ ...g, rep: r, runId: `${g.scenarioId}__${g.armId}__r${r}` });
+  const meta = { ...full.meta, simulated: false, reps: prereg.reps };
+  const f = path.join(tmp, 'truncated.json');
+  fs.writeFileSync(f, JSON.stringify({ meta, graded }));
+  const outDir = path.join(tmp, 'truncated-out');
+
+  // ไม่ประกาศกฎสำรอง = ยังต้องถือว่าไม่ครบและถูกปฏิเสธ
+  let rejected = false;
+  try {
+    execFileSync(process.execPath, ['src/analyze.mjs', '--in', f, '--out', outDir], { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+  } catch { rejected = true; }
+  if (!rejected) throw new Error('ตัดรอบโดยไม่ประกาศ --fallback-reps แต่ analyze ยังออกรายงานเต็ม');
+
+  // ต่ำกว่าขอบล่างที่ประกาศไว้ = ต้องถูกปฏิเสธเช่นกัน
+  let tooLow = false;
+  try {
+    execFileSync(process.execPath, ['src/analyze.mjs', '--in', f, '--out', outDir, '--fallback-reps', String(cut - 1)],
+      { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+  } catch { tooLow = true; }
+  if (!tooLow) throw new Error(`--fallback-reps ${cut - 1} ต่ำกว่าขอบล่างที่ประกาศไว้แต่ผ่าน`);
+
+  execFileSync(process.execPath, ['src/analyze.mjs', '--in', f, '--out', outDir, '--fallback-reps', String(cut)],
+    { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+  const txt = fs.readFileSync(path.join(outDir, 'report.md'), 'utf8');
+  if (!txt.includes('กฎสำรองที่ประกาศไว้ล่วงหน้า (Amendment 14)')) throw new Error('ใช้กฎสำรองแล้วแต่รายงานไม่ได้ประทับหัว');
+  if (!/n_eff ต่อ arm/.test(txt)) throw new Error('รายงานไม่ได้บอกความแม่นที่จ่ายไป');
+  if (/รายงานฉบับไม่ครบ/.test(txt)) throw new Error('กฎสำรองที่ประกาศแล้วไม่ควรถูกประทับว่าไม่ครบ');
+  return `ปฏิเสธเมื่อไม่ประกาศและเมื่อต่ำกว่าขอบล่าง · ยอมรับที่ ${cut} รอบพร้อมประทับหัวและ n_eff`;
+});
+
 // 4. artifact ต้องมีฟิลด์ที่การวิเคราะห์ปลายทางต้องใช้ ครบตั้งแต่ก่อนเก็บข้อมูล
 //    ถ้าขาด จะรู้ตอนวิเคราะห์ = ต้องเก็บใหม่ทั้งหมด
 /*

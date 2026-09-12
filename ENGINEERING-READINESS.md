@@ -1,6 +1,6 @@
 # Engineering readiness handoff
 
-Generated 2026-09-12 on branch `harden/bucket-a` at commit `1d8fbf8`. The engineering work is now committed; the working tree is clean apart from the investigator's own report files, which remain untracked on purpose.
+Generated 2026-09-12 on branch `harden/bucket-a`, re-run after Amendment 14. The engineering work is committed; the working tree is clean apart from the investigator's own report files, which remain untracked on purpose.
 
 Supersedes the 2026-09-08 draft of this artifact, which was written from a working tree still being edited and therefore recorded an experiment digest that no longer existed by the time it was read.
 
@@ -12,16 +12,16 @@ The implementation and the offline gate are ready for a reviewer to launch after
 
 ## Evidence
 
-All commands below were run on 2026-09-12 against `1d8fbf8`.
+All commands below were re-run on 2026-09-12 after the Amendment 14 changes to `config/arms.json`, `src/analyze.mjs`, `src/readiness.mjs` and `scripts/gate-analysis.mjs`.
 
-- `npm test`: **165/165 passed**.
+- `npm test`: **167/167 passed**.
 - `npm run check`: **passed** (design, spec traceability, and CLI prompt path).
 - `npm run check:acceptance`: **passed** (11 baseline failures, 11 reference-green proofs, 10 wrong-answer and 7 alternate-answer variants; S05, S07 and S11 still have no alternate-answer variant).
-- `npm run gate`: **passed** (165 known-answer tests, mock pipeline of 110 simulated runs, drift refusal, experiment isolation, analyzer and artifact gates, A4 exposure recomputation).
-- Focused suites: lock + attempt journal **34/34**; runner lock lifetime **2/2**; stats + readiness **29/29**.
-- `node scripts/preflight.mjs --json`: read-only; engineering `true`, collection `false`; allocation `5 arms × 11 scenarios × 6 repetitions = 330 cells`; model `claude-sonnet-5`, turn cap `80`.
+- `npm run gate`: **passed** (167 known-answer tests, mock pipeline of 110 simulated runs, drift refusal, experiment isolation, analyzer and artifact gates, A4 exposure recomputation, and the two new allocation gates).
+- Focused suites: lock + attempt journal **34/34**; runner lock lifetime **2/2**; stats + readiness **31/31**.
+- `node scripts/preflight.mjs --json`: read-only; engineering `true`, collection `false`; allocation `5 arms × 11 scenarios × 6 repetitions = 330 cells` **read from `config/arms.json` rather than hard-coded**, and checked against the arms and scenario files actually on disk (`allocation-declared` passes); model `claude-sonnet-5`, turn cap `80`.
 - Fixture baseline: tag `skillbench-baseline` in the `fixtures/gpu-booking` repository points at tree `879c307bd9e3c67d88fbc7c9292d824785959afb`. Fixture working tree clean; current lock status empty; legacy v1 lock absent.
-- Experiment digest: **`c2b6c73688e0fd7a`**, computed before and after the commit with the same value. One runtime manifest is present (`manifest-1b83634ad939.json`).
+- Experiment digest: **`d80d67d06bce7de8`**. It moved from `c2b6c73688e0fd7a` because Amendment 14 added `preRegisteredAllocation` to `config/arms.json`, which is one of the files the digest covers — the intended behaviour, since the allocation is part of what defines the experiment. One runtime manifest is present (`manifest-1b83634ad939.json`).
 - `results/` inventory: 66 files, fingerprint `11f3370b3562f7615c8988cdd4dd54a4df76194b0454c4d42580d271db945cd0`.
 - Preflight states not established offline: `auth-presence` **unknown** (no environment credential present; presence would not prove entitlement anyway) and `attempt-provenance` **unknown** (journal empty, 0 records, 0 orphan starts). Neither is an engineering defect; both require a real run.
 
@@ -37,9 +37,11 @@ Fixture locks are canonical, fail-closed, process-aware, stale-reclaimable and o
 
 ## Collection blockers requiring investigator record
 
+One of the four is closed. The preflight now reports two pending research decisions instead of three.
+
 1. Approve or reject Amendments 11–13 (including Trigger-F1 relevance mapping).
 2. Choose the failed-attempt estimand and retry/selection policy.
-3. Reconcile the fixed 330-cell allocation with the adaptive/drop-stop language still present in the planning documents.
+3. ~~Reconcile the fixed 330-cell allocation with the adaptive/drop-stop language.~~ **Closed 2026-09-12 — Amendment 14** (PRE-REGISTRATION.md §21): 330 cells confirmed, drop-arm replaced by uniform rep truncation, surplus/add-scenario rule void, allocation declared once in `config/arms.json` and enforced by `analyze.mjs` and preflight.
 4. Run the real Claude CLI preflight once, confirming auth and the frozen runtime manifest. No API or Claude run has been started by this engineering loop.
 
 ## Launch command after approval

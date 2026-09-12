@@ -93,8 +93,36 @@ export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPat
   const scenarios = fs.existsSync(scenariosDir) ? fs.readdirSync(scenariosDir).filter((f) => f.endsWith('.json')).map((f) => jsonFile(path.join(scenariosDir, f))).filter((s) => !s.__error) : [];
   const arms = config?.arms ?? [];
   const fixed = config?.fixedFactors ?? {};
-  const allocation = { arms: arms.length, scenarios: scenarios.length, repetitions: 6, cells: arms.length * scenarios.length * 6 };
+  /*
+   * การจัดสรรต้องอ่านจาก config ไม่ใช่เขียนตายไว้ตรงนี้
+   *
+   * ของเดิม hard-code repetitions: 6 ซึ่งแปลว่า preflight รายงาน "330 cells" ได้
+   * แม้ตอนที่ประกาศจริงจะเป็นเลขอื่น — ตัวเลขที่ควรถูกตรวจกลับเป็นตัวเลขที่ตรวจตัวเอง
+   * Amendment 14 ย้ายการประกาศไปอยู่ที่ config/arms.json ที่เดียว
+   */
+  const prereg = config?.preRegisteredAllocation ?? null;
+  const allocation = prereg
+    ? { arms: prereg.arms.length, scenarios: prereg.scenarios, repetitions: prereg.reps, cells: prereg.cells, source: 'config/arms.json preRegisteredAllocation' }
+    : { arms: arms.length, scenarios: scenarios.length, repetitions: null, cells: null, source: 'derived — ไม่มี preRegisteredAllocation ใน config' };
   checks.push(config?.__error ? status('config', 'fail', config.__error) : status('config', 'pass', 'อ่าน config ปัจจุบันแล้ว', { model: fixed.model, maxTurns: fixed.maxTurns, allocation }));
+
+  /*
+   * ตัวเลขที่ประกาศต้องตรงกับของจริงที่นับได้จากดิสก์ ไม่ใช่แค่ประกาศแล้วจบ
+   * ถ้า config บอก 11 scenario แต่ scenarios/ มี 12 ไฟล์ นั่นคือ allocation ที่ยังไม่ถูกประกาศใหม่
+   */
+  if (prereg) {
+    const mismatch = [];
+    if (prereg.arms.length !== arms.length) mismatch.push(`arm ที่ประกาศ ${prereg.arms.length} แต่ config มี ${arms.length}`);
+    const armIds = arms.map((a) => a.id ?? a);
+    for (const id of prereg.arms) if (!armIds.includes(id)) mismatch.push(`arm ${id} ที่ประกาศไว้ไม่มีใน config`);
+    if (prereg.scenarios !== scenarios.length) mismatch.push(`scenario ที่ประกาศ ${prereg.scenarios} แต่ scenarios/ มี ${scenarios.length}`);
+    if (prereg.cells !== prereg.arms.length * prereg.scenarios * prereg.reps) mismatch.push(`cells ที่ประกาศ ${prereg.cells} ไม่เท่ากับ ${prereg.arms.length}x${prereg.scenarios}x${prereg.reps}`);
+    checks.push(mismatch.length
+      ? status('allocation-declared', 'fail', mismatch.join(' · '), { prereg })
+      : status('allocation-declared', 'pass', `การจัดสรรที่ประกาศตรงกับของจริง (${prereg.cells} cell) · fallback: ${prereg.fallback?.type ?? 'ไม่มี'}`, { prereg }));
+  } else {
+    checks.push(status('allocation-declared', 'fail', 'config/arms.json ไม่มี preRegisteredAllocation — ไม่มีตัวเลขที่ประกาศให้ตรวจ'));
+  }
 
   const fixtures = [...new Set(scenarios.map((s) => s.fixture).filter(Boolean))];
   let trees = null;
@@ -127,7 +155,6 @@ export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPat
   const pending = [
     'investigator approval: Amendment 11–13',
     'investigator choice: failed-attempt estimand/retry selection',
-    'investigator reconciliation: fixed 330 allocation vs adaptive/drop-stop text',
   ];
   // Unknown means “cannot be established without a real run” (for example
   // auth validity or an as-yet empty journal), not an offline engineering

@@ -28,9 +28,37 @@ test('read-only preflight reports advisory engineering/collection states and doe
   const after = digest(RESULTS);
   assert.equal(after, before);
   assert.equal(report.advisory, true);
-  assert.deepEqual(report.allocation, { arms: 5, scenarios: 11, repetitions: 6, cells: 330 });
+  assert.deepEqual(report.allocation, { arms: 5, scenarios: 11, repetitions: 6, cells: 330, source: 'config/arms.json preRegisteredAllocation' });
   assert.equal(report.collectionReady, false);
-  assert.ok(report.pendingResearchDecisions.length >= 3);
+  assert.ok(report.pendingResearchDecisions.length >= 2);
+});
+
+// Amendment 14: the declared allocation lives in config/arms.json only. Preflight must
+// read it there and check it against what is actually on disk, not restate a literal.
+test('preflight checks the declared allocation against the arms and scenarios on disk', () => {
+  const report = collectReadiness({ root: ROOT });
+  const check = report.checks.find((c) => c.name === 'allocation-declared');
+  assert.ok(check, "allocation-declared check must exist");
+  assert.equal(check.state, 'pass');
+  assert.equal(check.evidence.prereg.cells, 330);
+  assert.equal(check.evidence.prereg.fallback.type, 'uniform-rep-truncation');
+  assert.equal(check.evidence.prereg.surplusRule.status, 'void');
+  assert.equal(report.allocation.repetitions, check.evidence.prereg.reps);
+});
+
+test('a declared allocation that disagrees with the real arm count fails the check', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'skillbench-alloc-'));
+  try {
+    fs.mkdirSync(path.join(tmp, 'config'), { recursive: true });
+    fs.mkdirSync(path.join(tmp, 'scenarios'), { recursive: true });
+    const real = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms.json'), 'utf8'));
+    real.preRegisteredAllocation.arms = [...real.preRegisteredAllocation.arms, "A9"];
+    fs.writeFileSync(path.join(tmp, 'config', 'arms.json'), JSON.stringify(real));
+    const report = collectReadiness({ root: tmp, resultsDir: path.join(tmp, "results") });
+    const check = report.checks.find((c) => c.name === 'allocation-declared');
+    assert.equal(check.state, 'fail');
+    assert.equal(report.engineeringReady, false);
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 
 test('mock runner refuses production results before creating output', () => {

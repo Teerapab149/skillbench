@@ -6,9 +6,10 @@
 > แหล่งอ้างอิงที่บทนี้สรุปมา: `PRE-REGISTRATION.md` (แผนวิเคราะห์) · `ARMS-EXPLAINED.md` (ตัวแปรต้น)
 > · `METRICS.md` (ตัวชี้วัด) · `config/rules-canonical.json` (กฎฉบับกลาง)
 >
-> **ปรับสถานะ 8 ก.ย. 2569:** configuration ปัจจุบันคือ `claude-sonnet-5`, เพดาน 80 turn,
-> 5 กลุ่ม × 11 โจทย์ × 6 รอบ = 330 cells. Amendment 11–13 ยังรอผู้วิจัยทบทวน;
-> estimand ของ failed attempt และความขัดกันระหว่าง fixed allocation กับ adaptive dropping ยังไม่ยุติ
+> **ปรับสถานะ 12 ก.ย. 2569:** configuration ปัจจุบันคือ `claude-sonnet-5`, เพดาน 80 turn,
+> 5 กลุ่ม × 11 โจทย์ × 6 รอบ = 330 cells. **Amendment 14 ปิดความขัดกันระหว่าง fixed allocation
+> กับ adaptive dropping แล้ว** — ถ้าเก็บไม่ครบให้ตัดรอบเท่ากันทุกกลุ่ม ห้ามทิ้งกลุ่มใดกลุ่มหนึ่ง
+> Amendment 11–13 ยังรอผู้วิจัยทบทวน; estimand ของ failed attempt ยังไม่ยุติ
 
 ---
 

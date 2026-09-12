@@ -2,9 +2,10 @@
 
 เอกสารนี้คือส่วนที่ทำให้งานนี้เป็น *การทดลอง* ไม่ใช่ *การรีวิวเครื่องมือ*
 
-> **สถานะ 8 ก.ย. 2569:** ชุดหลักที่ configure ไว้คือ `claude-sonnet-5`, 80 turn,
-> 5 arm × 11 scenario × 6 repetition = 330 cells. Amendment 11–13 ยังรอผู้วิจัยทบทวน
-> และ estimand ของ failed attempt กับ allocation/stop-loss ยังเป็นการตัดสินใจที่เปิดอยู่
+> **สถานะ 12 ก.ย. 2569:** ชุดหลักที่ประกาศไว้คือ `claude-sonnet-5`, 80 turn,
+> 5 arm × 11 scenario × 6 repetition = 330 cells ประกาศที่ `config/arms.json` → `preRegisteredAllocation`
+> **allocation/stop-loss ปิดแล้วด้วย Amendment 14** — กฎสำรองคือตัดรอบเท่ากันทุก arm ไม่ใช่ทิ้ง arm
+> Amendment 11–13 ยังรอผู้วิจัยทบทวน และ estimand ของ failed attempt ยังเป็นการตัดสินใจที่เปิดอยู่
 
 ---
 

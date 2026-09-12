@@ -10,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   wilson, cohensH, mcnemarExact, clusterBootstrapDiff, passHatK, exactSignFlipTest, leaveOneScenarioOut, tostFromCI,
-  meanPairwiseJaccard, normalizedEntropy, fmtPct, fmtP,
+  meanPairwiseJaccard, normalizedEntropy, fmtPct, fmtP, effectiveN,
 } from './stats.mjs';
 import { triggerMetrics } from './graders.mjs';
 
@@ -49,6 +49,79 @@ if (!graded.length) {
   process.exit(1);
 }
 
+/*
+ * ประตูการจัดสรร — ต้องเทียบกับสิ่งที่ประกาศไว้ ไม่ใช่กับตัวเอง
+ *
+ * ของเดิมสร้างเมทริกซ์จาก meta.arms / meta.scenarios / meta.reps ของ run นั้นเอง
+ * แปลว่าถ้าทิ้ง A0 ทั้ง arm ตามกฎ stop-loss เดิม เมทริกซ์จะกลายเป็น 4x11x6 = 264
+ * แล้วรายงานจะบอกว่าครบ 100% โดยไม่มีอะไรเตือนเลยสักบรรทัด
+ * ประตูความครบที่เทียบกับตัวเองจับ arm ที่หายไปไม่ได้ตามนิยาม
+ *
+ * Amendment 14 (12 ก.ย. 2569): การจัดสรรที่ประกาศอยู่ที่ config/arms.json ที่เดียว
+ * กฎสำรองเดียวที่อนุมัติคือตัดรอบให้เท่ากันทุก arm และต้องประกาศด้วย --fallback-reps
+ * การทิ้ง arm การทิ้ง scenario และรอบไม่เท่ากันระหว่าง arm ถูกห้ามแล้ว
+ *
+ * ข้อมูลจำลอง (meta.simulated) ได้รับยกเว้น — ประตูตรวจ pipeline รันด้วย --reps 2
+ * และรายงานของมันถูกประทับว่าเป็น mock อยู่แล้ว การบังคับ 330 กับมันไม่ได้ป้องกันอะไร
+ */
+const PREREG = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms.json'), 'utf8')).preRegisteredAllocation ?? null; }
+  catch { return null; }
+})();
+const FALLBACK_REPS = (() => {
+  const rawFlag = argv('--fallback-reps', null);
+  if (rawFlag === null) return null;
+  const n = Number(rawFlag);
+  if (!Number.isInteger(n)) { console.error('\n⛔ --fallback-reps ต้องเป็นจำนวนเต็ม\n'); process.exit(2); }
+  return n;
+})();
+
+function auditAllocation() {
+  if (meta.simulated) return { skipped: 'ข้อมูลจำลอง', declaredReps: meta.reps ?? 0, discarded: [] };
+  if (!PREREG) return { violations: ['config/arms.json ไม่มี preRegisteredAllocation — ไม่มีตัวเลขที่ประกาศให้เทียบ'] };
+
+  const violations = [];
+  const gotArms = meta.arms ?? [];
+  const missingArms = PREREG.arms.filter((a) => !gotArms.includes(a));
+  const extraArms = gotArms.filter((a) => !PREREG.arms.includes(a));
+  if (missingArms.length) violations.push(`arm ที่ประกาศไว้แต่ไม่มีในข้อมูล: ${missingArms.join(', ')} — การทิ้ง arm ถูกห้ามโดย Amendment 14`);
+  if (extraArms.length) violations.push(`arm ที่ไม่ได้ประกาศไว้แต่อยู่ในข้อมูล: ${extraArms.join(', ')}`);
+  if ((meta.scenarios ?? []).length !== PREREG.scenarios) {
+    violations.push(`scenario ประกาศไว้ ${PREREG.scenarios} แต่ข้อมูลมี ${(meta.scenarios ?? []).length} — การเพิ่มหรือทิ้งโจทย์เปลี่ยน k ของ sign test หลัก`);
+  }
+  if ((meta.reps ?? 0) !== PREREG.reps) {
+    violations.push(`เป้าหมายรอบใน meta คือ ${meta.reps} แต่ประกาศไว้ ${PREREG.reps} — reps อยู่ใน signature ค่าที่ไม่ตรงแปลว่าคนละชุดทดลอง`);
+  }
+
+  let declaredReps = PREREG.reps;
+  let fallback = null;
+  if (FALLBACK_REPS !== null) {
+    const fb = PREREG.fallback ?? {};
+    const min = fb.minReps ?? PREREG.reps;
+    if (fb.type !== 'uniform-rep-truncation') violations.push('config ไม่ได้ประกาศกฎสำรองแบบ uniform-rep-truncation ไว้');
+    else if (FALLBACK_REPS < min || FALLBACK_REPS >= PREREG.reps) {
+      violations.push(`--fallback-reps ${FALLBACK_REPS} อยู่นอกกรอบที่ประกาศไว้ (${min} ถึง ${PREREG.reps - 1})`);
+    } else { declaredReps = FALLBACK_REPS; fallback = { from: PREREG.reps, to: FALLBACK_REPS }; }
+  }
+  // รอบที่เกินกรอบหลังตัด = ข้อมูลที่เก็บมาแล้วแต่ถูกทิ้งตามกฎสำรอง ต้องรายงานจำนวนเสมอ
+  const discarded = fallback ? graded.filter((g) => g.rep >= declaredReps) : [];
+  return { violations, declaredReps, fallback, discarded };
+}
+
+const alloc = auditAllocation();
+if (alloc.violations?.length) {
+  console.error('\n⛔ การจัดสรรไม่ตรงกับที่ประกาศไว้ล่วงหน้า');
+  for (const v of alloc.violations) console.error(`   · ${v}`);
+  console.error('   --partial ข้ามข้อนี้ไม่ได้ — รายงานจากชุดที่จัดสรรไม่ตรงประกาศ ไม่ใช่แค่ไม่ครบ');
+  console.error('   ถ้าเก็บไม่ครบให้ใช้กฎสำรองที่ประกาศไว้: analyze --fallback-reps N (ตัดรอบเท่ากันทุก arm)\n');
+  process.exit(2);
+}
+const DECLARED_REPS = alloc.declaredReps;
+const FALLBACK = alloc.fallback ?? null;
+if (FALLBACK) {
+  console.log(`  กฎสำรอง Amendment 14: ตัดจาก ${FALLBACK.from} รอบเหลือ ${FALLBACK.to} รอบเท่ากันทุก arm · ทิ้ง ${alloc.discarded.length} run ที่เก็บมาแล้ว`);
+}
+
 const armIds = meta.arms;
 const scenIds = meta.scenarios;
 const by = (armId) => graded.filter((g) => g.armId === armId);
@@ -82,16 +155,18 @@ function auditMatrix() {
     seen.set(k, (seen.get(k) ?? 0) + 1);
   }
   const missing = [], duplicated = [];
-  for (const s of scenIds) for (const a of armIds) for (let r = 0; r < (meta.reps ?? 0); r++) {
+  for (const s of scenIds) for (const a of armIds) for (let r = 0; r < DECLARED_REPS; r++) {
     const k = `${s}|${a}|${r}`;
     const n = seen.get(k) ?? 0;
     if (n === 0) missing.push(k);
     else if (n > 1) duplicated.push(`${k} x${n}`);
   }
-  // cell ที่อยู่ในข้อมูลแต่ไม่อยู่ในเมทริกซ์ที่ประกาศ (เช่น rep เกิน meta.reps)
+  // cell ที่อยู่ในข้อมูลแต่ไม่อยู่ในเมทริกซ์ที่ประกาศ (เช่น rep เกินเป้าหมาย)
+  // ภายใต้กฎสำรอง รอบที่ถูกตัดออกไม่ใช่ข้อมูลผิดรูป แต่เป็นข้อมูลที่ถูกทิ้งอย่างตั้งใจ
   const declared = new Set();
-  for (const s of scenIds) for (const a of armIds) for (let r = 0; r < (meta.reps ?? 0); r++) declared.add(`${s}|${a}|${r}`);
-  const unexpected = [...seen.keys()].filter((k) => !declared.has(k));
+  for (const s of scenIds) for (const a of armIds) for (let r = 0; r < DECLARED_REPS; r++) declared.add(`${s}|${a}|${r}`);
+  const truncatedAway = (k) => FALLBACK && Number(k.split(`|`)[2]) >= DECLARED_REPS;
+  const unexpected = [...seen.keys()].filter((k) => !declared.has(k) && !truncatedAway(k));
   return { missing, duplicated, unexpected, expected: declared.size, present: seen.size };
 }
 
@@ -273,10 +348,23 @@ if (ALLOW_PARTIAL && missingCells) {
   p(`> cell ที่ขาด: \`${show(matrix.missing, 12)}\``);
   p('');
 }
+/*
+ * ถ้าใช้กฎสำรอง รายงานต้องบอกเองโดยไม่ต้องรอให้ใครจำได้
+ * ตัวเลขความแม่นที่ลดลงต้องอยู่ในหน้าเดียวกับผล ไม่ใช่ในเอกสารแยก
+ */
+if (FALLBACK) {
+  const eFull = effectiveN(scenIds.length, FALLBACK.from, PREREG.planningIcc ?? 0.335);
+  const eCut = effectiveN(scenIds.length, FALLBACK.to, PREREG.planningIcc ?? 0.335);
+  p(`> ⚠️ **ชุดนี้ใช้กฎสำรองที่ประกาศไว้ล่วงหน้า (Amendment 14) — ตัดรอบจาก ${FALLBACK.from} เหลือ ${FALLBACK.to} เท่ากันทุก arm**`);
+  p('> ทุก arm และทุก scenario ยังอยู่ครบ การทิ้ง arm ถูกห้าม · ทริกเกอร์ที่อนุญาตคือ quota หรือเส้นตายที่ประกาศไว้ ไม่ใช่ผลเปรียบเทียบ');
+  p(`> ความแม่นที่จ่ายไป: n_eff ต่อ arm ${eFull.nEff.toFixed(1)} → **${eCut.nEff.toFixed(1)}** (ICC วางแผน ${PREREG.planningIcc ?? 0.335} วัดจาก Opus ไม่ใช่ค่ารับรองของ Sonnet)`);
+  p(`> run ที่เก็บมาแล้วแต่ถูกทิ้งตามกฎ: **${alloc.discarded.length}** · ต้องเขียนในเล่มว่าการจัดสรรจริงคือ ${FALLBACK.to} รอบ ไม่ใช่ ${FALLBACK.from} รอบตาม Amendment 3`);
+  p('');
+}
 p(`- **Primary endpoint (ประกาศล่วงหน้า): ${meta.primaryEndpoint?.metric} — ${meta.primaryEndpoint?.comparison}**`);
 p(`- **สถิติหลัก: exact paired sign-flip ที่ระดับ scenario** · CI: cluster bootstrap`);
 p(`- McNemar exact ระดับ run = **sensitivity analysis** ไม่ใช่ผลหลัก`);
-p(`- ความครบของข้อมูล: ${expectedCells - missingCells}/${expectedCells || '?'} cell · ทุก (scenario, arm, rep) มีหนึ่งรายการพอดี · run ทั้งหมด ${usableCells}`);
+p(`- ความครบของข้อมูล: ${expectedCells - missingCells}/${expectedCells || '?'} cell · เมทริกซ์ที่ประกาศ ${armIds.length} arm x ${scenIds.length} โจทย์ x ${DECLARED_REPS} รอบ · ทุก (scenario, arm, rep) มีหนึ่งรายการพอดี · run ทั้งหมด ${usableCells}`);
 p('');
 
 p('## 1. ตัวชี้วัดหลักต่อ arm (พร้อม 95% CI)');

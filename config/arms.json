@@ -83,6 +83,33 @@
     "workspaceReset": "git checkout -- . && git clean -fd ก่อนทุก run",
     "runOrder": "randomized block — สลับลำดับ arm ในแต่ละ repetition กัน drift ของ API"
   },
+  "preRegisteredAllocation": {
+    "_note": "การจัดสรรที่ประกาศไว้ล่วงหน้า — แหล่งความจริงแหล่งเดียวสำหรับ runner, analyze, preflight และเอกสาร · ก่อน Amendment 14 ตัวเลขนี้ถูกประกาศแยกกันสามที่ที่ไม่เคยเช็คกัน (เอกสาร, repetitions ที่ hard-code ใน readiness.mjs, และ --reps ใน package.json) จึงขัดกันได้เงียบ ๆ · ไฟล์นี้อยู่ใน experiment digest แล้ว การแก้ระหว่างเก็บข้อมูลจะถูกจับทันที",
+    "arms": ["A0", "A1", "A2", "A3", "A4"],
+    "scenarios": 11,
+    "reps": 6,
+    "cells": 330,
+    "declaredOn": "2026-09-04",
+    "declaredIn": "Amendment 3 (PRE-REGISTRATION.md §10)",
+    "planningIcc": 0.335,
+    "_planningIccNote": "วัดจาก Opus ใช้วางแผนเท่านั้น ไม่ใช่ค่ารับรอง power ของ Sonnet · ต้องวัด ICC ใหม่จากชุดนี้แล้วรายงานทั้งสองค่า",
+    "fallback": {
+      "_note": "Amendment 14 (12 ก.ย. 2569) — กฎสำรองเดียวที่ได้รับอนุมัติเมื่อเก็บไม่ครบ 330 cell",
+      "type": "uniform-rep-truncation",
+      "minReps": 4,
+      "trigger": "quota หรือเส้นตายที่ประกาศไว้ล่วงหน้าเท่านั้น — ห้ามดูผลเปรียบเทียบ arm ก่อนตัดสินใจ",
+      "rule": "ตัดรอบให้เท่ากันทุก arm ที่ขอบ repetition · ทุก arm และทุก scenario ต้องอยู่ครบเสมอ · ต้องประกาศด้วย analyze --fallback-reps N",
+      "forbidden": "ห้ามทิ้ง arm ห้ามทิ้ง scenario และห้ามใช้จำนวนรอบไม่เท่ากันระหว่าง arm",
+      "supersedes": "กฎ drop-arm เดิม (A0 → A4 → ลดรอบ A3) ใน Amendment 3 ข้อ 4"
+    },
+    "surplusRule": {
+      "_note": "Amendment 14 — ประกาศเป็นโมฆะ",
+      "status": "void",
+      "voidedText": "ถ้า throughput ดีกว่าคาด ให้เอาส่วนเกินไปเพิ่มโจทย์",
+      "reason": "k คือตัวหารของ sign test หลัก การเพิ่ม k ระหว่างเก็บข้อมูลทำให้ n ของการทดสอบหลักถูกเลือกโดยกระบวนการที่เดินคู่กับการเก็บข้อมูล · โจทย์ใหม่ต้องผ่าน acceptance/variant gate ครบก่อนเสมอ · ถ้าต้องการ k มากขึ้นให้ประกาศเป็น extension แยกและวิเคราะห์แยก ห้ามยุบเข้ากับ primary",
+      "lockedK": 11
+    }
+  },
   "primaryEndpoint": {
     "metric": "CRIT",
     "comparison": "A2 vs A1",
