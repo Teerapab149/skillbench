@@ -1,0 +1,9 @@
+
+SkillBench — claude-cli
+  11 scenarios x 5 arms x 6 reps = 330 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: 597e411c-3d9f-4c8c-8f65-b8d815bd9421
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 120/330 run
+
+  progress 121/330 (37%)     progress 122/330 (37%)     progress 123/330 (37%)     progress 124/330 (38%)     progress 125/330 (38%)     progress 126/330 (38%)     progress 127/330 (38%)     progress 128/330 (39%)     progress 129/330 (39%)     progress 130/330 (39%)     progress 131/330 (40%)     progress 132/330 (40%)     progress 133/330 (40%)     progress 134/330 (41%)     progress 135/330 (41%)     progress 136/330 (41%)     progress 137/330 (42%)     progress 138/330 (42%)     progress 139/330 (42%)     progress 140/330 (42%)     progress 141/330 (43%)     progress 142/330 (43%)     progress 143/330 (43%)     progress 144/330 (44%)     progress 145/330 (44%)     progress 146/330 (44%)     progress 147/330 (45%)     progress 148/330 (45%)   
