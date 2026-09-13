@@ -12,7 +12,24 @@
 | `02-gate0-attempt2-killed-at-27.log` | ความพยายามที่สอง · **27 run สำเร็จ error 0** แล้วโปรเซสถูกฆ่ากลางรันที่ 28 โดยไม่มีข้อความใด ๆ (exit 1) · สมุด attempt มี `start.json` แต่ไม่มี `artifact.json` = `interrupted_unknown` · lock ค้างต้องแกะด้วย `--break` |
 | `03-gate0-resume-session-limit-at-32.log` | resume จาก 27 · เก็บถึง **32** แล้วชนลิมิตยาว · runner หยุดทั้งชุด เซฟ checkpoint ปล่อย lock เอง exit 0 |
 | `04-gate0-resume-complete-55.log` | resume จาก 32 · เก็บครบ **55/55** หลังโควตารีเซ็ต |
-| `05-main-rep1-5-IN-PROGRESS.log` | `npm run main` เก็บ rep 1–5 · **สำเนานี้ถ่ายระหว่างที่ยังรันอยู่ จึงไม่สมบูรณ์** ต้องคัดลอกทับอีกครั้งเมื่อจบ |
+| `05-main-from-55-killed-at-68.log` | `npm run main` ครั้งแรก · เก็บถึง **68** แล้วโปรเซสถูกฆ่าเงียบ ๆ อีกครั้ง (exit 1 ไม่มีข้อความ) · ครั้งนี้เดินได้ 38 นาที ไม่ใช่ 62 จึงไม่ใช่อายุคงที่ · สิ่งที่ตรงกันทั้งสองครั้งคือมีงาน I/O หนักใน repo เกิดขึ้นพร้อมกัน (commit ก้อนใหญ่) ยังไม่ยืนยันกลไก |
+| `06-main-from-68-session-limit-at-86.log` | resume จาก 68 · เก็บถึง **86** แล้วชนลิมิตยาว (reset 18:10 น.) · หยุดสะอาด ปล่อย lock เอง |
+| `07-main-from-86-handover-at-94.log` | resume จาก 86 · เก็บถึง **94** แล้ว**ผู้วิจัยขอรับช่วงไปรันเองในเทอร์มินัลตัวเอง** · ผู้ช่วยหยุด background task ปิด runner ที่ยังลอยอยู่ (pid 29544 พร้อม child) แกะ lock และส่งมอบ |
+
+## การส่งมอบ 13 ก.ย. 2569 ที่ 94/330
+
+เหตุผล: background task ของ session ผู้ช่วยถูกฆ่าเงียบ ๆ สองครั้ง (ที่ 27 และที่ 68)
+การรันจากเทอร์มินัลของผู้วิจัยเองไม่ขึ้นกับอายุ session นั้น
+
+ข้อควรรู้ที่พบตอนส่งมอบ: `TaskStop` หยุดได้แค่ตัวห่อ `npm` — โปรเซส `node runner.mjs`
+ตัวจริงยังทำงานต่อและยังถือ fixture lock อยู่ ต้องปิดด้วย `taskkill /PID <pid> /T /F`
+แล้วแกะ lock ด้วย `node scripts/fixture-lock.mjs --break` จึงจะส่งมอบได้จริง
+
+**คำสั่งที่ผู้วิจัยใช้ต่อจากนี้** (เก็บ log ลงไฟล์ไปด้วย เพราะ scrollback ของเทอร์มินัลไม่ใช่หลักฐาน):
+
+```bash
+npm run main 2>&1 | tee -a evidence/collection-log/08-main-terminal.log
+```
 
 ## สิ่งที่ log ชุดนี้เป็นหลักฐาน
 

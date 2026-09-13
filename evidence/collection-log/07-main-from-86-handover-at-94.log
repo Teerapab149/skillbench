@@ -1,0 +1,14 @@
+
+> skillbench@0.1.0 main
+> node src/runner.mjs --adapter claude-cli --reps 6 --resume
+
+
+SkillBench — claude-cli
+  11 scenarios x 5 arms x 6 reps = 330 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: 597e411c-3d9f-4c8c-8f65-b8d815bd9421
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 86/330 run
+
+  progress 87/330 (26%)     progress 88/330 (27%)     progress 89/330 (27%)     progress 90/330 (27%)     progress 91/330 (28%)     progress 92/330 (28%)     progress 93/330 (28%)     progress 94/330 (28%)   
+[killed]
