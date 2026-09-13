@@ -1,0 +1,24 @@
+
+> skillbench@0.1.0 gate0
+> node src/runner.mjs --adapter claude-cli --reps 6 --stop-after-rep 0 --resume
+
+
+SkillBench — claude-cli
+  11 scenarios x 5 arms x 6 reps = 330 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: 597e411c-3d9f-4c8c-8f65-b8d815bd9421
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 32/330 run
+
+  progress 33/330 (10%)     progress 34/330 (10%)     progress 35/330 (11%)     progress 36/330 (11%)     progress 37/330 (11%)     progress 38/330 (12%)     progress 39/330 (12%)     progress 40/330 (12%)     progress 41/330 (12%)     progress 42/330 (13%)     progress 43/330 (13%)     progress 44/330 (13%)     progress 45/330 (14%)     progress 46/330 (14%)     progress 47/330 (14%)     progress 48/330 (15%)     progress 49/330 (15%)     progress 50/330 (15%)     progress 51/330 (15%)     progress 52/330 (16%)     progress 53/330 (16%)     progress 54/330 (16%)     progress 55/330 (17%)   
+
+  หยุดตาม --stop-after-rep 0 (เป้าหมายเต็มยังเป็น 6 รอบ)
+  checkpoint เดิมใช้ต่อได้ — สั่งคำสั่งเดิมพร้อม --resume โดยไม่ต้องแก้ --reps
+
+
+
+  บันทึกที่ results/latest.json (+ graded-2026-09-12T20-47-27.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+
+[exited with code 0]

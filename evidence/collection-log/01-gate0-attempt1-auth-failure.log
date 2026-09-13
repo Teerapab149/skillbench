@@ -1,0 +1,21 @@
+
+> skillbench@0.1.0 gate0
+> node src/runner.mjs --adapter claude-cli --reps 6 --stop-after-rep 0 --resume
+
+
+SkillBench — claude-cli
+  11 scenarios x 5 arms x 6 reps = 330 runs
+
+  experimentId: e6e63f12-2dbe-4f34-a086-f12c970243bc
+  progress 1/330 (0%) [error]     progress 2/330 (1%) [error]     progress 3/330 (1%) [error]     progress 4/330 (1%) [error]     progress 5/330 (2%) [error]     progress 6/330 (2%) [error]     progress 7/330 (2%) [error]     progress 8/330 (2%) [error]     progress 9/330 (3%) [error]     progress 10/330 (3%) [error]     progress 11/330 (3%) [error]     progress 12/330 (4%) [error]     progress 13/330 (4%) [error]     progress 14/330 (4%) [error]     progress 15/330 (5%) [error]     progress 16/330 (5%) [error]     progress 17/330 (5%) [error]     progress 18/330 (5%) [error]     progress 19/330 (6%) [error]     progress 20/330 (6%) [error]     progress 21/330 (6%) [error]     progress 22/330 (7%) [error]     progress 23/330 (7%) [error]     progress 24/330 (7%) [error]     progress 25/330 (8%) [error]     progress 26/330 (8%) [error]     progress 27/330 (8%) [error]     progress 28/330 (8%) [error]     progress 29/330 (9%) [error]     progress 30/330 (9%) [error]     progress 31/330 (9%) [error]     progress 32/330 (10%) [error]     progress 33/330 (10%) [error]     progress 34/330 (10%) [error]     progress 35/330 (11%) [error]     progress 36/330 (11%) [error]     progress 37/330 (11%) [error]     progress 38/330 (12%) [error]     progress 39/330 (12%) [error]     progress 40/330 (12%) [error]     progress 41/330 (12%) [error]     progress 42/330 (13%) [error]     progress 43/330 (13%) [error]     progress 44/330 (13%) [error]     progress 45/330 (14%) [error]     progress 46/330 (14%) [error]     progress 47/330 (14%) [error]     progress 48/330 (15%) [error]     progress 49/330 (15%) [error]     progress 50/330 (15%) [error]     progress 51/330 (15%) [error]     progress 52/330 (16%) [error]     progress 53/330 (16%) [error]     progress 54/330 (16%) [error]     progress 55/330 (17%) [error]   
+
+  หยุดตาม --stop-after-rep 0 (เป้าหมายเต็มยังเป็น 6 รอบ)
+  checkpoint เดิมใช้ต่อได้ — สั่งคำสั่งเดิมพร้อม --resume โดยไม่ต้องแก้ --reps
+
+
+
+  บันทึกที่ results/latest.json (+ graded-2026-09-12T11-00-11.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+
+[exited with code 0]

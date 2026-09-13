@@ -1,0 +1,15 @@
+
+> skillbench@0.1.0 gate0
+> node src/runner.mjs --adapter claude-cli --reps 6 --stop-after-rep 0 --resume
+
+
+SkillBench — claude-cli
+  11 scenarios x 5 arms x 6 reps = 330 runs
+
+  experimentId: 597e411c-3d9f-4c8c-8f65-b8d815bd9421
+
+  แช่แข็ง manifest จาก run แรก -> manifest-8a1fface554f.json
+    CLI 2.1.224 · tool 7 · baseline skill 18 · auth none
+    digest ของไฟล์การทดลอง a0be0bb1f0e5e7a1
+  progress 1/330 (0%)     progress 2/330 (1%)     progress 3/330 (1%)     progress 4/330 (1%)     progress 5/330 (2%)     progress 6/330 (2%)     progress 7/330 (2%)     progress 8/330 (2%)     progress 9/330 (3%)     progress 10/330 (3%)     progress 11/330 (3%)     progress 12/330 (4%)     progress 13/330 (4%)     progress 14/330 (4%)     progress 15/330 (5%)     progress 16/330 (5%)     progress 17/330 (5%)     progress 18/330 (5%)     progress 19/330 (6%)     progress 20/330 (6%)     progress 21/330 (6%)     progress 22/330 (7%)     progress 23/330 (7%)     progress 24/330 (7%)     progress 25/330 (8%)     progress 26/330 (8%)     progress 27/330 (8%)   
+[exited with code 1]
