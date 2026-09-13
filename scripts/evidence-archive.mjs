@@ -17,7 +17,24 @@ import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..')
-const DEST = join(ROOT, 'evidence', 'transcripts')
+/*
+ * แยกสองกอง เพราะสองกองนี้คนละชนิดของหลักฐาน และคนละระดับความอ่อนไหว
+ *
+ *   agent-runs/  บทสนทนาของเอเจนต์ในระหว่างการทดลอง = หลักฐานการวัด
+ *                กรรมการหรือคนที่อยากตรวจซ้ำต้องใช้ · commit เข้า repo
+ *
+ *   sessions/    บทสนทนาระหว่างผู้วิจัยกับผู้ช่วยตอนสร้างระบบ = บันทึกการทำงาน
+ *                มีทุกอย่างที่พิมพ์คุยกัน · **ไม่ commit** เก็บไว้ในเครื่องอย่างเดียว
+ *
+ * ก่อนหน้านี้คัดลอกรวมกันแบนราบไว้ที่เดียว ทำให้ตัดสินใจเรื่อง commit ทีหลังไม่ได้
+ * โดยไม่ต้องมานั่งแยกไฟล์เอง — ผู้วิจัยตัดสินเมื่อ 13 ก.ย. 2569 ให้ commit เฉพาะกองแรก
+ */
+const TRANSCRIPTS = join(ROOT, 'evidence', 'transcripts')
+const AGENT_DIR = 'agent-runs'
+const SESSION_DIR = 'sessions'
+
+/** โฟลเดอร์ของ fixture คือการรันของเอเจนต์ ที่เหลือคือบทสนทนาการทำงาน */
+const bucketOf = (dir) => (dir.endsWith('fixtures-gpu-booking') ? AGENT_DIR : SESSION_DIR)
 const COPY = process.argv.includes('--copy')
 
 // ชื่อโฟลเดอร์ของ Claude Code = path ของโปรเจกต์ที่แทน separator ด้วย -
@@ -53,19 +70,21 @@ if (!COPY) {
   process.exit(0)
 }
 
-mkdirSync(DEST, { recursive: true })
+mkdirSync(join(TRANSCRIPTS, AGENT_DIR), { recursive: true })
+mkdirSync(join(TRANSCRIPTS, SESSION_DIR), { recursive: true })
 const rows = []
 for (const f of found) {
   const buf = readFileSync(f.abs)
   const sha = createHash('sha256').update(buf).digest('hex')
-  const out = join(DEST, f.name)
+  const bucket = bucketOf(f.dir)
+  const out = join(TRANSCRIPTS, bucket, f.name)
   copyFileSync(f.abs, out)
   // นับ turn ของผู้ใช้แบบหยาบ ๆ เพื่อให้ index บอกได้ว่าไฟล์ไหนคือช่วงงานหนัก
   let userTurns = 0
   for (const line of buf.toString('utf8').split('\n')) {
     if (line.includes('"role":"user"') || line.includes('"type":"user"')) userTurns++
   }
-  rows.push({ ...f, sha, userTurns })
+  rows.push({ ...f, sha, userTurns, bucket })
   console.log(`  คัดลอก ${f.name}  sha256 ${sha.slice(0, 16)}…`)
 }
 
@@ -82,13 +101,29 @@ const index = [
   '> แต่ hash ที่เก็บในไฟล์เดียวกับข้อมูลไม่ใช่ notarization — สิ่งที่ใกล้เคียงที่สุดคือ',
   '> เวลาของ commit ที่ push ขึ้น remote แล้ว',
   '',
-  '| แก้ไขล่าสุด | ขนาด | turn ของผู้ใช้ (ประมาณ) | ไฟล์ | sha256 |',
+  '## agent-runs/ — บทสนทนาของเอเจนต์ระหว่างการทดลอง (อยู่ใน git)',
+  '',
+  'หลักฐานการวัดโดยตรง · ใช้ตรวจซ้ำได้ว่าเอเจนต์เห็นอะไรและทำอะไร',
+  '',
+  '| แก้ไขล่าสุด | ขนาด | turn (ประมาณ) | ไฟล์ | sha256 |',
   '|---|---:|---:|---|---|',
-  ...rows.map((r) => `| ${r.mtime.slice(0, 16).replace('T', ' ')} | ${(r.bytes / 1024 / 1024).toFixed(2)} MB | ${r.userTurns} | \`${r.name}\` | \`${r.sha}\` |`),
+  ...rows.filter((r) => r.bucket === AGENT_DIR).map((r) => `| ${r.mtime.slice(0, 16).replace('T', ' ')} | ${(r.bytes / 1024 / 1024).toFixed(2)} MB | ${r.userTurns} | \`${AGENT_DIR}/${r.name}\` | \`${r.sha}\` |`),
+  '',
+  '## sessions/ — บทสนทนาการทำงานระหว่างผู้วิจัยกับผู้ช่วย (**ไม่อยู่ใน git**)',
+  '',
+  'บันทึกว่าใครกำหนดทิศทางและใครตัดสินใจ · มีเนื้อหาที่พิมพ์คุยกันทั้งหมด',
+  'ผู้วิจัยตัดสินเมื่อ 13 ก.ย. 2569 ให้เก็บไว้ในเครื่องอย่างเดียว ไม่ commit',
+  'แถว sha256 ด้านล่างยังอยู่ในดัชนี เพื่อให้อ้างอิงและตรวจความครบถ้วนได้แม้ไฟล์ไม่ได้อยู่ใน repo',
+  '',
+  '| แก้ไขล่าสุด | ขนาด | turn (ประมาณ) | ไฟล์ | sha256 |',
+  '|---|---:|---:|---|---|',
+  ...rows.filter((r) => r.bucket === SESSION_DIR).map((r) => `| ${r.mtime.slice(0, 16).replace('T', ' ')} | ${(r.bytes / 1024 / 1024).toFixed(2)} MB | ${r.userTurns} | \`${SESSION_DIR}/${r.name}\` | \`${r.sha}\` |`),
   '',
   `รวม ${rows.length} ไฟล์ · ${totalMb.toFixed(1)} MB`,
 ].join('\n')
 
-writeFileSync(join(DEST, 'INDEX.md'), index + '\n', 'utf8')
+writeFileSync(join(TRANSCRIPTS, 'INDEX.md'), index + '\n', 'utf8')
 console.log(`\nเขียน evidence/transcripts/INDEX.md แล้ว (${rows.length} ไฟล์)`)
-console.log('⚠️  ไฟล์เหล่านี้มีเนื้อหาการสนทนาทั้งหมด ตรวจก่อนว่าจะ commit หรือเก็บไว้นอก repo')
+const nAgent = rows.filter((r) => r.bucket === AGENT_DIR).length
+console.log(`  agent-runs/ ${nAgent} ไฟล์ — อยู่ใน git เป็นหลักฐานการวัด`)
+console.log(`  sessions/   ${rows.length - nAgent} ไฟล์ — ไม่อยู่ใน git มีเนื้อหาที่พิมพ์คุยกันทั้งหมด`)

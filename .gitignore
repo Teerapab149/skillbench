@@ -16,8 +16,10 @@ fixtures/*/.claude/
 # ก้อนไฟล์ชั่วคราว — สร้างใหม่ได้ด้วย npm run pilot / npm run review:bundle
 tmp/
 
-# บทสนทนาดิบ — มีทุกอย่างที่เคยพิมพ์ ตัดสินใจเองว่าจะ commit ไหม (ดู evidence/INSTALL.md)
-evidence/transcripts/
+# บทสนทนาการทำงานระหว่างผู้วิจัยกับผู้ช่วย — มีทุกอย่างที่เคยพิมพ์
+# ผู้วิจัยตัดสิน 13 ก.ย. 2569: เก็บในเครื่องอย่างเดียว ไม่ commit
+# ส่วน evidence/transcripts/agent-runs/ คือหลักฐานการวัด ต้องอยู่ใน git
+evidence/transcripts/sessions/
 
 # ล็อกกันเครื่องมือแตะ fixture ชนกัน — สถานะรันไทม์ล้วน ไม่ใช่ของโปรเจกต์
 .locks/
