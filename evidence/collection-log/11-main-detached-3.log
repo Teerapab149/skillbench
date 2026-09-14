@@ -1,0 +1,19 @@
+
+SkillBench — claude-cli
+  11 scenarios x 5 arms x 6 reps = 330 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: 597e411c-3d9f-4c8c-8f65-b8d815bd9421
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 148/330 run
+
+  progress 149/330 (45%)     progress 150/330 (45%)     progress 151/330 (46%)   
+
+  หยุดชั่วคราว — You've hit your session limit · resets 4:10am (Asia/Bangkok)
+  เก็บไว้แล้ว 151 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results/latest.json (+ graded-2026-09-13T18-03-31.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
