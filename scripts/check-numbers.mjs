@@ -51,9 +51,16 @@ let failedTranscripts = false;
 const LATEST = path.join(ROOT, 'results', 'latest.json');
 const TRANSCRIPTS = path.join(ROOT, 'evidence', 'transcripts');
 if (fs.existsSync(LATEST)) {
-  const archived = fs.existsSync(TRANSCRIPTS)
-    ? fs.readdirSync(TRANSCRIPTS).filter((f) => f.endsWith('.jsonl')).length
-    : 0;
+  /*
+   * นับแบบลงไปในโฟลเดอร์ย่อยด้วย — ตั้งแต่แยก agent-runs/ (เข้า git เป็นหลักฐานการวัด)
+   * ออกจาก sessions/ (ไม่เข้า git เพราะมีบทสนทนาที่พิมพ์คุยกัน) ไฟล์ .jsonl ไม่ได้อยู่
+   * ที่ชั้นบนสุดอีกแล้ว การนับแค่ชั้นเดียวจึงได้ 0 เสมอและด่านนี้ร้องเตือนผิด
+   */
+  const countJsonl = (dir) => fs.readdirSync(dir, { withFileTypes: true })
+    .reduce((n, e) => n + (e.isDirectory()
+      ? countJsonl(path.join(dir, e.name))
+      : (e.name.endsWith('.jsonl') ? 1 : 0)), 0);
+  const archived = fs.existsSync(TRANSCRIPTS) ? countJsonl(TRANSCRIPTS) : 0;
   if (archived === 0) {
     console.log('  ❌ มีข้อมูลจริงใน results/ แล้ว แต่ยังไม่ได้เก็บ transcript ดิบ');
     console.log('      บทสนทนาดิบอยู่นอก repo ในโฟลเดอร์ที่ถูกลบได้ · เก็บด้วย:');

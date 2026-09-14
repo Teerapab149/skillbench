@@ -39,7 +39,7 @@ const meta = raw.meta;
  * ต้องรายงานจำนวนที่ตัดทิ้งเสมอ — การตัดข้อมูลโดยไม่บอกคือสิ่งที่กรรมการควรจับได้
  */
 const excluded = raw.graded.filter((g) => g.error);
-const graded = raw.graded.filter((g) => !g.error);
+let graded = raw.graded.filter((g) => !g.error);
 if (excluded.length) {
   console.log(`  ตัด ${excluded.length} run ที่ล้มเหลวเชิงโครงสร้างออกจากการวิเคราะห์ (เหลือ ${graded.length})`);
 }
@@ -119,7 +119,16 @@ if (alloc.violations?.length) {
 const DECLARED_REPS = alloc.declaredReps;
 const FALLBACK = alloc.fallback ?? null;
 if (FALLBACK) {
-  console.log(`  กฎสำรอง Amendment 14: ตัดจาก ${FALLBACK.from} รอบเหลือ ${FALLBACK.to} รอบเท่ากันทุก arm · ทิ้ง ${alloc.discarded.length} run ที่เก็บมาแล้ว`);
+  /*
+   * ต้อง "ตัดจริง" ไม่ใช่แค่ประกาศว่าตัด — ข้อบกพร่องที่พบ 15 ก.ย. 2569
+   *
+   * เดิมบรรทัดนี้พิมพ์ว่าทิ้ง N run แล้วปล่อย graded ไว้ทั้งก้อน ผลคือ run ของรอบที่เกิน
+   * ยังเข้าการวิเคราะห์ และเพราะรอบสุดท้ายเก็บไม่ครบ n ต่อ arm จึงไม่เท่ากัน
+   * (45 ถึง 50 แทนที่จะเป็น 44 เท่ากันทุก arm) ซึ่งขัดกับกฎสำรองที่ประกาศไว้ตรง ๆ
+   * เพราะชื่อของมันคือ uniform-rep-truncation — ความเท่ากันคือสาระของกฎ ไม่ใช่ผลพลอยได้
+   */
+  graded = graded.filter((g) => g.rep < DECLARED_REPS);
+  console.log(`  กฎสำรอง Amendment 14: ตัดจาก ${FALLBACK.from} รอบเหลือ ${FALLBACK.to} รอบเท่ากันทุก arm · ทิ้ง ${alloc.discarded.length} run ที่เก็บมาแล้ว · เหลือ ${graded.length} run`);
 }
 
 // Amendment 15: run ที่ชนเพดานงบ turn ไม่ใช่ run ที่ล้มเหลว จึงอยู่ใน graded ตามปกติ
