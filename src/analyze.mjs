@@ -323,14 +323,28 @@ function pairedCompare(armA, armB, metric, { filter = null } = {}) {
     const pa = ra[metric] === 1, pb = rb[metric] === 1;
     if (pa && !pb) b++; else if (!pa && pb) c++; else if (pa) both++; else neither++;
   }
+  /*
+   * ค่า null = วัดไม่ได้ ไม่ใช่ศูนย์ — ต้องตัดออก ไม่ใช่นับเป็นความล้มเหลว
+   *
+   * RCRc เป็น null เมื่อโจทย์ไม่มีนิยามความสำเร็จ หรือเมื่อ harness ของเทสยอมรับ
+   * รันไม่ได้ การปล่อยให้ null ไหลเข้าไปคำนวณจะกลายเป็น NaN เงียบ ๆ
+   * ส่วนการแทนด้วยศูนย์จะเปลี่ยน "วัดไม่ได้" ให้กลายเป็น "ไม่ทำตามกฎเลย"
+   * จำนวนที่ถูกตัดต้องรายงานทุกครั้ง
+   */
   const clA = {}, clB = {};
+  let droppedNull = 0;
+  const usable = (rows) => {
+    const v = rows.map((r) => r[metric]).filter((x) => x !== null && x !== undefined);
+    droppedNull += rows.length - v.length;
+    return v;
+  };
   for (const id of scenIds) {
-    clA[id] = by(armA).filter((r) => r.scenarioId === id).map((r) => r[metric]);
-    clB[id] = by(armB).filter((r) => r.scenarioId === id).map((r) => r[metric]);
+    clA[id] = usable(by(armA).filter((r) => r.scenarioId === id));
+    clB[id] = usable(by(armB).filter((r) => r.scenarioId === id));
   }
   const boot = clusterBootstrapDiff(clA, clB, { iters: 4000 });
-  const pA = mean(by(armA).map((r) => r[metric]));
-  const pB = mean(by(armB).map((r) => r[metric]));
+  const pA = mean(usable(by(armA)));
+  const pB = mean(usable(by(armB)));
 
   /*
    * สถิติหลักตาม PRE-REGISTRATION.md §1 — หน่วยคือ scenario ไม่ใช่ run
@@ -353,7 +367,7 @@ function pairedCompare(armA, armB, metric, { filter = null } = {}) {
   const losses = perScenDiff.filter((x) => x.d < 0).length;
   const ties = perScenDiff.filter((x) => x.d === 0).length;
 
-  return { armA, armB, metric, mcnemar: mcnemarExact(b, c), both, neither, boot, pA, pB,
+  return { armA, armB, metric, droppedNull, mcnemar: mcnemarExact(b, c), both, neither, boot, pA, pB,
            h: cohensH(pA, pB), signFlip, perScenDiff, loso: leaveOneScenarioOut(perScenDiff), unmatched, wins, losses, ties };
 }
 
@@ -604,14 +618,35 @@ p('');
  * และเปิดช่องให้ใครก็ตาม (รวมทั้งตัวเราเองตอนเขียนเล่ม) หยิบแถวที่ p สวยที่สุดมาเล่า
  * ทั้งที่ยังไม่มีการคุม alpha ให้แถวอื่นเลย
  */
-const PRIMARY = { armA: 'A2', armB: 'A1', metric: 'CRIT' };
+/*
+ * endpoint มาจากไฟล์ config ที่ --config ชี้ ไม่ใช่ค่าคงที่ในโค้ด — 18 ก.ย. 2569
+ *
+ * ก่อนแก้ ทั้ง primary และ co-primary ถูกเขียนตายไว้เป็น CRIT และ RCR ผลคือ
+ * ต่อให้ประกาศแผนของชุดที่ 2 ไว้ในเอกสารและใน config อย่างไร รายงานก็ยังพิมพ์
+ * ลำดับชั้นของชุดที่ 1 ออกมา = แผนที่ประกาศไว้ไม่มีโค้ดตัวไหนทำตาม
+ * ซึ่งเป็นวิธีที่ pre-registration กลายเป็น "คำนวณเองทีหลัง" ได้เนียนที่สุด
+ */
+const ENDPOINTS = (() => {
+  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')); } catch { return {}; }
+})();
+const PRIMARY = ENDPOINTS.primaryEndpoint?.armA
+  ? { armA: ENDPOINTS.primaryEndpoint.armA, armB: ENDPOINTS.primaryEndpoint.armB,
+      metric: ENDPOINTS.primaryEndpoint.metric }
+  : { armA: 'A2', armB: 'A1', metric: 'CRIT' };
+const SECOND = ENDPOINTS.coPrimaryEndpoint?.metric
+  ? { armA: ENDPOINTS.coPrimaryEndpoint.armA ?? PRIMARY.armA,
+      armB: ENDPOINTS.coPrimaryEndpoint.armB ?? PRIMARY.armB,
+      metric: ENDPOINTS.coPrimaryEndpoint.metric,
+      label: ENDPOINTS.coPrimaryEndpoint.label ?? 'CO-PRIMARY',
+      source: ENDPOINTS.coPrimaryEndpoint.declaredIn ?? 'config' }
+  : null;
 const hasPrimary = armIds.includes(PRIMARY.armA) && armIds.includes(PRIMARY.armB);
 
-p('### 6.1 PRIMARY — `CRIT` · A2 เทียบ A1 · exact paired sign-flip ที่ระดับ scenario');
+p(`### 6.1 PRIMARY — \`${PRIMARY.metric}\` · ${PRIMARY.armA} เทียบ ${PRIMARY.armB} · exact paired sign-flip ที่ระดับ scenario`);
 p('');
 p('> **ตารางนี้มีแถวเดียวโดยเจตนา** — pre-registration ประกาศ primary endpoint ไว้ตัวเดียว');
 p('> หน่วยข้อมูลคือ **scenario** ไม่ใช่ run · ผลต่างคือค่าเฉลี่ยรายโจทย์ · ช่วง pairwise effect จาก scenario-cluster bootstrap (k จำกัดที่ 11)');
-p('> ประกาศไว้ใน `PRE-REGISTRATION.md` §1 (Amendment 4)');
+p(`> ประกาศไว้ใน \`${path.relative(ROOT, CONFIG_FILE).split(String.fromCharCode(92)).join('/')}\` (primaryEndpoint) และเอกสารประกาศแผนของชุดนั้น`);
 p('');
 if (!hasPrimary) {
   p('**ข้อมูลชุดนี้ไม่มีทั้ง A1 และ A2 จึงไม่มี primary endpoint ให้รายงาน**');
@@ -787,11 +822,18 @@ p('> ค่าที่ใช้วางแผนมาจากโมเดล
 p('> ทั้งสองค่าต้องปรากฏในเล่มคู่กันตามที่ประกาศไว้ใน `PRE-REGISTRATION.md` §10');
 p('');
 
-p('### 6.1b CO-PRIMARY — `RCR` · A2 เทียบ A1 · ทดสอบต่อเมื่อ primary ผ่านประตู');
+if (!SECOND) {
+  p('### 6.1b ไม่มี endpoint ลำดับที่สองที่อ้างนัยสำคัญได้');
+  p('');
+  p('> ไฟล์นิยามการทดลองของชุดนี้ไม่ได้ประกาศ endpoint ลำดับที่สองไว้');
+  p('> ตัวชี้วัดอื่นทั้งหมดรายงานเชิงพรรณนาในหัวข้อถัดไป และห้ามอ้างนัยสำคัญ');
+  p('');
+} else {
+p(`### 6.1b ${SECOND.label} — \`${SECOND.metric}\` · ${SECOND.armA} เทียบ ${SECOND.armB} · ทดสอบต่อเมื่อ primary ผ่านประตู`);
 p('');
 p(`> fixed-sequence gatekeeping: ทดสอบแถวนี้**ก็ต่อเมื่อ** §6.1 ให้ p < ${ALPHA} เท่านั้น`);
 p('> ลำดับตายตัวจึงไม่ต้องปรับค่าวิกฤต และไม่มีตัวชี้วัดใดถูกทิ้ง');
-p('> ประกาศไว้ใน `config/arms.json` (`coPrimaryEndpoint`) และ `PRE-REGISTRATION.md` §1');
+p(`> ประกาศไว้ใน \`${path.relative(ROOT, CONFIG_FILE).split(String.fromCharCode(92)).join('/')}\` (coPrimaryEndpoint) และ ${SECOND.source}`);
 p('');
 if (!hasPrimary) {
   p('**ข้อมูลชุดนี้ไม่มีทั้ง A1 และ A2 จึงไม่มี co-primary ให้รายงาน**');
@@ -807,11 +849,12 @@ if (!hasPrimary) {
     const r = pairedCompare(PRIMARY.armA, PRIMARY.armB, 'RCR');
     p(`**ประตูเปิด** — §6.1 ให้ p = ${fmtP(pr.signFlip.p)} < ${ALPHA}`);
     p('');
-    p('| เปรียบเทียบ | metric | A2 | A1 | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | **p (sign-flip)** |');
+    p(`| เปรียบเทียบ | metric | ${SECOND.armA} | ${SECOND.armB} | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | **p (sign-flip)** |`);
     p('|---|---|---|---|---|---|---:|---|');
-    p(`| **A2 vs A1** | **RCR** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
+    p(`| **${SECOND.armA} vs ${SECOND.armB}** | **${SECOND.metric}** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
     if (r.unmatched.length) p(`\n> ⚠️ โจทย์ที่มีข้อมูลข้างเดียวถูกตัดออก: ${r.unmatched.join(', ')}`);
   }
+}
 }
 p('');
 

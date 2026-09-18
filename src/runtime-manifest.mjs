@@ -56,7 +56,16 @@ export function experimentDigest(root) {
    * ผลข้างเคียงที่ตั้งใจ: แก้บั๊กใน harness ระหว่างเก็บข้อมูลจะทำให้ต้องประกาศชุดใหม่
    * ซึ่งถูกต้องแล้ว — ข้อมูลก่อนและหลังแก้ไม่ได้มาจากเครื่องมือตัวเดียวกัน
    */
-  for (const rel of ['arms', 'scenarios', 'config/arms.json', 'config/rules-canonical.json',
+  /*
+   * ⚠️ config ของ **ทุกชุดการทดลอง** ต้องอยู่ในนี้ ไม่ใช่เฉพาะชุดที่ 1
+   *
+   * ชุดที่ 2 ย้ายนิยามการทดลองไปที่ config/arms-study2.json เพื่อให้ชุดที่ 1
+   * วิเคราะห์ซ้ำได้จากไฟล์เดิม ถ้ารายการนี้ไม่ตามไปด้วย ไฟล์ที่นิยามการทดลอง
+   * ของชุดที่ 2 จะอยู่นอก digest ทั้งก้อน แก้ระหว่างเก็บข้อมูลได้โดยไม่มีอะไรหยุด
+   * ซึ่งเป็นช่องเดียวกับที่กลไกนี้ถูกสร้างมาเพื่อปิด
+   */
+  for (const rel of ['arms', 'scenarios', 'config/arms.json', 'config/arms-study2.json',
+                     'config/rules-canonical.json',
                      'src/graders.mjs', 'src/install-arm.mjs', 'src/stats.mjs',
                      'src/runner.mjs', 'src/attempt-store.mjs', 'src/runtime-manifest.mjs', 'src/claude-bin.mjs',
                      'src/adapters/claude-cli.mjs', 'src/fixture-lock.mjs']) add(rel);

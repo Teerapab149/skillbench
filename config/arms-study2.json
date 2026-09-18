@@ -121,18 +121,16 @@
     }
   },
   "primaryEndpoint": {
-    "metric": "CRIT",
-    "comparison": "A2 vs A1",
-    "clusterUnit": "scenario",
-    "test": "exact paired sign-flip (permutation) บนผลต่างค่าเฉลี่ย CRIT ราย scenario — stats.mjs exactSignFlipTest",
-    "interval": "cluster bootstrap 95% CI ที่ระดับ scenario — stats.mjs clusterBootstrapDiff",
-    "sensitivityAnalysis": "McNemar exact ระดับ run (stats.mjs mcnemarExact) — รายงานควบคู่เสมอ แต่ไม่ใช่ primary",
-    "declaredOn": "2026-08-09",
-    "revisedOn": "2026-09-04",
-    "_revisionWhy": "ของเดิมประกาศ McNemar ระดับ run เป็น primary ซึ่งขัดกับ PRE-REGISTRATION.md ที่เขียนไว้แล้วว่าหน่วยวิเคราะห์คือ scenario (n = k โจทย์ ไม่ใช่ k×m run) · run ในโจทย์เดียวกันไม่เป็นอิสระต่อกัน (ICC = 0.335) การนับ b/c จาก run ทั้งหมดจึงเป็นการเคลม information ที่ไม่มีอยู่ และให้ CI แคบเกินจริง · การแก้ครั้งนี้ทำให้ config, PRE-REGISTRATION.md, METRICS.md และ analyze.mjs พูดตรงกันเป็นครั้งแรก · ไม่มีตัวชี้วัดใดถูกทิ้ง McNemar ย้ายไปเป็น sensitivity",
-    "supersedes": "RCR",
-    "_see": "PRE-REGISTRATION.md — ลำดับชั้นแบบ fixed-sequence: CRIT -> RCR (gated) -> passHatK",
-    "_why": "McNemar และ requiredNPerArm ที่ประกาศไว้ล่วงหน้าเป็นเครื่องมือของผลลัพธ์ทวิภาค RCR เป็นเศษส่วนต่อเนื่องจึงไม่เคยเข้ากันกับแผนวิเคราะห์เดิม"
+    "metric": "RCRc",
+    "armA": "A2",
+    "armB": "A1",
+    "comparison": "A2 (Agent Skills) เทียบ A1 (CLAUDE.md ไฟล์เดียวโหลดตลอด)",
+    "statistic": "exact paired sign-flip ที่ระดับ scenario + cluster bootstrap 95% CI",
+    "unit": "scenario",
+    "declaredOn": "2026-09-18",
+    "declaredIn": "PRE-REGISTRATION-2.md §4",
+    "supersedes": "CRIT (ตัวชี้วัดหลักของชุดที่ 1)",
+    "_why": "CRIT เป็นการและกันของกฎวิกฤตทุกข้อ จึงบดคะแนนลงพื้นและทำให้โจทย์ส่วนใหญ่เสมอกัน · RCRc คือสัดส่วนกฎที่เข้าเงื่อนไขและผ่าน โดยมีเงื่อนไขว่างานหลักสำเร็จ"
   },
   "secondaryEndpoints": [
     "FULL",
@@ -154,14 +152,28 @@
     }
   ],
   "coPrimaryEndpoint": {
-    "metric": "RCR",
-    "comparison": "A2 vs A1",
-    "gatedOn": "CRIT",
-    "_why": "fixed-sequence gatekeeping ไม่ทำให้ alpha พอง และทำให้ไม่มีตัวชี้วัดใดถูกทิ้ง"
+    "metric": "RCRc",
+    "armA": "A5",
+    "armB": "A2",
+    "label": "KEY SECONDARY",
+    "gatedOn": "primary",
+    "declaredIn": "PRE-REGISTRATION-2.md §4",
+    "_why": "A5 ถือข้อความชุดเดียวกับ A2 แต่โหลดตลอดเวลา คู่นี้จึงแยกกลไกโหลดตามเงื่อนไขออกจากเนื้อหาได้ตรงที่สุดเท่าที่การออกแบบนี้ทำได้"
   },
-  "keySecondary": [
-    "passHatK"
-  ],
+  "keySecondary": [],
   "_purpose": "นิยามการทดลองของชุดที่ 2 (confirmatory) — แยกไฟล์จากชุดที่ 1 โดยเจตนา",
-  "_why": "ชุดที่ 1 ต้องวิเคราะห์ซ้ำได้จากไฟล์เดิมเสมอ การแก้ config/arms.json เพื่อชุดที่ 2 จะทำให้ด่านตรวจการจัดสรรของชุดที่ 1 ล้ม และ manifest ที่ตรึงไว้ไม่ตรงอีกต่อไป runner รับ --config อยู่แล้ว และ configPath อยู่ใน signature ของ checkpoint การแยกไฟล์จึงได้ checkpoint คนละก้อนโดยอัตโนมัติ"
+  "_why": "ชุดที่ 1 ต้องวิเคราะห์ซ้ำได้จากไฟล์เดิมเสมอ การแก้ config/arms.json เพื่อชุดที่ 2 จะทำให้ด่านตรวจการจัดสรรของชุดที่ 1 ล้ม และ manifest ที่ตรึงไว้ไม่ตรงอีกต่อไป runner รับ --config อยู่แล้ว และ configPath อยู่ใน signature ของ checkpoint การแยกไฟล์จึงได้ checkpoint คนละก้อนโดยอัตโนมัติ",
+  "reportingOnly": {
+    "metrics": [
+      "CRIT",
+      "RCRa",
+      "RCR",
+      "FULL",
+      "SCOPE",
+      "passHatK",
+      "triggerF1",
+      "tokenCost"
+    ],
+    "rule": "รายงานค่าและ CI ทุกตัว ห้ามอ้างนัยสำคัญ ห้ามคัดเลือกเฉพาะตัวที่ผลสวย"
+  }
 }

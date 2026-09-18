@@ -363,12 +363,32 @@ export function gradeRun(artifact, scenario) {
   const rate = (rows) => (rows.length ? rows.filter((r) => r.passed).length / rows.length : null);
 
   /*
-   * งานหลักสำเร็จหรือไม่ — วัดจากเทสยอมรับที่เอเจนต์มองไม่เห็นเท่านั้น
-   * null = โจทย์นี้ไม่มีเทสยอมรับระดับ critical (ปัจจุบันมีข้อเดียวคือ S10)
+   * งานหลักสำเร็จหรือไม่ — ลำดับการตัดสินประกาศไว้ล่วงหน้า ห้ามเดาเป็นราย scenario
+   *
+   *   1. มีเทสยอมรับระดับ critical -> ใช้ผลของเทสนั้น
+   *      แต่ถ้าเทส **รันไม่ได้** (ran !== true) ถือว่า "วัดไม่ได้" ไม่ใช่ "ไม่สำเร็จ"
+   *      เพราะ RCRc คูณด้วยค่านี้ ความผิดพลาดของ harness จะเปลี่ยน run ที่สมบูรณ์แบบ
+   *      ให้กลายเป็นค่าต่ำสุดของตัวชี้วัดหลัก ซึ่งแยกไม่ออกจากการไม่ทำตามกฎเลย
+   *      นโยบายเดียวกับ captureError ใน adapter คือกัน run ออก ไม่ใช่ให้ศูนย์
+   *
+   *   2. ไม่มีเทสยอมรับ แต่ scenario ประกาศ `taskDone` ไว้ -> ใช้การ "และ" กันของกฎที่ระบุ
+   *      สำหรับโจทย์ที่ผลลัพธ์ที่ต้องการคือ **ข้อความ** ไม่ใช่โค้ดที่รันได้
+   *      (S10: แจ้งว่าข้อกำหนดขัดกันและอ้างถึงทั้งสองข้อ) การกันโจทย์แบบนี้ออกจาก
+   *      ตัวชี้วัดหลัก จะขัดกับเหตุผลที่เราคง text_matches ไว้เป็น critical ตั้งแต่ต้น
+   *
+   *   3. ไม่มีทั้งสองอย่าง -> null และโจทย์นั้นไม่เข้าตัวชี้วัด RCRc
    */
   const accIdx = scenario.rules.findIndex((r) => r.check?.type === 'acceptance_test'
     && (r.severity ?? 'major') === 'critical');
-  const taskDone = accIdx === -1 ? null : results[accIdx].passed;
+  let taskDone;
+  if (accIdx !== -1) {
+    taskDone = artifact.acceptance?.ran === true ? results[accIdx].passed : null;
+  } else if (Array.isArray(scenario.taskDone) && scenario.taskDone.length) {
+    const rows = scenario.taskDone.map((id) => results.find((r) => r.id === id));
+    taskDone = rows.some((r) => !r) ? null : rows.every((r) => r.passed);
+  } else {
+    taskDone = null;
+  }
   const RCRa_ = rate(critical.filter((r) => r.applicable));
   const scopeRules = results.filter((r) => r.id.startsWith('SC'));
 

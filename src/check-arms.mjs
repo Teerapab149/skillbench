@@ -27,6 +27,14 @@ refuseIfCollecting(ROOT, 'check-arms');
 lockFixtureForProcess(path.join(ROOT, 'fixtures/gpu-booking'), 'check-arms');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config/arms.json'), 'utf8'));
 
+const STUDY2 = path.join(ROOT, 'config/arms-study2.json');
+const knownArms = [...config.arms];
+if (fs.existsSync(STUDY2)) {
+  for (const arm of JSON.parse(fs.readFileSync(STUDY2, 'utf8')).arms ?? []) {
+    if (!knownArms.some((a) => a.id === arm.id)) knownArms.push(arm);
+  }
+}
+
 /** ประมาณจำนวน token แบบหยาบ — ไทยราว 1 token ต่อ 2 อักขระ, อังกฤษราว 1 ต่อ 4 */
 function estTokens(text) {
   return estimateTokens(text);
@@ -116,7 +124,7 @@ let fail = 0;
 // --- 1. token overhead ต่อ arm ---
 console.log('1) ขนาด context ต่อ arm  (always = กินทุก request, full = ถ้าโหลด skill ครบทุกตัว)');
 const sizes = {};
-for (const arm of config.arms) {
+for (const arm of knownArms) {
   const { always, full, alwaysParts, fullParts } = armText(arm);
   sizes[arm.id] = {
     always: alwaysParts.reduce((sum, part) => sum + estTokens(part), 0),
@@ -155,13 +163,6 @@ const PARITY_ARMS = ['A1', 'A2', 'A5'];
  * จากไฟล์เดิมเสมอ จึงห้ามยัด arm ใหม่เข้าไป แต่ด่านความเท่าเทียมของเนื้อหา
  * ต้องครอบคลุมทุก arm ที่อ้างว่าบรรจุกฎชุดเดียวกัน ไม่ว่าจะอยู่ config ไหน
  */
-const STUDY2 = path.join(ROOT, 'config/arms-study2.json');
-const knownArms = [...config.arms];
-if (fs.existsSync(STUDY2)) {
-  for (const arm of JSON.parse(fs.readFileSync(STUDY2, 'utf8')).arms ?? []) {
-    if (!knownArms.some((a) => a.id === arm.id)) knownArms.push(arm);
-  }
-}
 const armFull = Object.fromEntries(PARITY_ARMS.map((id) => {
   const arm = knownArms.find((a) => a.id === id);
   if (!arm) throw new Error(`ไม่พบ arm ${id} ใน config ใด ๆ`);
@@ -248,7 +249,7 @@ console.log('');
 // แล้วเอาผลของมันไปสรุปว่า "ความยาวข้อความไม่ได้ทำให้พฤติกรรมดีขึ้น"
 // ซึ่งตอบคำถามที่ว่า "แย่ลงเพราะไม่มีกฎ หรือเพราะถูกบอกว่าไม่ต้องทำตามกฎ" ไม่ได้เลย
 console.log('3b) context ต้องไม่เปิดเผยว่าเป็นการทดลอง');
-for (const arm of config.arms) {
+for (const arm of knownArms) {
   const { full } = armText(arm);
   const hits = LEAK_PATTERNS.filter((re) => re.test(full));
   const ok = hits.length === 0;
@@ -308,7 +309,7 @@ if (!fs.existsSync(path.join(fixtureForInstall, '.git'))) {
   fail++;
   console.log('   FAIL  fixture ยังไม่ใช่ git repo -> รัน node scripts/setup-fixtures.mjs ก่อน');
 } else {
-  for (const arm of config.arms) {
+  for (const arm of knownArms) {
     const r = verifyInstall({ workspace: fixtureForInstall, arm });
     const wantClaude = (arm.contextFiles ?? []).length > 0;
     const wantSkills = arm.skillsDir ? 1 : 0;
