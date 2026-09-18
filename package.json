@@ -24,7 +24,7 @@
     "fixture:test": "node --test \"fixtures/gpu-booking/tests/*.test.ts\"",
     "test": "node --test \"tests/*.test.mjs\"",
     "check:acceptance": "node scripts/check-acceptance.mjs && node scripts/check-acceptance-green.mjs && node scripts/check-acceptance-variants.mjs",
-    "gate": "node src/check-arms.mjs && node scripts/check-spec.mjs && node scripts/check-acceptance.mjs && node scripts/check-acceptance-green.mjs && node scripts/check-acceptance-variants.mjs && node scripts/make-coverage-map.mjs && node scripts/make-arms-explained.mjs && node scripts/gate-analysis.mjs && node scripts/check-numbers.mjs",
+    "gate": "node src/check-arms.mjs && node scripts/check-spec.mjs && node scripts/check-acceptance.mjs && node scripts/check-acceptance-green.mjs && node scripts/check-acceptance-variants.mjs && node scripts/make-coverage-map.mjs && node scripts/make-arms-explained.mjs && node scripts/gate-analysis.mjs && node scripts/check-rcra-floor.mjs && node scripts/check-numbers.mjs",
     "probe:runtime": "node scripts/probe-runtime.mjs",
     "gate0": "node src/runner.mjs --adapter claude-cli --reps 6 --stop-after-rep 0 --resume",
     "main": "node src/runner.mjs --adapter claude-cli --reps 6 --resume",
@@ -36,7 +36,8 @@
     "preflight": "node scripts/preflight.mjs",
     "coverage:map": "node scripts/make-coverage-map.mjs",
     "lock": "node scripts/fixture-lock.mjs",
-    "lock:break": "node scripts/fixture-lock.mjs --break"
+    "lock:break": "node scripts/fixture-lock.mjs --break",
+    "check:rcra": "node scripts/check-rcra-floor.mjs"
   },
   "engines": {
     "node": ">=18"
