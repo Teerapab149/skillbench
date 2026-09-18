@@ -42,7 +42,8 @@ test('any_of เข้าเงื่อนไขเมื่อมีข้อ�
   const onlyProhibition = { type: 'any_of', checks: [{ type: 'files_not_touch' }, { type: 'max_diff_lines' }] };
   const hasPositive = { type: 'any_of', checks: [{ type: 'files_not_touch' }, { type: 'diff_matches' }] };
   assert.equal(isApplicable(idle, onlyProhibition), false);
-  assert.equal(isApplicable(idle, hasPositive), true);
+  // "หรือ" จะตกได้ต้องตกทุกข้อย่อย ข้อย่อยที่ไม่เข้าเงื่อนไขจึงทำให้ทั้งกฎไม่เข้าเงื่อนไข
+  assert.equal(isApplicable(idle, hasPositive), false);
 });
 
 /*

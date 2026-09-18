@@ -34,30 +34,16 @@
       "expectedTokenOverhead": 400
     },
     {
-      "id": "A3",
-      "name": "Placebo (length-matched)",
-      "role": "placebo",
-      "desc": "ข้อความยาวเท่า A1 แต่เป็นเนื้อหาที่ไม่เกี่ยวกับกฎเลย (coding style ทั่วไป, ประวัติโปรเจกต์)",
+      "id": "A5",
+      "name": "Flattened skills (content-matched)",
+      "role": "content-control",
+      "desc": "ข้อความเหมือน A2 ทุกตัวอักษร แต่รวมเป็นไฟล์เดียวที่โหลดตลอดเวลา — แยกผลของกลไกออกจากผลของปริมาณข้อความ",
       "contextFiles": [
-        "arms/A3/CLAUDE.md"
+        "arms/A5/CLAUDE.md"
       ],
       "skillsEnabled": false,
-      "expectedTokenOverhead": 3200,
-      "_why": "arm นี้คือสิ่งที่ทำให้งานคุณต่างจากรีวิวเครื่องมือทั่วไป: มันแยก 'ผลของโครงสร้าง' ออกจาก 'ผลของจำนวน token'. ถ้า A3 ~= A1 แปลว่ากฎมีผลจริง; ถ้า A3 ~= A2 แปลว่าคุณแค่กำลังวัด context length"
-    },
-    {
-      "id": "A4",
-      "name": "Skills + adversarial injection",
-      "role": "robustness",
-      "desc": "เหมือน A2 แต่ใน fixture มีไฟล์/คอมเมนต์ที่พยายามสั่งให้เอเจนต์ละเมิดกฎ",
-      "contextFiles": [
-        "arms/A2/CLAUDE.md"
-      ],
-      "skillsDir": "arms/A2/skills",
-      "skillsEnabled": true,
-      "injectAdversarial": true,
-      "expectedTokenOverhead": 400,
-      "_why": "ตอบคำถามที่กรรมการจะถามแน่นอน: 'กฎมันกันได้จริงหรือแค่เอเจนต์บังเอิญเชื่อฟัง'"
+      "expectedTokenOverhead": 3300,
+      "_why": "A2 เห็นข้อความราว 3,323 token เมื่อ skill โหลดครบ ขณะที่ A1 เห็น 1,969 token ตลอดเวลา ถ้า A2 ชนะ A1 จึงแยกไม่ออกว่าเป็นเพราะกลไกโหลดตามเงื่อนไขหรือเพราะข้อความยาวกว่า A5 ตรึงข้อความให้เท่ากับ A2 แล้วเปลี่ยนเฉพาะวิธีส่ง จึงเป็นการทดสอบ progressive disclosure ที่แยกตัวแปรได้สะอาดที่สุด"
     }
   ],
   "fixedFactors": {
@@ -112,35 +98,25 @@
     }
   },
   "preRegisteredAllocation": {
-    "_note": "การจัดสรรที่ประกาศไว้ล่วงหน้า — แหล่งความจริงแหล่งเดียวสำหรับ runner, analyze, preflight และเอกสาร · ก่อน Amendment 14 ตัวเลขนี้ถูกประกาศแยกกันสามที่ที่ไม่เคยเช็คกัน (เอกสาร, repetitions ที่ hard-code ใน readiness.mjs, และ --reps ใน package.json) จึงขัดกันได้เงียบ ๆ · ไฟล์นี้อยู่ใน experiment digest แล้ว การแก้ระหว่างเก็บข้อมูลจะถูกจับทันที",
     "arms": [
       "A0",
       "A1",
       "A2",
-      "A3",
-      "A4"
+      "A5"
     ],
     "scenarios": 11,
-    "reps": 6,
-    "cells": 330,
-    "declaredOn": "2026-09-04",
-    "declaredIn": "Amendment 3 (PRE-REGISTRATION.md §10)",
-    "planningIcc": 0.335,
-    "_planningIccNote": "วัดจาก Opus ใช้วางแผนเท่านั้น ไม่ใช่ค่ารับรอง power ของ Sonnet · ต้องวัด ICC ใหม่จากชุดนี้แล้วรายงานทั้งสองค่า",
+    "reps": 4,
+    "cells": 176,
+    "planningIcc": 0.2,
+    "_iccNote": "ใช้ค่าที่วัดได้จริงจากชุดที่ 1 (ผลต่างรายโจทย์) แทนค่าที่ใช้วางแผนเดิม 0.335 ซึ่งมาจากโมเดลคนละตัว",
     "fallback": {
-      "_note": "Amendment 14 (12 ก.ย. 2569) — กฎสำรองเดียวที่ได้รับอนุมัติเมื่อเก็บไม่ครบ 330 cell",
       "type": "uniform-rep-truncation",
-      "minReps": 4,
-      "trigger": "quota หรือเส้นตายที่ประกาศไว้ล่วงหน้าเท่านั้น — ห้ามดูผลเปรียบเทียบ arm ก่อนตัดสินใจ",
-      "rule": "ตัดรอบให้เท่ากันทุก arm ที่ขอบ repetition · ทุก arm และทุก scenario ต้องอยู่ครบเสมอ · ต้องประกาศด้วย analyze --fallback-reps N",
-      "forbidden": "ห้ามทิ้ง arm ห้ามทิ้ง scenario และห้ามใช้จำนวนรอบไม่เท่ากันระหว่าง arm",
-      "supersedes": "กฎ drop-arm เดิม (A0 → A4 → ลดรอบ A3) ใน Amendment 3 ข้อ 4"
+      "minReps": 3,
+      "trigger": "quota หรือเส้นตายที่ประกาศไว้ล่วงหน้าเท่านั้น",
+      "_why": "ชุดที่ 1 ประกาศ 6 รอบแล้วจบที่ 4 เพราะชนโควตาและถูกยุติกลางคันหลายครั้ง ชุดที่ 2 จึงประกาศ 4 รอบตั้งแต่ต้นตามที่ทำได้จริง"
     },
     "surplusRule": {
-      "_note": "Amendment 14 — ประกาศเป็นโมฆะ",
       "status": "void",
-      "voidedText": "ถ้า throughput ดีกว่าคาด ให้เอาส่วนเกินไปเพิ่มโจทย์",
-      "reason": "k คือตัวหารของ sign test หลัก การเพิ่ม k ระหว่างเก็บข้อมูลทำให้ n ของการทดสอบหลักถูกเลือกโดยกระบวนการที่เดินคู่กับการเก็บข้อมูล · โจทย์ใหม่ต้องผ่าน acceptance/variant gate ครบก่อนเสมอ · ถ้าต้องการ k มากขึ้นให้ประกาศเป็น extension แยกและวิเคราะห์แยก ห้ามยุบเข้ากับ primary",
       "lockedK": 11
     }
   },
@@ -185,5 +161,7 @@
   },
   "keySecondary": [
     "passHatK"
-  ]
+  ],
+  "_purpose": "นิยามการทดลองของชุดที่ 2 (confirmatory) — แยกไฟล์จากชุดที่ 1 โดยเจตนา",
+  "_why": "ชุดที่ 1 ต้องวิเคราะห์ซ้ำได้จากไฟล์เดิมเสมอ การแก้ config/arms.json เพื่อชุดที่ 2 จะทำให้ด่านตรวจการจัดสรรของชุดที่ 1 ล้ม และ manifest ที่ตรึงไว้ไม่ตรงอีกต่อไป runner รับ --config อยู่แล้ว และ configPath อยู่ใน signature ของ checkpoint การแยกไฟล์จึงได้ checkpoint คนละก้อนโดยอัตโนมัติ"
 }

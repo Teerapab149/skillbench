@@ -141,28 +141,53 @@ if (sizes.A1 && sizes.A3) {
 console.log('');
 
 // --- 3. A1 กับ A2 ต้องมีข้อผูกพันครบเท่ากัน (ตรวจรายข้อ ไม่ใช่รายคำสำคัญ) ---
-console.log('3) ความเท่าเทียมของข้อผูกพัน A1 vs A2  (จาก config/rules-canonical.json)');
-const t1 = armText(config.arms.find((a) => a.id === 'A1')).full;
-const t2 = armText(config.arms.find((a) => a.id === 'A2')).full;
+/*
+ * ตรวจทุก arm ที่อ้างว่าบรรจุ "กฎชุดเดียวกัน" ไม่ใช่แค่ A1 กับ A2
+ *
+ * ข้อบกพร่องที่ผู้รีวิวจับได้ 18 ก.ย. 2569: A5 ถูกเพิ่มเป็นคู่เปรียบเทียบสำคัญ
+ * โดยไม่มีการตรวจความเท่าเทียมของเนื้อหาเลยสักข้อ และจุดเดียวที่ A5 เขียนต่างจาก A2
+ * (ประโยคสั่งให้ "อ่านทั้งหมดก่อนลงมือ" ซึ่ง A1 กับ A2 ไม่มี) คือสิ่งที่ด่านพวกนี้
+ * จะจับได้พอดี arm ที่อ้างว่าเนื้อหาเท่ากันจึงต้องเข้าด่านเดียวกันทั้งหมด
+ */
+const PARITY_ARMS = ['A1', 'A2', 'A5'];
+/*
+ * A5 อยู่ใน config ของชุดที่ 2 ไม่ใช่ของชุดที่ 1 — ชุดที่ 1 ต้องวิเคราะห์ซ้ำได้
+ * จากไฟล์เดิมเสมอ จึงห้ามยัด arm ใหม่เข้าไป แต่ด่านความเท่าเทียมของเนื้อหา
+ * ต้องครอบคลุมทุก arm ที่อ้างว่าบรรจุกฎชุดเดียวกัน ไม่ว่าจะอยู่ config ไหน
+ */
+const STUDY2 = path.join(ROOT, 'config/arms-study2.json');
+const knownArms = [...config.arms];
+if (fs.existsSync(STUDY2)) {
+  for (const arm of JSON.parse(fs.readFileSync(STUDY2, 'utf8')).arms ?? []) {
+    if (!knownArms.some((a) => a.id === arm.id)) knownArms.push(arm);
+  }
+}
+const armFull = Object.fromEntries(PARITY_ARMS.map((id) => {
+  const arm = knownArms.find((a) => a.id === id);
+  if (!arm) throw new Error(`ไม่พบ arm ${id} ใน config ใด ๆ`);
+  return [id, armText(arm).full];
+}));
+const t1 = armFull.A1, t2 = armFull.A2;
+console.log(`3) ความเท่าเทียมของข้อผูกพัน ${PARITY_ARMS.join(' vs ')}  (จาก config/rules-canonical.json)`);
 let obTotal = 0, obFail = 0;
 for (const rule of canonical.rules) {
   const bad = [];
   for (const ob of rule.obligations) {
     obTotal++;
     const re = new RegExp(ob.pattern, ob.flags ?? '');
-    const in1 = re.test(t1), in2 = re.test(t2);
-    if (!in1 || !in2) { bad.push({ ob, in1, in2 }); obFail++; fail++; }
+    const miss = PARITY_ARMS.filter((id) => !re.test(armFull[id]));
+    if (miss.length) { bad.push({ ob, miss }); obFail++; fail++; }
   }
   const ok = bad.length === 0;
   console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${rule.id} ${rule.title}`);
   for (const b of bad) {
     console.log(`         ✗ ${b.ob.id} ${b.ob.text}`);
-    console.log(`           A1=${b.in1 ? 'มี' : 'ขาด'} A2=${b.in2 ? 'มี' : 'ขาด'} · pattern ${JSON.stringify(b.ob.pattern)}`);
+    console.log(`           ขาดใน ${b.miss.join(', ')} · pattern ${JSON.stringify(b.ob.pattern)}`);
   }
 }
 console.log(`   ตรวจข้อผูกพัน ${obTotal} ข้อ · ไม่ผ่าน ${obFail}`);
 console.log('   > ตรวจที่ระดับข้อผูกพัน ไม่ใช่คำสำคัญ — ของเดิมใช้ /acceptance criteria/ ซึ่งเจอทั้งสองฝั่ง');
-console.log('   > จึงขึ้น PASS ทั้งที่ A2 มี "ก่อนแตะ implementation" กับ "ต้องตกก่อน" เพิ่มมาสองข้อ');
+console.log('   > ครอบคลุมทุก arm ที่อ้างว่าบรรจุกฎชุดเดียวกัน ไม่ใช่แค่ A1 กับ A2');
 console.log('');
 
 /* --- 3a. ประโยคที่ต้องเหมือนกันทุกตัวอักษร ---
@@ -185,12 +210,12 @@ if (!verbatim.length) {
   fail++;
 } else {
   for (const v of verbatim) {
-    const in1 = t1.includes(v.text), in2 = t2.includes(v.text);
-    const ok = in1 && in2;
+    const miss = PARITY_ARMS.filter((id) => !armFull[id].includes(v.text));
+    const ok = miss.length === 0;
     if (!ok) fail++;
     console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${v.id}  ${v.why}`);
     if (!ok) {
-      console.log(`         ✗ A1=${in1 ? 'มี' : 'ขาด'} A2=${in2 ? 'มี' : 'ขาด'}`);
+      console.log(`         ✗ ขาดใน ${miss.join(', ')}`);
       console.log(`           ต้องมีประโยคนี้เป๊ะ: ${v.text}`);
     }
   }
@@ -207,11 +232,11 @@ if (!verbatim.length) {
 const forbidden = canonical.verbatim?.forbidden?.patterns ?? [];
 for (const f of forbidden) {
   const re = new RegExp(f.pattern);
-  const hit1 = re.test(t1), hit2 = re.test(t2);
-  const ok = !hit1 && !hit2;
+  const hits = PARITY_ARMS.filter((id) => re.test(armFull[id]));
+  const ok = hits.length === 0;
   if (!ok) fail++;
   console.log(`   ${ok ? 'PASS' : 'FAIL'}  ${f.id}  ต้องไม่มี /${f.pattern}/ — ${f.why}`);
-  if (!ok) console.log(`         ✗ พบใน ${[hit1 && 'A1', hit2 && 'A2'].filter(Boolean).join(' และ ')}`);
+  if (!ok) console.log(`         ✗ พบใน ${hits.join(' และ ')}`);
 }
 console.log('   > ความต่างที่เหลือได้คือ "วางไว้ที่ไหน" และ "โหลดเมื่อไร" เท่านั้น');
 console.log('');

@@ -25,6 +25,16 @@ const argv = (flag, dflt) => {
 };
 const IN_FILE = path.resolve(ROOT, argv('--in', 'results/latest.json'));
 const OUT_DIR = path.resolve(ROOT, argv('--out', 'results'));
+
+/*
+ * --config: ชี้ไฟล์นิยามการทดลอง เพิ่ม 18 ก.ย. 2569
+ *
+ * ชุดที่ 2 อยู่ใน config/arms-study2.json คนละไฟล์กับชุดที่ 1 โดยเจตนา
+ * ถ้า analyze ยังอ่าน config/arms.json ตายตัว มันจะเอาการจัดสรรของชุดที่ 1
+ * ไปตรวจข้อมูลของชุดที่ 2 แล้วล้มด้วยเหตุผลที่ไม่จริง หรือแย่กว่านั้นคือผ่าน
+ * ทั้งที่เทียบผิดชุด
+ */
+const CONFIG_FILE = path.resolve(ROOT, argv('--config', 'config/arms.json'));
 const raw = JSON.parse(fs.readFileSync(IN_FILE, 'utf8'));
 const meta = raw.meta;
 
@@ -65,7 +75,7 @@ if (!graded.length) {
  * และรายงานของมันถูกประทับว่าเป็น mock อยู่แล้ว การบังคับ 330 กับมันไม่ได้ป้องกันอะไร
  */
 const PREREG = (() => {
-  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms.json'), 'utf8')).preRegisteredAllocation ?? null; }
+  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')).preRegisteredAllocation ?? null; }
   catch { return null; }
 })();
 const FALLBACK_REPS = (() => {
@@ -78,7 +88,7 @@ const FALLBACK_REPS = (() => {
 
 function auditAllocation() {
   if (meta.simulated) return { skipped: 'ข้อมูลจำลอง', declaredReps: meta.reps ?? 0, discarded: [] };
-  if (!PREREG) return { violations: ['config/arms.json ไม่มี preRegisteredAllocation — ไม่มีตัวเลขที่ประกาศให้เทียบ'] };
+  if (!PREREG) return { violations: [`${path.relative(ROOT, CONFIG_FILE)} ไม่มี preRegisteredAllocation — ไม่มีตัวเลขที่ประกาศให้เทียบ`] };
 
   const violations = [];
   const gotArms = meta.arms ?? [];
@@ -371,7 +381,7 @@ for (const arm of armIds.filter((a) => by(a).some((r) => r.loadedSkills.length))
  * จึงต้องรายงานชุดที่ตัดสินจากกฎที่วัดจริงคู่กันเสมอ ไม่ใช่รายงานเฉพาะชุดที่ให้ค่าดีกว่า
  */
 const TRIG_CFG = (() => {
-  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms.json'), 'utf8')).triggerF1 ?? null; }
+  try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')).triggerF1 ?? null; }
   catch { return null; }
 })();
 const trigSens = {};
