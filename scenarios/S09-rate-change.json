@@ -1,7 +1,11 @@
 {
   "id": "S09-rate-change",
   "family": "hidden_impact",
-  "expectedSkills": ["trace-to-requirement", "acceptance-first", "impact-analysis"],
+  "expectedSkills": [
+    "trace-to-requirement",
+    "acceptance-first",
+    "impact-analysis"
+  ],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "hard",
   "reqs": [
@@ -19,13 +23,14 @@
   "rules": [
     {
       "id": "AC1",
-      "severity": "critical",
+      "severity": "major",
       "desc": "เปลี่ยนอัตรา V100 เป็น 25 จริง",
       "check": {
         "type": "diff_matches",
         "pattern": "^\\+.*hourlyRate:\\s*25",
         "flags": "m"
-      }
+      },
+      "_demotedBy": "เกณฑ์ลดชั้นตัวตรวจแบบอ่านข้อความในโค้ด · PRE-REGISTRATION-2 หัวข้อ 3.4 · 18 ก.ย. 2569"
     },
     {
       "id": "AC2",

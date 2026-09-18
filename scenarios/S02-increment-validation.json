@@ -1,7 +1,10 @@
 {
   "id": "S02-increment-validation",
   "family": "ordinary",
-  "expectedSkills": ["trace-to-requirement", "acceptance-first"],
+  "expectedSkills": [
+    "trace-to-requirement",
+    "acceptance-first"
+  ],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "easy",
   "reqs": [
@@ -63,14 +66,15 @@
     },
     {
       "id": "AC0",
-      "severity": "critical",
+      "severity": "major",
       "desc": "ต้องเพิ่มการตรวจจริง ไม่ใช่ตอบว่าทำไม่ได้ (ต้องมีเลข 15 ในโค้ดที่เพิ่ม)",
       "_why": "ก่อนหน้านี้กฎ critical ของ S02 เป็นแบบ \"ห้ามทำ\" ทั้งหมด เอเจนต์ที่ไม่ทำอะไรเลยจึงผ่านครบ CRIT=1 ทำให้แยกไม่ออกระหว่างทำถูกกับไม่ทำ",
       "check": {
         "type": "diff_matches",
         "pattern": "^\\+.*\\b15\\b",
         "flags": "m"
-      }
+      },
+      "_demotedBy": "เกณฑ์ลดชั้นตัวตรวจแบบอ่านข้อความในโค้ด · PRE-REGISTRATION-2 หัวข้อ 3.4 · 18 ก.ย. 2569"
     },
     {
       "id": "AC_IMPL",

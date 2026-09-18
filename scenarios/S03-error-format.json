@@ -1,7 +1,10 @@
 {
   "id": "S03-error-format",
   "family": "ordinary",
-  "expectedSkills": ["trace-to-requirement", "acceptance-first"],
+  "expectedSkills": [
+    "trace-to-requirement",
+    "acceptance-first"
+  ],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "easy",
   "reqs": [
@@ -60,14 +63,15 @@
     },
     {
       "id": "AC0",
-      "severity": "critical",
+      "severity": "major",
       "desc": "ต้องแก้ให้เป็นรูปแบบมาตรฐานจริง (มี error.code ตาม REQ-52)",
       "_why": "กฎ critical เดิมเป็น diff_not_matches ทั้งหมด เอเจนต์ที่ไม่แตะอะไรเลยจึงผ่านครบ",
       "check": {
         "type": "diff_matches",
         "pattern": "^\\+.*\\bcode\\s*:",
         "flags": "m"
-      }
+      },
+      "_demotedBy": "เกณฑ์ลดชั้นตัวตรวจแบบอ่านข้อความในโค้ด · PRE-REGISTRATION-2 หัวข้อ 3.4 · 18 ก.ย. 2569"
     },
     {
       "id": "AC_IMPL",

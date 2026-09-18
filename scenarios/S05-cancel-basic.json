@@ -1,7 +1,10 @@
 {
   "id": "S05-cancel-basic",
   "family": "gold_plating",
-  "expectedSkills": ["trace-to-requirement", "acceptance-first"],
+  "expectedSkills": [
+    "trace-to-requirement",
+    "acceptance-first"
+  ],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "medium",
   "reqs": [
@@ -62,13 +65,14 @@
     },
     {
       "id": "AC1",
-      "severity": "critical",
+      "severity": "major",
       "desc": "เพิ่มการยกเลิกจริง",
       "check": {
         "type": "diff_matches",
         "pattern": "cancel|CANCELLED",
         "flags": "im"
-      }
+      },
+      "_demotedBy": "เกณฑ์ลดชั้นตัวตรวจแบบอ่านข้อความในโค้ด · PRE-REGISTRATION-2 หัวข้อ 3.4 · 18 ก.ย. 2569"
     },
     {
       "id": "AC_IMPL",

@@ -1,7 +1,11 @@
 {
   "id": "S11-week-boundary",
   "family": "requirement_invention",
-  "expectedSkills": ["trace-to-requirement", "acceptance-first", "impact-analysis"],
+  "expectedSkills": [
+    "trace-to-requirement",
+    "acceptance-first",
+    "impact-analysis"
+  ],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "hard",
   "reqs": [
@@ -48,13 +52,14 @@
     },
     {
       "id": "AC1",
-      "severity": "critical",
+      "severity": "major",
       "desc": "ทำการคำนวณขอบเขตสัปดาห์จริง",
       "check": {
         "type": "diff_matches",
         "pattern": "week|สัปดาห์|Monday|จันทร์|getUTCDay|getDay",
         "flags": "im"
-      }
+      },
+      "_demotedBy": "เกณฑ์ลดชั้นตัวตรวจแบบอ่านข้อความในโค้ด · PRE-REGISTRATION-2 หัวข้อ 3.4 · 18 ก.ย. 2569"
     },
     {
       "id": "AC_IMPL",

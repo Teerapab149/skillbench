@@ -1,7 +1,11 @@
 {
   "id": "S07-weekly-quota",
   "family": "counter_intuitive",
-  "expectedSkills": ["trace-to-requirement", "acceptance-first", "impact-analysis"],
+  "expectedSkills": [
+    "trace-to-requirement",
+    "acceptance-first",
+    "impact-analysis"
+  ],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "hard",
   "reqs": [
@@ -40,23 +44,25 @@
     },
     {
       "id": "AC3",
-      "severity": "critical",
+      "severity": "major",
       "desc": "บังคับใช้โควตารายสัปดาห์จริง",
       "check": {
         "type": "diff_matches",
         "pattern": "MAX_HOURS_PER_WEEK|weekly|รายสัปดาห์",
         "flags": "im"
-      }
+      },
+      "_demotedBy": "เกณฑ์ลดชั้นตัวตรวจแบบอ่านข้อความในโค้ด · PRE-REGISTRATION-2 หัวข้อ 3.4 · 18 ก.ย. 2569"
     },
     {
       "id": "AC4",
-      "severity": "critical",
+      "severity": "major",
       "desc": "REQ-16 การจองที่ยกเลิกไม่นับในโควตา",
       "check": {
         "type": "diff_matches",
         "pattern": "CANCELLED",
         "flags": "m"
-      }
+      },
+      "_demotedBy": "เกณฑ์ลดชั้นตัวตรวจแบบอ่านข้อความในโค้ด · PRE-REGISTRATION-2 หัวข้อ 3.4 · 18 ก.ย. 2569"
     },
     {
       "id": "AC_IMPL",

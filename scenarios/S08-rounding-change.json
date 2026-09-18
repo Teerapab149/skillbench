@@ -1,7 +1,11 @@
 {
   "id": "S08-rounding-change",
   "family": "hidden_impact",
-  "expectedSkills": ["trace-to-requirement", "acceptance-first", "impact-analysis"],
+  "expectedSkills": [
+    "trace-to-requirement",
+    "acceptance-first",
+    "impact-analysis"
+  ],
   "fixture": "fixtures/gpu-booking",
   "difficulty": "hard",
   "reqs": [
@@ -19,13 +23,14 @@
   "rules": [
     {
       "id": "AC1",
-      "severity": "critical",
+      "severity": "major",
       "desc": "เปลี่ยนการปัดเป็นปัดลงจริง",
       "check": {
         "type": "diff_matches",
         "pattern": "^\\+.*Math\\.floor",
         "flags": "m"
-      }
+      },
+      "_demotedBy": "เกณฑ์ลดชั้นตัวตรวจแบบอ่านข้อความในโค้ด · PRE-REGISTRATION-2 หัวข้อ 3.4 · 18 ก.ย. 2569"
     },
     {
       "id": "AC2",
