@@ -1,0 +1,7 @@
+[ตัวคุม 2026-09-18 19:42:44] ชุดการทดลอง: config/arms-study2.json → results-study2 · 4 รอบ · เป้าหมาย 176 cell
+[ตัวคุม 2026-09-18 19:42:44] รอบที่ 1 — เริ่มจาก 0/176
+
+SkillBench — claude-cli
+  11 scenarios x 4 arms x 4 reps = 176 runs
+
+  experimentId: 10458f22-d17e-4e8a-b451-bf0bea9c94c8

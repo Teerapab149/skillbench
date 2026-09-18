@@ -19,15 +19,29 @@ import path from 'node:path';
 const STALE_MINUTES = 20;
 
 /** คืนข้อมูลการเก็บที่ยังเดินอยู่ ถ้าไม่มีคืน null */
+/*
+ * ต้องดูทุกโฟลเดอร์ผลลัพธ์ ไม่ใช่แค่ results/
+ *
+ * ของจริงที่เกิดขึ้น 18 ก.ย. 2569: ชุดที่ 2 เขียนลง results-study2/ ด่านนี้จึงไม่เห็นว่า
+ * มีการเก็บข้อมูลเดินอยู่ แล้วปล่อยให้ `npm run gate` ติดตั้ง arm ทับ fixture กลางรัน
+ * การเก็บข้อมูลตายที่ run ที่ 3 และสาม run แรกต้องถูกทิ้งเพราะยืนยันไม่ได้ว่า
+ * ตอนนั้น fixture มี arm ของใครอยู่
+ *
+ * ด่านที่เล็งผิดโฟลเดอร์ อันตรายกว่าไม่มีด่าน เพราะมันรายงานว่าปลอดภัย
+ */
 export function activeCollection(root) {
-  const dir = path.join(root, 'results');
-  if (!fs.existsSync(dir)) return null;
+  const dirs = fs.readdirSync(root, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && (e.name === 'results' || e.name.startsWith('results-')))
+    .map((e) => path.join(root, e.name))
+    .filter((d) => !path.basename(d).includes('dev-archive'));
   let newest = null;
-  for (const f of fs.readdirSync(dir)) {
-    if (!f.startsWith('checkpoint-') || f.includes('retired')) continue;
-    const p = path.join(dir, f);
-    const m = fs.statSync(p).mtimeMs;
-    if (!newest || m > newest.mtimeMs) newest = { file: f, path: p, mtimeMs: m };
+  for (const dir of dirs) {
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.startsWith('checkpoint-') || f.includes('retired')) continue;
+      const p = path.join(dir, f);
+      const m = fs.statSync(p).mtimeMs;
+      if (!newest || m > newest.mtimeMs) newest = { file: f, path: p, mtimeMs: m, dir: path.basename(dir) };
+    }
   }
   if (!newest) return null;
   const ageMin = (Date.now() - newest.mtimeMs) / 60000;

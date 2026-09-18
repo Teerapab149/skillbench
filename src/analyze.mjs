@@ -35,6 +35,13 @@ const OUT_DIR = path.resolve(ROOT, argv('--out', 'results'));
  * ทั้งที่เทียบผิดชุด
  */
 const CONFIG_FILE = path.resolve(ROOT, argv('--config', 'config/arms.json'));
+
+/*
+ * ชื่อเอกสารประกาศแผนต้องตามชุดที่กำลังวิเคราะห์
+ * รายงานของชุดที่ 2 ที่อ้าง PRE-REGISTRATION.md ของชุดที่ 1 คือการอ้างผิดฉบับ
+ */
+const PREREG_DOC = path.basename(CONFIG_FILE).includes('study2')
+  ? 'PRE-REGISTRATION-2.md' : 'PRE-REGISTRATION.md';
 const raw = JSON.parse(fs.readFileSync(IN_FILE, 'utf8'));
 const meta = raw.meta;
 
@@ -710,7 +717,7 @@ if (!hasPrimary) {
     return rows.length && rows.filter((x) => x.budgetExhausted).length / rows.length > 0.05;
   });
   if (overCap.length) {
-    p(`> ⚠️ **arm ที่ชนเพดานเกิน 5%: ${overCap.join(', ')}** — ตามกฎที่ประกาศไว้ใน PRE-REGISTRATION.md §8 ข้อ 3`);
+    p(`> ⚠️ **arm ที่ชนเพดานเกิน 5%: ${overCap.join(', ')}** — ตามกฎที่ประกาศไว้ใน ${PREREG_DOC}`);
     p('> ให้ถือว่าเพดาน turn ยัง binding และต้องขึ้นอีก ผลชุดนี้จึงยังตีความเป็นผลสุดท้ายไม่ได้');
     p('');
   }
@@ -819,7 +826,7 @@ if (iccDiff && Number.isFinite(iccDiff.icc)) {
   p('');
 }
 p('> ค่าที่ใช้วางแผนมาจากโมเดลคนละตัว (Opus) จึงห้ามนำไปอ้างเป็น power ของชุดนี้');
-p('> ทั้งสองค่าต้องปรากฏในเล่มคู่กันตามที่ประกาศไว้ใน `PRE-REGISTRATION.md` §10');
+p(`> ทั้งสองค่าต้องปรากฏในเล่มคู่กันตามที่ประกาศไว้ใน \`${PREREG_DOC}\``);
 p('');
 
 if (!SECOND) {
@@ -843,8 +850,8 @@ if (!hasPrimary) {
   if (!gateOpen) {
     p(`**ประตูปิด — ไม่ทดสอบ** §6.1 ให้ p = ${fmtP(pr.signFlip.p)} ซึ่งไม่ต่ำกว่า ${ALPHA}`);
     p('');
-    p('> ตามแผนที่ประกาศไว้ `RCR` **จะไม่ถูกทดสอบ** เมื่อ primary ไม่ผ่านประตู');
-    p('> ค่า `RCR` ต่อ arm ยังรายงานไว้ในหัวข้อ 1 เพื่อความโปร่งใส แต่ห้ามอ่านเป็นผลการทดสอบ');
+    p(`> ตามแผนที่ประกาศไว้ \`${SECOND.metric}\` **จะไม่ถูกทดสอบ** เมื่อ primary ไม่ผ่านประตู`);
+    p(`> ค่า \`${SECOND.metric}\` ต่อ arm ยังรายงานไว้ในหัวข้อ 1 เพื่อความโปร่งใส แต่ห้ามอ่านเป็นผลการทดสอบ`);
   } else {
     const r = pairedCompare(PRIMARY.armA, PRIMARY.armB, 'RCR');
     p(`**ประตูเปิด** — §6.1 ให้ p = ${fmtP(pr.signFlip.p)} < ${ALPHA}`);
@@ -861,7 +868,11 @@ p('');
 p('### 6.2 SECONDARY / EXPLORATORY — ไม่มีการคุม alpha');
 p('');
 p('> **ทุกแถวในตารางนี้ไม่ใช่ผลหลัก** และไม่ได้ถูกปรับค่าวิกฤตสำหรับการทดสอบหลายครั้ง');
-p('> `RCR` เป็น co-primary ที่ทดสอบต่อเมื่อ primary มีนัยสำคัญ (fixed-sequence) — ดู §6.1b');
+if (SECOND) {
+  p(`> \`${SECOND.metric}\` (${SECOND.armA} เทียบ ${SECOND.armB}) ทดสอบต่อเมื่อ primary มีนัยสำคัญ (fixed-sequence) — ดู §6.1b`);
+} else {
+  p('> ชุดนี้ไม่มี endpoint ลำดับที่สองที่อ้างนัยสำคัญได้ — ตัวชี้วัดที่เหลือรายงานเชิงพรรณนาทั้งหมด');
+}
 p('> ห้ามหยิบ p ที่เล็กที่สุดจากตารางนี้มาเล่าเป็นข้อค้นพบ');
 p('');
 p('| เปรียบเทียบ | metric | A | B | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | p (sign-flip) |');

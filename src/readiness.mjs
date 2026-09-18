@@ -49,7 +49,21 @@ export function auditAttemptStore(outDir) {
       else if (entry.name.endsWith('.json')) {
         records++;
         const value = jsonFile(file);
-        if (value.__error || !value.version || !value.stage) malformed.push(path.relative(root, file));
+        /*
+         * ไม่ใช่ทุกไฟล์ในสมุดบันทึกเป็น "ระเบียนความพยายาม"
+         *
+         * มีอีกสองชนิดที่ถูกต้องแต่ไม่มีฟิลด์ stage โดยธรรมชาติ:
+         *   by-signature/<sig>/<seq>-<expId>.json  = ดัชนีชี้ไปยังการทดลอง
+         *   experiments/<expId>/experiment.json    = หัวเรื่องของการทดลอง
+         *
+         * เดิมบังคับ stage กับทุกไฟล์ ทำให้สองชนิดนี้ขึ้นเป็น malformed ตลอด
+         * ผลคือ ENGINEERING READY = NO ค้างมาตั้งแต่ชุดที่ 1 ด้วยเหตุผลที่ไม่จริง
+         * ซึ่งอันตรายกว่าที่เห็น เพราะทำให้คนเลิกเชื่อสัญญาณของด่านนี้ทั้งด่าน
+         */
+        const rel = path.relative(root, file).split(path.sep).join("/");
+        const isIndex = rel.startsWith("by-signature/") || rel.endsWith("/experiment.json");
+        const bad = value.__error || !value.version || (!isIndex && !value.stage);
+        if (bad) malformed.push(rel);
       }
     }
   };

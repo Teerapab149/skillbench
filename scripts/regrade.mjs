@@ -21,6 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { gradeRun } from '../src/graders.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -35,6 +36,82 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const si = process.argv.indexOf('--scenarios');
 const SCEN_DIR = path.resolve(ROOT, si !== -1 && process.argv[si + 1] ? process.argv[si + 1] : 'scenarios');
 if (SCEN_DIR !== path.join(ROOT, 'scenarios')) console.log('  ใช้ชุดโจทย์จาก ' + path.relative(ROOT, SCEN_DIR));
+
+/*
+ * ปฏิเสธถ้าชุดโจทย์ไม่ตรงกับที่ตรึงไว้ตอนเก็บข้อมูล
+ *
+ * การให้คะแนนใหม่มีไว้ตอบว่า "ถ้าใช้ตัวตรวจฉบับนี้ ข้อมูลชุดเดิมจะได้คะแนนเท่าไร"
+ * ถ้าโจทย์ก็เปลี่ยนไปด้วย คำตอบจะกลายเป็นของคนละการทดลอง โดยไม่มีอะไรบอก
+ * manifest ตรึง sha256 ของทุกไฟล์โจทย์ไว้ตั้งแต่ run แรก จึงเทียบได้ตรง ๆ
+ *
+ * ข้ามได้ด้วย --allow-scenario-drift ซึ่งต้องพิมพ์เองและถูกบันทึกไว้ในผลลัพธ์
+ */
+/*
+ * เทียบเนื้อหาโดยไม่นับรูปแบบการขึ้นบรรทัด
+ *
+ * digest ใน manifest คิดจากไบต์ดิบของไฟล์ตอนเก็บข้อมูล ซึ่งบนเครื่อง Windows
+ * เป็น CRLF ส่วนไฟล์ที่ดึงออกจาก git มาแช่แข็งไว้เป็น LF เนื้อหาเหมือนกันทุกตัวอักษร
+ * แต่ sha256 ต่างกัน ถ้าเทียบไบต์ตรง ๆ ชุดที่แช่แข็งไว้จะถูกปฏิเสธทั้งที่ถูกต้อง
+ *
+ * การขึ้นบรรทัดไม่เปลี่ยนผลการ parse JSON จึงไม่เปลี่ยนคะแนน การเทียบหลังทำให้
+ * เป็นรูปแบบเดียวกันจึงตรงกับสิ่งที่ด่านนี้ต้องการตอบ คือ "กฎกับตัวตรวจชุดเดียวกันไหม"
+ */
+const CR_CH = String.fromCharCode(13);
+const LF_CH = String.fromCharCode(10);
+/* manifest เก็บ sha256 แบบตัด 16 ตัวแรก ไม่ใช่เต็ม — ต้องตัดให้ตรงกัน */
+const sha = (text) => createHash('sha256').update(text).digest('hex').slice(0, 16);
+/** ตรงกันไหม โดยยอมให้รูปแบบการขึ้นบรรทัดต่างกันได้ */
+function contentMatches(raw, want) {
+  const text = raw.toString('utf8');
+  if (sha(raw) === want) return true;
+  const lf = text.split(CR_CH + LF_CH).join(LF_CH);
+  if (sha(lf) === want) return true;
+  return sha(lf.split(LF_CH).join(CR_CH + LF_CH)) === want;
+}
+
+function assertScenarioSetMatches(outDir) {
+  const mf = fs.existsSync(outDir)
+    ? fs.readdirSync(outDir).find((f) => f.startsWith('manifest-')) : null;
+  if (!mf) { console.log('  (ไม่พบ manifest — ข้ามการตรวจชุดโจทย์)'); return; }
+  const files = JSON.parse(fs.readFileSync(path.join(outDir, mf), 'utf8')).experimentFiles ?? {};
+  /*
+   * เทียบเฉพาะไฟล์นิยามโจทย์ชั้นบนสุด ซึ่งเป็นไฟล์เดียวที่การให้คะแนนใหม่อ่านจริง
+   *
+   * ไฟล์ใน scenarios/acceptance/ มีผลตอนเก็บข้อมูล (เทสที่เอเจนต์มองไม่เห็น)
+   * ไม่ใช่ตอนให้คะแนนใหม่ ความต่างของไฟล์พวกนั้นจึงไม่ทำให้คะแนนเพี้ยน
+   * แต่ยังรายงานเป็นคำเตือน เพราะมันบอกว่าชุดข้อมูลกับ repo ไม่ตรงกันแล้ว
+   */
+  const isDefinition = (k) => k.startsWith("scenarios/") && !k.slice(11).includes("/") && k.endsWith(".json");
+  const frozen = Object.entries(files).filter(([k]) => isDefinition(k));
+  const others = Object.entries(files).filter(([k]) => k.startsWith('scenarios/') && !isDefinition(k));
+  const otherDrift = others.filter(([rel, want]) => {
+    const here = path.join(ROOT, rel);
+    if (!fs.existsSync(here)) return true;
+    return !contentMatches(fs.readFileSync(here), want);
+  });
+  if (otherDrift.length) {
+    console.log(`  ⚠️  ไฟล์ประกอบของโจทย์ต่างจากที่ตรึงไว้ ${otherDrift.length} ไฟล์ (เทสยอมรับ/เฉลย)`);
+    console.log('     ไม่กระทบการให้คะแนนใหม่ แต่แปลว่า repo ไม่ตรงกับตอนเก็บข้อมูลแล้ว');
+  }
+  const drift = [];
+  for (const [rel, want] of frozen) {
+    const here = path.join(SCEN_DIR, path.basename(rel));
+    if (!fs.existsSync(here)) { drift.push(rel + ' — ไม่มีในชุดที่เลือก'); continue; }
+    const raw = fs.readFileSync(here);
+    if (!contentMatches(raw, want)) drift.push(rel);
+  }
+  if (!drift.length) { console.log(`  ชุดโจทย์ตรงกับที่ตรึงไว้ครบ ${frozen.length} ไฟล์`); return; }
+  if (process.argv.includes('--allow-scenario-drift')) {
+    console.log(`  ⚠️  ชุดโจทย์ต่างจากที่ตรึงไว้ ${drift.length} ไฟล์ แต่สั่ง --allow-scenario-drift ไว้`);
+    for (const d of drift) console.log(`     · ${d}`);
+    return;
+  }
+  console.error(`${String.fromCharCode(10)}⛔ ชุดโจทย์ไม่ตรงกับที่ตรึงไว้ตอนเก็บข้อมูล ${drift.length} ไฟล์`);
+  for (const d of drift) console.error(`   · ${d}`);
+  console.error('   ให้คะแนนใหม่ด้วยชุดที่แช่แข็งไว้: --scenarios evidence/study1-scenarios');
+  console.error('   หรือยืนยันว่าตั้งใจ: --allow-scenario-drift' + String.fromCharCode(10));
+  process.exit(2);
+}
 const write = process.argv.includes('--write');
 
 const fileArg = (() => {
@@ -56,6 +133,7 @@ if (!fs.existsSync(artPath)) {
   process.exit(1);
 }
 const artifacts = JSON.parse(fs.readFileSync(artPath, 'utf8'));
+assertScenarioSetMatches(path.dirname(gradedPath));
 
 const scenarios = Object.fromEntries(
   fs.readdirSync(SCEN_DIR)
