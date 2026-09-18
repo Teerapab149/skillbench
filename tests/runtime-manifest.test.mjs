@@ -131,10 +131,29 @@ test('เรียก skill นอกการทดลอง ต้องจั
   assert.ok(v.some((x) => x.includes('นอกการทดลอง')), v.join(' | '));
 });
 
-test('arm ที่ปิด skill แต่เรียก Skill ได้ ต้องจับได้', () => {
+/*
+ * การปนเปื้อนคือ skill เข้าบริบทจริง ไม่ใช่การพยายามเรียกแล้วไม่เจอ
+ *
+ * เดิมเทสนี้ยืนยันว่า "เรียกก็ผิดแล้ว" ซึ่งทำให้ A5 (ไม่มี skill ติดตั้ง แต่ข้อความ
+ * มีวลีชวนให้ไปอ่าน skill) หยุดการทดลองทั้งชุดเพราะได้ Unknown skill กลับมา
+ * นโยบายที่ประกาศไว้ล่วงหน้าใน PRE-REGISTRATION-2 §7.1 บอกไว้ตรงข้าม
+ */
+test('arm ที่ปิด skill แล้วเรียก Skill ไม่สำเร็จ ต้องไม่นับเป็นการปนเปื้อน', () => {
+  const calls = [{ name: 'Skill', args: { skill: 'trace-to-requirement' } }];
+  const v = validateRuntime({ init: cleanInit(), toolCalls: calls, loadedSkills: [], arm: armNoSkills, manifest, memoryStateBefore: 'empty', memoryStateAfter: 'empty' });
+  assert.deepEqual(v, [], 'เรียกแล้วไม่เจอ = ไม่มีอะไรเข้าบริบท');
+});
+
+test('arm ที่ปิด skill แต่มี skill เข้าบริบทจริง ต้องจับได้', () => {
+  const calls = [{ name: 'Skill', args: { skill: 'trace-to-requirement' } }];
+  const v = validateRuntime({ init: cleanInit(), toolCalls: calls, loadedSkills: ['trace-to-requirement'], arm: armNoSkills, manifest, memoryStateBefore: 'empty', memoryStateAfter: 'empty' });
+  assert.ok(v.some((x) => x.includes('ไม่ควรมี skill เข้าบริบทได้เลย')), v.join(' | '));
+});
+
+test('skill นอกการทดลองยังจับที่การเรียก ไม่ต้องรอให้โหลดสำเร็จ', () => {
   const calls = [{ name: 'Skill', args: { skill: 'dataviz' } }];
-  const v = validateRuntime({ init: cleanInit(), toolCalls: calls, arm: armNoSkills, manifest, memoryStateBefore: 'empty', memoryStateAfter: 'empty' });
-  assert.ok(v.some((x) => x.includes('ไม่ควรเรียก skill ได้เลย')), v.join(' | '));
+  const v = validateRuntime({ init: cleanInit(), toolCalls: calls, loadedSkills: [], arm: armNoSkills, manifest, memoryStateBefore: 'empty', memoryStateAfter: 'empty' });
+  assert.ok(v.some((x) => x.includes('นอกการทดลอง')), v.join(' | '));
 });
 
 test('auto-memory ไม่ว่างตอนเริ่ม run ต้องจับได้', () => {

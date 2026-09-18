@@ -544,7 +544,7 @@ export async function main ({ runAgentOverride = null, cliVersionOverride = null
           console.log(`    digest ของไฟล์การทดลอง ${manifest.experimentDigest}`);
         }
         const violations = validateRuntime({
-          init: initEv, toolCalls: artifact.toolCalls, arm: a, manifest,
+          init: initEv, toolCalls: artifact.toolCalls, loadedSkills: artifact.loadedSkills, arm: a, manifest,
           // คำนวณ digest ใหม่ "ทุก run" ไม่ใช่ครั้งเดียวก่อนลูป — การทดลองหลักกินเวลา ~38 ชม.
           // ถ้าคำนวณครั้งเดียว การแก้ไฟล์ arm ระหว่างทางจะไม่ถูกจับจนกว่าจะ restart
           digest: experimentDigest(ROOT),

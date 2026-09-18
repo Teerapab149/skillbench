@@ -203,7 +203,7 @@ export function fixtureTreeViolations(manifest, fixtureTrees) {
  * `arm.skillsEnabled` เป็นตัวแปรต้น: arm ที่เปิดต้องเห็น skill ของการทดลองครบ 4
  * arm ที่ปิดต้องไม่เห็นเลยสักตัว ส่วน baseline set ต้องเท่ากันทั้งสองฝั่ง
  */
-export function validateRuntime({ init, toolCalls, arm, manifest, memoryStateBefore, memoryStateAfter, digest, fixtureTrees }) {
+export function validateRuntime({ init, toolCalls, loadedSkills, arm, manifest, memoryStateBefore, memoryStateAfter, digest, fixtureTrees }) {
   const v = [];
   if (!init) return ['ไม่มี system:init event — ตรวจสภาพ runtime ไม่ได้เลย'];
 
@@ -262,8 +262,21 @@ export function validateRuntime({ init, toolCalls, arm, manifest, memoryStateBef
     .filter(Boolean);
   const foreignInvoked = invoked.filter((s) => !EXPERIMENT_SKILLS.includes(s));
   if (foreignInvoked.length) v.push(`เรียก skill นอกการทดลอง: ${[...new Set(foreignInvoked)].join(', ')}`);
-  if (!arm.skillsEnabled && invoked.length) {
-    v.push(`arm ${arm.id} ไม่ควรเรียก skill ได้เลย แต่เรียกไป ${invoked.length} ครั้ง`);
+  /*
+   * การปนเปื้อนคือ skill **เข้าไปอยู่ในบริบทจริง** ไม่ใช่การพยายามเรียกแล้วไม่เจอ
+   *
+   * ประกาศไว้ล่วงหน้าใน PRE-REGISTRATION-2 §7.1 ก่อนเห็นพฤติกรรมของ A5:
+   * A5 ไม่มี skill ติดตั้ง แต่ข้อความของมันมีวลี "ก่อนอ่าน skill นี้" ติดมา 4 จุด
+   * ถ้ามันเรียก Skill แล้วได้ `Unknown skill` กลับมา = ไม่มีอะไรเข้าบริบท
+   * = ไม่ปนเปื้อน = เก็บ run นั้นแล้วเดินต่อ · ถ้าโหลดได้จริง = ปนเปื้อน = หยุด
+   *
+   * ของจริงที่เกิด 18 ก.ย. 2569: A5 เรียก 2 ครั้ง ล้มเหลวทั้งคู่ แต่โค้ดเดิมนับว่า
+   * ปนเปื้อนแล้วหยุดทั้งชุด ซึ่งขัดกับนโยบายที่ประกาศไว้เองสองข้อ
+   * (ทั้งเรื่องเกณฑ์ และเรื่องที่ run นั้นต้องอยู่ในชุดข้อมูล)
+   */
+  const loaded = loadedSkills ?? [];
+  if (!arm.skillsEnabled && loaded.length) {
+    v.push(`arm ${arm.id} ไม่ควรมี skill เข้าบริบทได้เลย แต่โหลดสำเร็จ ${loaded.length} ตัว: ${[...new Set(loaded)].join(', ')}`);
   }
 
   /*

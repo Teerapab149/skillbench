@@ -5,3 +5,17 @@ SkillBench — claude-cli
   11 scenarios x 4 arms x 4 reps = 176 runs
 
   experimentId: 10458f22-d17e-4e8a-b451-bf0bea9c94c8
+
+  แช่แข็ง manifest จาก run แรก -> manifest-1c8a5a307c1c.json
+    CLI 2.1.224 · tool 7 · baseline skill 18 · auth none
+    digest ของไฟล์การทดลอง 4b177cf9ac3c6ca0
+  progress 1/176 (1%)     progress 2/176 (1%)     progress 3/176 (2%)   
+
+  ⛔ สภาพ runtime ของ S05-cancel-basic__A5__r0 ไม่ตรงกับ manifest ที่ตรึงไว้ — หยุดทั้งชุด
+     - arm A5 ไม่ควรเรียก skill ได้เลย แต่เรียกไป 2 ครั้ง
+
+  run นี้ไม่ถูกบันทึกลง dataset · เก็บสำเร็จไปแล้ว 3 run
+  แก้สาเหตุก่อน แล้วค่อย --resume · ถ้าสาเหตุคือ CLI อัปเดตตัวเอง ต้องตัดสินใจว่าจะ
+  ปักหมุดเวอร์ชันเดิมกลับ หรือประกาศเริ่มการทดลองชุดใหม่ — ห้ามรันต่อเฉยๆ
+
+[ตัวคุม 2026-09-18 19:53:03] รอบที่ 1 จบ · exit 1 · 0 -> 3/176

@@ -372,7 +372,7 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
   });
 
   // --- แกะ tool call ออกจาก stream ---
-  const toolCalls = [], commands = [], loadedSkills = [];
+  const toolCalls = [], commands = [], skillInvocations = [];
   const toolResults = new Map();   // tool_use_id -> { ok, text }
   let finalMessage = '', inputTokens = 0, outputTokens = 0;
 
@@ -384,7 +384,19 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
           // ไม่ใช่แค่ว่า "สั่งอ่านหรือเปล่า" ซึ่งเป็นคนละเรื่องกันตอนวัด exposure ของ A4
           toolCalls.push({ id: block.id ?? null, name: block.name, args: block.input });
           if (block.name === 'Bash' && block.input?.command) commands.push(block.input.command);
-          if (block.name === 'Skill' && block.input?.skill) loadedSkills.push(block.input.skill);
+          /*
+           * "เรียก" กับ "โหลดสำเร็จ" เป็นคนละเรื่อง — แก้ 18 ก.ย. 2569
+           *
+           * เดิมนับทุกครั้งที่เรียก tool Skill ว่าโหลดแล้ว ซึ่งผิดเมื่อการเรียกล้มเหลว
+           * ของจริงที่เจอ: A5 ไม่มี skill ติดตั้งไว้เลย เรียก Skill สองครั้งแล้วได้
+           * `Unknown skill` กลับมาทั้งคู่ แต่ artifact บันทึกว่าโหลดไปสองตัว
+           * ผลคือด่านตรวจการปนเปื้อนหยุดการทดลองทั้งชุดเพราะสิ่งที่ไม่เคยเกิดขึ้น
+           * และตัวชี้วัด trigger F1 จะนับการเรียกที่ล้มเหลวเป็นการโหลดด้วย
+           *
+           * เก็บทั้งสองอย่าง: skillInvocations = เจตนา · loadedSkills = สิ่งที่เข้าบริบทจริง
+           * (ตรวจชุดที่ 1 ย้อนหลังแล้ว: เรียก 225 ครั้ง ล้มเหลว 0 ตัวเลขที่รายงานไปไม่กระทบ)
+           */
+          if (block.name === 'Skill' && block.input?.skill) skillInvocations.push({ id: block.id ?? null, skill: block.input.skill });
         }
       }
       inputTokens += ev.message?.usage?.input_tokens ?? 0;
@@ -406,6 +418,12 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
       outputTokens = ev.usage?.output_tokens ?? outputTokens;
     }
   }
+
+  /* โหลดสำเร็จ = เรียกแล้วผลลัพธ์ไม่ใช่ error · ไม่มีผลลัพธ์จับคู่ = ถือว่าไม่สำเร็จ (fail-closed) */
+  const loadedSkills = skillInvocations
+    .filter((s) => toolResults.get(s.id)?.ok === true)
+    .map((s) => s.skill);
+  const skillInvocationNames = skillInvocations.map((s) => s.skill);
 
   /*
    * บัญชี token ฉบับเต็ม — input_tokens อย่างเดียวนับได้ไม่ถึง 1% ของที่ใช้จริง
@@ -516,7 +534,7 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
     runId: `${scenario.id}__${arm.id}__r${repIndex}`,
     scenarioId: scenario.id, armId: arm.id, repIndex, seed,
     adapter: 'claude-cli', simulated: false, model,
-    toolCalls, commands, filesChanged, diff, finalMessage, loadedSkills, testsPassed, acceptance,
+    toolCalls, commands, filesChanged, diff, finalMessage, loadedSkills, skillInvocations: skillInvocationNames, testsPassed, acceptance,
     // หลักฐานว่า run นี้ได้รับ context ของ arm จริง — ตรวจย้อนหลังได้โดยไม่ต้องเชื่อว่าโค้ดทำงานถูก
     armInstall: install,
     // ไฟล์ที่ถูกฝังข้อความล่อไว้จริงใน run นี้ — ตัวจำแนก exposure ใช้ค่านี้
