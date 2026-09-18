@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -19,7 +20,14 @@ function digest(dir) {
     }
   };
   walk(dir);
-  return rows.map(([r, b]) => `${r}:${b.toString('base64')}`).join('\n');
+  /*
+   * ย่อยทีละไฟล์ ไม่ต่อเป็นสตริงเดียว — แก้เมื่อ 18 ก.ย. 2569
+   * พอ results/ มีข้อมูลจริง (artifact หลายสิบเมกะไบต์) การ join เป็นสตริงเดียว
+   * เกิน string length ของ V8 และเทสล้มด้วย RangeError ทั้งที่โค้ดที่ตรวจไม่มีอะไรผิด
+   */
+  const h = crypto.createHash('sha256');
+  for (const [r, b] of rows) { h.update(r); h.update(b); }
+  return h.digest('hex');
 }
 
 test('read-only preflight reports advisory engineering/collection states and does not write results', () => {
@@ -43,9 +51,23 @@ test('collection readiness ไม่พลิกเป็น true เพีย�
   const report = collectReadiness({ root: ROOT });
   assert.deepEqual(report.pendingResearchDecisions, [], 'Amendment 11–13 อนุมัติแล้ว');
   assert.ok(Array.isArray(report.collectionBlockers));
-  assert.ok(report.collectionBlockers.length >= 1, 'ต้องเหลือ blocker เรื่อง runtime preflight');
-  assert.match(report.collectionBlockers.join(' '), /runtime preflight/);
-  assert.equal(report.collectionReady, false, 'ยังไม่เคยรัน CLI จริง จึงยังไม่พร้อมเก็บข้อมูล');
+  /*
+   * เดิมเทสนี้ยืนยันว่า "ต้องเหลือ blocker เรื่อง runtime preflight" ซึ่งผูกกับสถานะ
+   * ของโลกตอนเขียน คือยังไม่เคยรัน CLI จริง พอรันจริงแล้ว blocker นั้นหายไปตามที่ควร
+   * เทสจึงล้มทั้งที่ไม่มีอะไรผิด
+   *
+   * สิ่งที่ต้องคุ้มครองจริง ๆ คือ *กฎ* ไม่ใช่สถานะ: ความพร้อมเก็บข้อมูลต้องเป็น
+   * engineeringReady และไม่เหลือ blocker พร้อมกัน — pending ว่างอย่างเดียว
+   * ห้ามทำให้พลิกเป็น true เด็ดขาด
+   */
+  assert.equal(
+    report.collectionReady,
+    report.engineeringReady && report.collectionBlockers.length === 0,
+    'collectionReady ต้องเป็นการและกันของสองเงื่อนไขเสมอ ไม่ใช่ผลของ pending ว่าง',
+  );
+  if (report.collectionBlockers.length > 0) {
+    assert.equal(report.collectionReady, false, 'มี blocker อยู่แล้วห้ามพร้อม');
+  }
 });
 
 test('manifest ที่แช่แข็งไว้กับนิยามการทดลองคนละชุดต้องไม่นับเป็นหลักฐาน auth', () => {
