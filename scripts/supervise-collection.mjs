@@ -17,8 +17,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const LOG = path.join(ROOT, 'evidence/collection-log/12-supervised.log');
-const TOTAL = 330;
+/*
+ * รับพารามิเตอร์ของชุดการทดลอง — เดิมเขียนตายไว้เป็นชุดที่ 1
+ *
+ * ข้อบกพร่องที่เจอตอนจะเริ่มชุดที่ 2: ตัวคุมยิง runner ด้วย config และ out ของชุดที่ 1
+ * แล้วไปหยุดที่การตรวจ manifest ซึ่งถูกต้องตามกลไก แต่แปลว่าถ้ากลไกนั้นไม่มี
+ * มันจะเก็บข้อมูลลงชุดที่ผิดเงียบ ๆ
+ */
+const arg = (flag, dflt) => { const i = process.argv.indexOf(flag); return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : dflt; };
+const CONFIG = arg('--config', 'config/arms.json');
+const OUT = arg('--out', 'results');
+const REPS = arg('--reps', '6');
+const LABEL = arg('--label', 'supervised');
+const LOG = path.join(ROOT, `evidence/collection-log/${LABEL}.log`);
+const TOTAL = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, CONFIG), 'utf8')).preRegisteredAllocation.cells; }
+  catch { return 330; }
+})();
 const MAX_ROUNDS = 60;
 
 const now = () => new Date().toLocaleString('sv-SE');
@@ -27,7 +42,8 @@ const say = (s) => { const line = `[ตัวคุม ${now()}] ${s}\n`; out.wr
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function collected() {
-  const dir = path.join(ROOT, 'results');
+  const dir = path.join(ROOT, OUT);
+  if (!fs.existsSync(dir)) return 0;
   const f = fs.readdirSync(dir).find((x) => x.startsWith('checkpoint-'));
   if (!f) return 0;
   try { return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')).graded.length; }
@@ -56,7 +72,8 @@ function msUntilReset(text) {
 function runOnce() {
   return new Promise((resolve) => {
     let tail = '';
-    const child = spawn('node', ['src/runner.mjs', '--adapter', 'claude-cli', '--reps', '6', '--resume'],
+    const child = spawn('node', ['src/runner.mjs', '--adapter', 'claude-cli', '--config', CONFIG,
+      '--out', OUT, '--reps', REPS, '--resume'],
       { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
     const grab = (buf) => {
       const s = buf.toString('utf8');
@@ -79,6 +96,7 @@ for (let round = 1; round <= MAX_ROUNDS; round += 1) {
     say('แกะ fixture lock ที่เจ้าของตายไปแล้ว');
   }
 
+  if (round === 1) say(`ชุดการทดลอง: ${CONFIG} → ${OUT} · ${REPS} รอบ · เป้าหมาย ${TOTAL} cell`);
   say(`รอบที่ ${round} — เริ่มจาก ${before}/${TOTAL}`);
   const { code, tail } = await runOnce();
   const after = collected();

@@ -38,7 +38,7 @@
     "lock": "node scripts/fixture-lock.mjs",
     "lock:break": "node scripts/fixture-lock.mjs --break",
     "check:rcra": "node scripts/check-rcra-floor.mjs",
-    "main:study2": "node src/runner.mjs --adapter claude-cli --config config/arms-study2.json --out results-study2 --reps 4 --resume",
+    "main:study2": "node scripts/supervise-collection.mjs --config config/arms-study2.json --out results-study2 --reps 4 --label 20-study2",
     "analyze:study2": "node src/analyze.mjs --config config/arms-study2.json --in results-study2/latest.json --out results-study2"
   },
   "engines": {
