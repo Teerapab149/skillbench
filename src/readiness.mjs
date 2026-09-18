@@ -83,12 +83,19 @@ export function auditAttemptStore(outDir) {
   return { state: malformed.length ? 'fail' : 'pass', reason: malformed.length ? 'พบ record เสีย/อ่านไม่ได้' : 'อ่าน record แบบไม่เขียนได้', records, orphanStarts, malformed };
 }
 
-export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), resultsDir = null } = {}) {
+export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), resultsDir = null, configFile = null } = {}) {
   root = path.resolve(root);
   resultsDir = path.resolve(resultsDir ?? path.join(root, 'results'));
   const checks = [];
   let config = null;
-  try { config = jsonFile(path.join(root, 'config', 'arms.json')); } catch { /* represented below */ }
+  /*
+   * ชุดที่ 2 มีนิยามการทดลองอยู่คนละไฟล์ ถ้าอ่านตายตัวที่ config/arms.json
+   * preflight ก่อนเก็บชุดที่ 2 จะเอาการจัดสรรของชุดที่ 1 ไปตรวจ ซึ่งเป็น
+   * การตรวจที่มีไว้จับ allocation drift โดยเฉพาะ แล้วมองไม่เห็น drift ที่สำคัญที่สุด
+   */
+  const configPath = configFile ? path.resolve(root, configFile) : path.join(root, 'config', 'arms.json');
+  const configRel = path.relative(root, configPath).split(path.sep).join('/');
+  try { config = jsonFile(configPath); } catch { /* represented below */ }
   const scenariosDir = path.join(root, 'scenarios');
   const scenarios = fs.existsSync(scenariosDir) ? fs.readdirSync(scenariosDir).filter((f) => f.endsWith('.json')).map((f) => jsonFile(path.join(scenariosDir, f))).filter((s) => !s.__error) : [];
   const arms = config?.arms ?? [];
@@ -102,7 +109,7 @@ export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPat
    */
   const prereg = config?.preRegisteredAllocation ?? null;
   const allocation = prereg
-    ? { arms: prereg.arms.length, scenarios: prereg.scenarios, repetitions: prereg.reps, cells: prereg.cells, source: 'config/arms.json preRegisteredAllocation' }
+    ? { arms: prereg.arms.length, scenarios: prereg.scenarios, repetitions: prereg.reps, cells: prereg.cells, source: configRel + String.fromCharCode(32) + String.fromCharCode(112,114,101,82,101,103,105,115,116,101,114,101,100,65,108,108,111,99,97,116,105,111,110) }
     : { arms: arms.length, scenarios: scenarios.length, repetitions: null, cells: null, source: 'derived — ไม่มี preRegisteredAllocation ใน config' };
   checks.push(config?.__error ? status('config', 'fail', config.__error) : status('config', 'pass', 'อ่าน config ปัจจุบันแล้ว', { model: fixed.model, maxTurns: fixed.maxTurns, allocation }));
 
@@ -121,7 +128,7 @@ export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPat
       ? status('allocation-declared', 'fail', mismatch.join(' · '), { prereg })
       : status('allocation-declared', 'pass', `การจัดสรรที่ประกาศตรงกับของจริง (${prereg.cells} cell) · fallback: ${prereg.fallback?.type ?? 'ไม่มี'}`, { prereg }));
   } else {
-    checks.push(status('allocation-declared', 'fail', 'config/arms.json ไม่มี preRegisteredAllocation — ไม่มีตัวเลขที่ประกาศให้ตรวจ'));
+    checks.push(status('allocation-declared', 'fail', configRel + ' ไม่มี preRegisteredAllocation — ไม่มีตัวเลขที่ประกาศให้ตรวจ'));
   }
 
   const fixtures = [...new Set(scenarios.map((s) => s.fixture).filter(Boolean))];

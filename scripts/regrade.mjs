@@ -24,6 +24,17 @@ import { fileURLToPath } from 'node:url';
 import { gradeRun } from '../src/graders.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+/*
+ * --scenarios: ให้คะแนนใหม่ด้วยชุดโจทย์ที่ระบุ ไม่ใช่ไฟล์ปัจจุบันเสมอไป
+ *
+ * ชุดโจทย์ถูกแก้ไประหว่างเตรียมชุดที่ 2 (ลดชั้นกฎ 11 ข้อ) การให้คะแนนชุดที่ 1 ใหม่
+ * ด้วยไฟล์ปัจจุบันจะได้ตัวเลขคนละชุดกับที่รายงานไว้ โดยไม่มีอะไรเตือน
+ * ชุดที่ใช้ตอนเก็บชุดที่ 1 แช่แข็งไว้ที่ evidence/study1-scenarios/
+ */
+const si = process.argv.indexOf('--scenarios');
+const SCEN_DIR = path.resolve(ROOT, si !== -1 && process.argv[si + 1] ? process.argv[si + 1] : 'scenarios');
+if (SCEN_DIR !== path.join(ROOT, 'scenarios')) console.log('  ใช้ชุดโจทย์จาก ' + path.relative(ROOT, SCEN_DIR));
 const write = process.argv.includes('--write');
 
 const fileArg = (() => {
@@ -47,10 +58,10 @@ if (!fs.existsSync(artPath)) {
 const artifacts = JSON.parse(fs.readFileSync(artPath, 'utf8'));
 
 const scenarios = Object.fromEntries(
-  fs.readdirSync(path.join(ROOT, 'scenarios'))
+  fs.readdirSync(SCEN_DIR)
     .filter((f) => f.endsWith('.json'))
     .map((f) => {
-      const s = JSON.parse(fs.readFileSync(path.join(ROOT, 'scenarios', f), 'utf8'));
+      const s = JSON.parse(fs.readFileSync(path.join(SCEN_DIR, f), 'utf8'));
       return [s.id, s];
     }));
 

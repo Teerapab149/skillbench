@@ -4,12 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { collectReadiness } from '../src/readiness.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const report = collectReadiness({ root });
+/* --config: ชุดที่ 2 มีนิยามการทดลองคนละไฟล์ preflight ต้องตรวจของชุดที่กำลังจะรัน */
+const ci = process.argv.indexOf("--config");
+const configFile = ci !== -1 && process.argv[ci + 1] ? process.argv[ci + 1] : null;
+const report = collectReadiness({ root, configFile });
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify(report, null, 2));
 } else {
   console.log('\nSkillBench read-only preflight (advisory)');
-  console.log(`  allocation: ${report.allocation.arms} arms × ${report.allocation.scenarios} scenarios × 6 reps = ${report.allocation.cells} allocated cells`);
+  console.log(`  allocation: ${report.allocation.arms} arms × ${report.allocation.scenarios} scenarios × ${report.allocation.repetitions} reps = ${report.allocation.cells} allocated cells · ${report.allocation.source}`);
   for (const check of report.checks) console.log(`  [${check.state.toUpperCase()}] ${check.name}: ${check.reason}`);
   console.log(`  ENGINEERING READY: ${report.engineeringReady ? 'YES' : 'NO'}`);
   console.log(`  COLLECTION READY: ${report.collectionReady ? 'YES' : 'NO'}`);
