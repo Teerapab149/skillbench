@@ -27,3 +27,6 @@ evidence/transcripts/sessions/
 # เอกสารรายงานฉบับ Word/PDF — ไม่ใช่ส่วนหนึ่งของการทดลอง และหลุดเข้ามาด้วย git add -A
 *.docx
 *.pdf
+
+# ผลและสมุดบันทึกของชุดที่กำลังเก็บ — commit เมื่อรันจบ ไม่ใช่ระหว่างที่ fixture ถูกแก้อยู่
+results-study2/attempt-provenance/
