@@ -41,6 +41,16 @@ const out = fs.createWriteStream(LOG, { flags: 'a' });
 const say = (s) => { const line = `[ตัวคุม ${now()}] ${s}\n`; out.write(line); process.stdout.write(line); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** พาธหน่วยความจำอัตโนมัติที่ตรึงไว้ใน manifest ของชุดนี้ */
+function manifestMemoryPath() {
+  try {
+    const dir = path.join(ROOT, OUT);
+    const f = fs.readdirSync(dir).find((x) => x.startsWith('manifest-'));
+    if (!f) return null;
+    return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')).memoryAutoPath ?? null;
+  } catch { return null; }
+}
+
 function collected() {
   const dir = path.join(ROOT, OUT);
   if (!fs.existsSync(dir)) return 0;
@@ -97,6 +107,31 @@ for (let round = 1; round <= MAX_ROUNDS; round += 1) {
   }
 
   if (round === 1) say(`ชุดการทดลอง: ${CONFIG} → ${OUT} · ${REPS} รอบ · เป้าหมาย ${TOTAL} cell`);
+  /*
+   * ล้างหน่วยความจำอัตโนมัติก่อนเริ่มทุกรอบ
+   *
+   * 19 ก.ย. 2569: เอเจนต์ในกลุ่ม A1 ใช้ Write เขียนไฟล์หน่วยความจำถาวรออกไป
+   * นอก workspace — ไฟล์หนึ่งสรุปกฎของ A1 อีกไฟล์บอกว่า REQ ใดถูกทำไปแล้ว
+   * ถ้า run ถัดไปอ่าน จะเท่ากับยกกฎของ A1 ไปให้กลุ่มอื่น และให้เฉลยของ S07
+   *
+   * ด่านตรวจของ runner จับได้และหยุดทั้งชุดถูกต้องแล้ว แต่ปล่อยไว้แบบนั้นแปลว่า
+   * ทุกครั้งที่เกิดต้องมีคนมาล้างเอง การล้างก่อนเริ่มรอบทำให้สถานะก่อน run
+   * สะอาดเสมอ โดยไม่ต้องแตะ runner ซึ่งอยู่ใน digest ของการทดลอง
+   */
+  const memDir = manifestMemoryPath();
+  if (memDir && fs.existsSync(memDir)) {
+    const left = fs.readdirSync(memDir);
+    if (left.length) {
+      const stamp = new Date().toISOString().slice(0, 10);
+      const keep = path.join(ROOT, `evidence/memory-contamination-${stamp}`);
+      fs.mkdirSync(keep, { recursive: true });
+      for (const f of left) {
+        fs.copyFileSync(path.join(memDir, f), path.join(keep, f));
+        fs.rmSync(path.join(memDir, f), { recursive: true, force: true });
+      }
+      say(`ล้างหน่วยความจำอัตโนมัติ ${left.length} ไฟล์ · สำเนาอยู่ที่ ${path.relative(ROOT, keep)}`);
+    }
+  }
   say(`รอบที่ ${round} — เริ่มจาก ${before}/${TOTAL}`);
   const { code, tail } = await runOnce();
   const after = collected();

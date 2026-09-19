@@ -1,0 +1,43 @@
+[ตัวคุม 2026-09-19 15:59:14] แกะ fixture lock ที่เจ้าของตายไปแล้ว
+[ตัวคุม 2026-09-19 15:59:14] ชุดการทดลอง: config/arms-study2.json → results-study2 · 4 รอบ · เป้าหมาย 176 cell
+[ตัวคุม 2026-09-19 15:59:14] รอบที่ 1 — เริ่มจาก 72/176
+
+SkillBench — claude-cli
+  11 scenarios x 4 arms x 4 reps = 176 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: 5f3b49a4-1343-4419-8202-f5436e754961
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 72/176 run
+
+  progress 73/176 (41%)     progress 74/176 (42%)     progress 75/176 (43%)     progress 76/176 (43%)     progress 77/176 (44%)     progress 78/176 (44%)     progress 79/176 (45%)     progress 80/176 (45%)     progress 81/176 (46%)     progress 82/176 (47%)     progress 83/176 (47%)     progress 84/176 (48%)     progress 85/176 (48%)     progress 86/176 (49%)     progress 87/176 (49%)     progress 88/176 (50%)     progress 89/176 (51%)     progress 90/176 (51%)     progress 91/176 (52%)     progress 92/176 (52%)     progress 93/176 (53%)     progress 94/176 (53%)     progress 95/176 (54%)     progress 96/176 (55%)     progress 97/176 (55%)     progress 98/176 (56%)     progress 99/176 (56%)     progress 100/176 (57%)     progress 101/176 (57%)     progress 102/176 (58%)     progress 103/176 (59%)     progress 104/176 (59%)     progress 105/176 (60%)     progress 106/176 (60%)     progress 107/176 (61%)     progress 108/176 (61%)     progress 109/176 (62%)     progress 110/176 (63%)   
+
+  หยุดชั่วคราว — You've hit your session limit · resets 8:50pm (Asia/Bangkok)
+  เก็บไว้แล้ว 110 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study2/latest.json (+ graded-2026-09-19T10-31-24.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-09-19 17:31:24] รอบที่ 1 จบ · exit 0 · 72 -> 110/176
+[ตัวคุม 2026-09-19 17:31:24] ชนลิมิตยาว — รอ 204 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-09-19 20:54:59] รอบที่ 2 — เริ่มจาก 110/176
+
+SkillBench — claude-cli
+  11 scenarios x 4 arms x 4 reps = 176 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: 5f3b49a4-1343-4419-8202-f5436e754961
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 110/176 run
+
+  progress 111/176 (63%)     progress 112/176 (64%)     progress 113/176 (64%)     progress 114/176 (65%)     progress 115/176 (65%)     progress 116/176 (66%)     progress 117/176 (66%)     progress 118/176 (67%)     progress 119/176 (68%)     progress 120/176 (68%)     progress 121/176 (69%)     progress 122/176 (69%)     progress 123/176 (70%)     progress 124/176 (70%)     progress 125/176 (71%)     progress 126/176 (72%)     progress 127/176 (72%)     progress 128/176 (73%)     progress 129/176 (73%)     progress 130/176 (74%)     progress 131/176 (74%)     progress 132/176 (75%)     progress 133/176 (76%)     progress 134/176 (76%)     progress 135/176 (77%)     progress 136/176 (77%)     progress 137/176 (78%)     progress 138/176 (78%)     progress 139/176 (79%)     progress 140/176 (80%)     progress 141/176 (80%)     progress 142/176 (81%)     progress 143/176 (81%)     progress 144/176 (82%)     progress 145/176 (82%)     progress 146/176 (83%)     progress 147/176 (84%)     progress 148/176 (84%)   
+
+  ⛔ สภาพ runtime ของ S07-weekly-quota__A1__r3 ไม่ตรงกับ manifest ที่ตรึงไว้ — หยุดทั้งชุด
+     - auto-memory ไม่ว่าง (หลัง run) — สถานะจาก run ก่อนหน้าจะข้ามมาปนได้
+
+  run นี้ไม่ถูกบันทึกลง dataset · เก็บสำเร็จไปแล้ว 148 run
+  แก้สาเหตุก่อน แล้วค่อย --resume · ถ้าสาเหตุคือ CLI อัปเดตตัวเอง ต้องตัดสินใจว่าจะ
+  ปักหมุดเวอร์ชันเดิมกลับ หรือประกาศเริ่มการทดลองชุดใหม่ — ห้ามรันต่อเฉยๆ
+
+[ตัวคุม 2026-09-19 22:45:31] รอบที่ 2 จบ · exit 1 · 110 -> 148/176

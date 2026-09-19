@@ -1,0 +1,10 @@
+[ตัวคุม 2026-09-19 15:57:48] ชุดการทดลอง: config/arms-study2.json → results-study2 · 4 รอบ · เป้าหมาย 176 cell
+[ตัวคุม 2026-09-19 15:57:48] รอบที่ 1 — เริ่มจาก 72/176
+
+SkillBench — claude-cli
+  11 scenarios x 4 arms x 4 reps = 176 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: 5f3b49a4-1343-4419-8202-f5436e754961
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 72/176 run
+
