@@ -1,0 +1,18 @@
+[ตัวคุม 2026-09-20 01:55:07] ชุดการทดลอง: config/arms-study2.json → results-study2 · 4 รอบ · เป้าหมาย 176 cell
+[ตัวคุม 2026-09-20 01:55:07] รอบที่ 1 — เริ่มจาก 148/176
+
+SkillBench — claude-cli
+  11 scenarios x 4 arms x 4 reps = 176 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: 5f3b49a4-1343-4419-8202-f5436e754961
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 148/176 run
+
+  progress 149/176 (85%)     progress 150/176 (85%)     progress 151/176 (86%)     progress 152/176 (86%)     progress 153/176 (87%)     progress 154/176 (88%)     progress 155/176 (88%)     progress 156/176 (89%)     progress 157/176 (89%)     progress 158/176 (90%)     progress 159/176 (90%)     progress 160/176 (91%)     progress 161/176 (91%)     progress 162/176 (92%)     progress 163/176 (93%)     progress 164/176 (93%)     progress 165/176 (94%)     progress 166/176 (94%)     progress 167/176 (95%)     progress 168/176 (95%)     progress 169/176 (96%)     progress 170/176 (97%)     progress 171/176 (97%)     progress 172/176 (98%)     progress 173/176 (98%)     progress 174/176 (99%)     progress 175/176 (99%)     progress 176/176 (100%)   
+
+  บันทึกที่ results-study2/latest.json (+ graded-2026-09-19T19-59-21.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-09-20 02:59:22] รอบที่ 1 จบ · exit 0 · 148 -> 176/176
+[ตัวคุม 2026-09-20 02:59:22] เก็บครบแล้ว — จบ
+[ตัวคุม 2026-09-20 02:59:22] ตัวคุมจบการทำงาน

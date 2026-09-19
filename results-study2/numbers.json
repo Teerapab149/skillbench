@@ -1,0 +1,140 @@
+{
+  "generatedAt": "2026-09-19T20:00:01.250Z",
+  "source": "results-study2/latest.json",
+  "simulated": false,
+  "adapter": "claude-cli",
+  "model": "claude-sonnet-5",
+  "maxTurns": 80,
+  "masterSeed": 20260804,
+  "experimentId": "5f3b49a4-1343-4419-8202-f5436e754961",
+  "stamp": "2026-09-19T19-59-21",
+  "primary": {
+    "metric": "RCRc",
+    "armA": "A2",
+    "armB": "A1",
+    "rateA": 0.615124458874459,
+    "rateB": 0.5054112554112554,
+    "diff": 0.10971320346320357,
+    "ciLo": -0.020788239538239495,
+    "ciHi": 0.2749368686868689,
+    "wins": 3,
+    "losses": 2,
+    "ties": 6,
+    "k": 11,
+    "p": 0.25
+  },
+  "icc": {
+    "planning": 0.2,
+    "byArm": {
+      "A0": 0.71576888560484,
+      "A1": 0.833995258075856,
+      "A2": 0.6577388024958404,
+      "A5": 0.7361930038495564
+    },
+    "ofDifference": 0.22375109969327078,
+    "kDifference": 11
+  },
+  "allocation": {
+    "arms": [
+      "A0",
+      "A1",
+      "A2",
+      "A5"
+    ],
+    "scenarios": 11,
+    "reps": 4,
+    "declaredCells": 176,
+    "missingCells": 0,
+    "usableCells": 176,
+    "completeness": 1,
+    "fallbackUsed": null,
+    "structurallyExcluded": 0
+  },
+  "budgetExhausted": {
+    "total": 0,
+    "byArm": {
+      "A0": {
+        "runs": 44,
+        "hit": 0,
+        "rate": 0
+      },
+      "A1": {
+        "runs": 44,
+        "hit": 0,
+        "rate": 0
+      },
+      "A2": {
+        "runs": 44,
+        "hit": 0,
+        "rate": 0
+      },
+      "A5": {
+        "runs": 44,
+        "hit": 0,
+        "rate": 0
+      }
+    }
+  },
+  "perArm": {
+    "A0": {
+      "n": 44,
+      "CRIT": 0.4090909090909091,
+      "RCR": 0.8504733902461176,
+      "FULL": 0.22727272727272727,
+      "SCOPE": 0.7272727272727273,
+      "TASK": null,
+      "passHatK": 0.2727272727272727,
+      "jaccard": 0.7333333333333333,
+      "entropy": 0.6832132281484217
+    },
+    "A1": {
+      "n": 44,
+      "CRIT": 0.38636363636363635,
+      "RCR": 0.8662152241697695,
+      "FULL": 0.20454545454545456,
+      "SCOPE": 0.8636363636363636,
+      "TASK": null,
+      "passHatK": 0.36363636363636365,
+      "jaccard": 0.6868686868686869,
+      "entropy": 0.4965218309081658
+    },
+    "A2": {
+      "n": 44,
+      "CRIT": 0.45454545454545453,
+      "RCR": 0.8886643659370929,
+      "FULL": 0.3181818181818182,
+      "SCOPE": 0.8863636363636364,
+      "TASK": null,
+      "passHatK": 0.2727272727272727,
+      "jaccard": 0.7272727272727272,
+      "entropy": 0.4153591708432229
+    },
+    "A5": {
+      "n": 44,
+      "CRIT": 0.4318181818181818,
+      "RCR": 0.8781464747373838,
+      "FULL": 0.3409090909090909,
+      "SCOPE": 0.9318181818181818,
+      "TASK": null,
+      "passHatK": 0.2727272727272727,
+      "jaccard": 0.712121212121212,
+      "entropy": 0.5062682617523138
+    }
+  },
+  "triggerF1": {
+    "primary": {
+      "A2": {
+        "trace-to-requirement": 1,
+        "acceptance-first": 0.8421052631578947,
+        "impact-analysis": 0.8717948717948718
+      }
+    },
+    "sensitivity": {
+      "A2": {
+        "trace-to-requirement": 1,
+        "acceptance-first": 0.8421052631578947,
+        "impact-analysis": 0.5925925925925926
+      }
+    }
+  }
+}
