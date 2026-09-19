@@ -87,6 +87,23 @@ const GENERATED = [
   { file: path.join(ROOT, 'SLIDE-NUMBERS.md'), render: renderSlideNumbers, cmd: 'npm run results:slides' },
 ];
 
+/*
+ * เอกสารของชุดที่ 2 ต้องถูกตรวจด้วยตัวเลขของชุดที่ 2 — เพิ่ม 20 ก.ย. 2569
+ *
+ * ด่านนี้เคยตรวจแค่เอกสารที่สร้างจาก results/numbers.json ถ้าปล่อยไว้ บทที่ 5
+ * ของชุดที่ 2 จะเป็นไฟล์เดียวในเล่มที่ไม่มีอะไรบังคับว่าต้องตรงกับข้อมูล
+ * ซึ่งเป็นจุดที่ตัวเลขจะ drift ได้เงียบที่สุด
+ */
+const STUDY2_NUMBERS = path.join(ROOT, 'results-study2', 'numbers.json');
+if (fs.existsSync(STUDY2_NUMBERS)) {
+  GENERATED.push({
+    file: path.join(ROOT, 'report', 'ch5b-results-study2.md'),
+    render: renderResultsDoc,
+    numbersFile: STUDY2_NUMBERS,
+    cmd: 'node scripts/make-results-doc.mjs --in results-study2/numbers.json --out report/ch5b-results-study2.md',
+  });
+}
+
 // ---------- 1 + 2 + 4 ----------
 for (const g of GENERATED) {
   if (!fs.existsSync(g.file)) {
@@ -95,7 +112,9 @@ for (const g of GENERATED) {
     continue;
   }
   const onDisk = fs.readFileSync(g.file, 'utf8');
-  const fresh = g.render(numbers);
+  /* เอกสารแต่ละฉบับต้องถูกตรวจด้วยไฟล์ตัวเลขของชุดตัวเอง ไม่ใช่ของชุดที่ 1 เสมอ */
+  const nums = g.numbersFile ? loadNumbers(g.numbersFile) : numbers;
+  const fresh = g.render(nums);
 
   if (onDisk.split(/\r?\n/).join('\n') !== fresh.split(/\r?\n/).join('\n')) {
     console.log(`  ❌ ${rel(g.file)} ไม่ตรงกับข้อมูลปัจจุบัน — แก้ด้วยมือหรือลืมสร้างใหม่`);
@@ -105,19 +124,19 @@ for (const g of GENERATED) {
   }
 
   const stamped = onDisk.match(/<!-- numbers-hash: ([0-9a-f]+) -->/)?.[1];
-  if (stamped !== numbers.__hash) {
-    console.log(`  ❌ ${rel(g.file)} ประทับ hash ${stamped} แต่ข้อมูลปัจจุบันคือ ${numbers.__hash}`);
+  if (stamped !== nums.__hash) {
+    console.log(`  ❌ ${rel(g.file)} ประทับ hash ${stamped} แต่ข้อมูลปัจจุบันคือ ${nums.__hash}`);
     failed++;
     continue;
   }
 
-  if (numbers.simulated && !onDisk.includes('mock adapter')) {
+  if (nums.simulated && !onDisk.includes('mock adapter')) {
     console.log(`  ❌ ${rel(g.file)} สร้างจากข้อมูลจำลองแต่ไม่ได้ประทับคำเตือนไว้`);
     failed++;
     continue;
   }
 
-  console.log(`  ✅ ${rel(g.file)} ตรงกับ results/numbers.json (${numbers.__hash})`);
+  console.log(`  ✅ ${rel(g.file)} ตรงกับ ${rel(g.numbersFile ?? NUMBERS_FILE)} (${nums.__hash})`);
 }
 
 // ---------- 3 ----------

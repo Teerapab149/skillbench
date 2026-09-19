@@ -127,7 +127,8 @@ if (!fs.existsSync(gradedPath)) {
 const { meta, graded } = JSON.parse(fs.readFileSync(gradedPath, 'utf8'));
 
 // artifact ดิบอยู่คนละไฟล์ ต้องหาคู่ที่ตรงกับ stamp เดียวกัน
-const artPath = path.join(ROOT, 'results', `artifacts-${meta.stamp}.json`);
+/* artifact อยู่ข้าง ๆ ไฟล์คะแนนเสมอ — เดิมชี้ results/ ตายตัว จึงหาไฟล์ของชุดที่ 2 ไม่เจอ */
+const artPath = path.join(path.dirname(gradedPath), `artifacts-${meta.stamp}.json`);
 if (!fs.existsSync(artPath)) {
   console.error(`ไม่พบ artifacts-${meta.stamp}.json — ให้คะแนนใหม่ไม่ได้ถ้าไม่มีข้อมูลดิบ`);
   process.exit(1);

@@ -847,6 +847,22 @@ if (!hasPrimary) {
 } else {
   const pr = pairedCompare(PRIMARY.armA, PRIMARY.armB, PRIMARY.metric);
   const gateOpen = Number.isFinite(pr.signFlip.p) && pr.signFlip.p < ALPHA;
+  /*
+   * แถวลำดับที่สองต้องอยู่ใน numbers.json ด้วย — เพิ่ม 20 ก.ย. 2569
+   *
+   * เดิมค่าของมันถูกคำนวณแล้วพิมพ์ลงรายงานอย่างเดียว ไม่ได้เก็บลงไฟล์ตัวเลข
+   * ผลคือบทที่ 5 ซึ่งสร้างจาก numbers.json เขียนถึงมันไม่ได้เลยทั้งที่เป็น
+   * คู่เปรียบเทียบที่ตั้ง arm ใหม่ขึ้นมาทั้ง arm เพื่อตอบ
+   */
+  {
+    const sr = pairedCompare(SECOND.armA, SECOND.armB, SECOND.metric);
+    NUMBERS.secondary = {
+      label: SECOND.label, metric: SECOND.metric, armA: SECOND.armA, armB: SECOND.armB,
+      rateA: sr.pA, rateB: sr.pB, diff: sr.boot.diff, ciLo: sr.boot.lo, ciHi: sr.boot.hi,
+      wins: sr.wins, losses: sr.losses, ties: sr.ties, k: sr.signFlip.k, p: sr.signFlip.p,
+      gateOpen, tested: gateOpen,
+    };
+  }
   if (!gateOpen) {
     p(`**ประตูปิด — ไม่ทดสอบ** §6.1 ให้ p = ${fmtP(pr.signFlip.p)} ซึ่งไม่ต่ำกว่า ${ALPHA}`);
     p('');
@@ -1224,7 +1240,49 @@ NUMBERS.perArm = Object.fromEntries(armIds.map((a) => [a, {
   passHatK: summary[a].passHatK?.value ?? null,
   jaccard: summary[a].jaccard ?? null,
   entropy: summary[a].entropy ?? null,
+
+  /*
+   * สามค่านี้เพิ่มเมื่อ 20 ก.ย. 2569 เพราะผลของชุดที่ 2 อ่านไม่ได้เรื่องถ้าไม่มี
+   *
+   * RCRc คูณ "ทำงานสำเร็จ" กับ "ตามกฎเมื่อสำเร็จ" เข้าด้วยกัน ตัวเลขรวมตัวเดียว
+   * จึงซ่อนกรณีที่สองส่วนเดินคนละทาง ซึ่งเกิดขึ้นจริงในชุดที่ 2: กลุ่มที่ไม่มีกฎ
+   * ทำงานสำเร็จมากที่สุดแต่ตามกฎแย่ที่สุด การรายงานเฉพาะค่ารวมจะทำให้ข้อสรุปผิด
+   */
+  RCRc: mean(by(a).map((r) => r.RCRc).filter((v) => v !== null && v !== undefined)),
+  taskDoneRate: (() => {
+    const t = by(a).filter((r) => r.taskDone !== null && r.taskDone !== undefined);
+    return t.length ? t.filter((r) => r.taskDone).length / t.length : null;
+  })(),
+  RCRcGivenDone: (() => {
+    const v = by(a).filter((r) => r.taskDone === true).map((r) => r.RCRc)
+      .filter((x) => x !== null && x !== undefined);
+    return v.length ? mean(v) : null;
+  })(),
 }]));
+
+/*
+ * การตรวจสภาพการทดลอง — PRE-REGISTRATION-2 §5.1 และ §7.1 บังคับให้รายงานทุกครั้ง
+ *
+ * §5.1: ถ้า A2 โหลด skill เกือบครบทุก run ข้อสรุปเรื่อง progressive disclosure
+ *       ต้องเขียนใหม่ เพราะ A5 ถูกตรึงไว้ที่เพดานของ A2
+ * §7.1: A5 ไม่มี skill ติดตั้ง ถ้ามันเรียก Skill ต้องรายงานจำนวนครั้ง และถ้ามี
+ *       skill เข้าบริบทได้จริงแม้แต่ครั้งเดียว แปลว่าการทดลองปนเปื้อน
+ */
+NUMBERS.manipulation = Object.fromEntries(armIds.map((a) => {
+  const rows = by(a);
+  const loaded = rows.map((r) => (r.loadedSkills ?? []).length);
+  const invoked = rows.map((r) => (r.skillInvocations ?? []).length);
+  const sum = (x) => x.reduce((p, q) => p + q, 0);
+  return [a, {
+    n: rows.length,
+    skillsLoadedPerRun: rows.length ? sum(loaded) / rows.length : null,
+    skillsInvokedPerRun: rows.length ? sum(invoked) / rows.length : null,
+    runsLoadingAll: loaded.filter((x) => x >= 4).length,
+    runsInvokingAny: invoked.filter((x) => x > 0).length,
+    totalInvocations: sum(invoked),
+    totalLoads: sum(loaded),
+  }];
+}));
 NUMBERS.triggerF1 = {
   primary: Object.fromEntries(Object.entries(trig).map(([a, m]) =>
     [a, Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.f1]))])),

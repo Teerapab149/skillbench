@@ -39,7 +39,9 @@
     "lock:break": "node scripts/fixture-lock.mjs --break",
     "check:rcra": "node scripts/check-rcra-floor.mjs",
     "main:study2": "node scripts/supervise-collection.mjs --config config/arms-study2.json --out results-study2 --reps 4 --label 20-study2",
-    "analyze:study2": "node src/analyze.mjs --config config/arms-study2.json --in results-study2/latest.json --out results-study2"
+    "analyze:study2": "node src/analyze.mjs --config config/arms-study2.json --in results-study2/latest.json --out results-study2",
+    "results:doc:study2": "node scripts/make-results-doc.mjs --in results-study2/numbers.json --out report/ch5b-results-study2.md",
+    "results:all:study2": "npm run analyze:study2 && npm run results:doc:study2 && node scripts/check-numbers.mjs"
   },
   "engines": {
     "node": ">=18"

@@ -82,7 +82,8 @@
       "declaredIn": "PRE-REGISTRATION-2.md §4",
       "supersedes": "CRIT (ตัวชี้วัดหลักของชุดที่ 1)",
       "_why": "CRIT เป็นการและกันของกฎวิกฤตทุกข้อ จึงบดคะแนนลงพื้นและทำให้โจทย์ส่วนใหญ่เสมอกัน · RCRc คือสัดส่วนกฎที่เข้าเงื่อนไขและผ่าน โดยมีเงื่อนไขว่างานหลักสำเร็จ"
-    }
+    },
+    "regradedAt": "2026-09-19T21:13:38.188Z"
   },
   "graded": [
     {
@@ -211,6 +212,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 22,
@@ -359,6 +361,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -519,6 +522,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 2,
@@ -659,6 +663,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -811,6 +816,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -961,6 +967,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 19,
@@ -1093,6 +1100,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -1245,6 +1253,11 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "impact-analysis"
+      ],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 11,
@@ -1381,6 +1394,11 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "safe-shell"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -1529,6 +1547,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -1676,6 +1698,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "openapi.yaml",
         "src/api/routes.ts"
@@ -1810,6 +1833,9 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement"
+      ],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -1959,6 +1985,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 15,
@@ -2107,6 +2134,11 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "impact-analysis"
+      ],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 19,
@@ -2259,6 +2291,9 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -2409,6 +2444,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 13,
@@ -2565,6 +2601,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/policy.ts"
       ],
@@ -2715,6 +2752,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -2875,6 +2913,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/policy.ts",
         "tests/billing.test.ts"
@@ -3034,6 +3073,10 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis"
+      ],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 7,
@@ -3177,6 +3220,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "safe-shell"
+      ],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -3313,6 +3360,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -3466,6 +3514,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -3616,6 +3665,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -3760,6 +3810,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -3917,6 +3968,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "REQUIREMENTS.md",
         "openapi.yaml",
@@ -4055,6 +4107,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -4189,6 +4242,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/projections/history.ts",
@@ -4340,6 +4394,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -4487,6 +4545,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "openapi.yaml",
         "src/api/routes.ts",
@@ -4640,6 +4699,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/lib/duration.ts",
         "tests/duration.test.ts"
@@ -4791,6 +4851,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -4928,6 +4992,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "safe-shell"
+      ],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -5064,6 +5132,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -5221,6 +5290,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "REQUIREMENTS.md",
         "src/domain/policy.ts",
@@ -5365,6 +5435,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -5498,6 +5569,9 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -5658,6 +5732,11 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis",
+        "acceptance-first"
+      ],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 7,
@@ -5794,6 +5873,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -5934,6 +6018,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -6084,6 +6169,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -6221,6 +6307,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -6365,6 +6452,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -6525,6 +6613,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 6,
@@ -6681,6 +6770,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 8,
@@ -6813,6 +6903,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 22,
@@ -6968,6 +7059,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 7,
@@ -7116,6 +7208,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -7268,6 +7361,11 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "impact-analysis"
+      ],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 16,
@@ -7420,6 +7518,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 20,
@@ -7552,6 +7651,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -7704,6 +7804,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -7856,6 +7957,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -8014,6 +8116,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 15,
@@ -8154,6 +8257,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -8298,6 +8402,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "tests/api-error-format.test.ts"
@@ -8432,6 +8537,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/projections/history.ts",
@@ -8583,6 +8689,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 16,
@@ -8739,6 +8846,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "REQUIREMENTS.md",
         "openapi.yaml",
@@ -8880,6 +8992,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/projections/history.ts",
@@ -9015,6 +9128,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 18,
@@ -9162,6 +9276,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -9315,6 +9433,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -9460,6 +9579,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -9615,6 +9738,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 14,
@@ -9755,6 +9879,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "tests/api-errors.test.ts"
@@ -9905,6 +10030,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -10050,6 +10176,9 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement"
+      ],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -10193,6 +10322,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -10353,6 +10486,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/policy.ts",
         "tests/billing.test.ts"
@@ -10504,6 +10638,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -10640,6 +10775,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -10776,6 +10912,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -10923,6 +11063,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -11083,6 +11224,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis"
+      ],
       "filesChanged": [
         "REQUIREMENTS.md",
         "src/domain/policy.ts",
@@ -11238,6 +11383,10 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 14,
@@ -11373,6 +11522,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -11530,6 +11680,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "REQUIREMENTS.md",
         "openapi.yaml",
@@ -11667,6 +11818,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -11803,6 +11955,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/events.ts",
@@ -11955,6 +12108,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -12105,6 +12259,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -12239,6 +12394,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "safe-shell"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/projections/history.ts",
@@ -12394,6 +12554,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/lib/duration.ts",
         "tests/duration.test.ts"
@@ -12553,6 +12714,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 2,
@@ -12693,6 +12855,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "openapi.yaml",
         "src/api/routes.ts"
@@ -12827,6 +12990,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "safe-shell"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -12983,6 +13151,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "impact-analysis"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -13139,6 +13312,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 10,
@@ -13287,6 +13461,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -13424,6 +13602,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -13574,6 +13753,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -13716,6 +13896,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "tests/api-errors.test.ts"
@@ -13858,6 +14039,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "tests/api.test.ts"
@@ -14016,6 +14198,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 16,
@@ -14148,6 +14331,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "tests/history.test.ts"
@@ -14298,6 +14482,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 10,
@@ -14454,6 +14639,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "REQUIREMENTS.md",
         "openapi.yaml",
@@ -14608,6 +14794,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 17,
@@ -14756,6 +14943,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -14909,6 +15097,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -15062,6 +15251,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -15198,6 +15388,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -15350,6 +15541,11 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -15491,6 +15687,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "safe-shell"
+      ],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -15651,6 +15851,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 4,
@@ -15791,6 +15992,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -15924,6 +16126,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -16084,6 +16287,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 7,
@@ -16224,6 +16428,9 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement"
+      ],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -16359,6 +16566,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -16495,6 +16703,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -16650,6 +16862,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -16802,6 +17015,9 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement"
+      ],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 12,
@@ -16960,6 +17176,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "REQUIREMENTS.md",
         "openapi.yaml",
@@ -17113,6 +17330,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "impact-analysis"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -17277,6 +17499,11 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/lib/duration.ts"
       ],
@@ -17423,6 +17650,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "openapi.yaml",
         "src/api/routes.ts",
@@ -17584,6 +17812,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "REQUIREMENTS.md",
         "src/domain/policy.ts",
@@ -17732,6 +17965,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "safe-shell"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -17872,6 +18110,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "tests/history.test.ts"
@@ -18006,6 +18245,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -18166,6 +18406,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "REQUIREMENTS.md",
         "src/domain/policy.ts",
@@ -18310,6 +18551,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -18462,6 +18704,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -18612,6 +18855,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -18756,6 +19003,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -18908,6 +19156,9 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -19045,6 +19296,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/projections/history.ts",
@@ -19196,6 +19448,9 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -19330,6 +19585,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "safe-shell"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -19470,6 +19730,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -19606,6 +19867,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/projections/history.ts",
@@ -19749,6 +20011,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -19898,6 +20161,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/lib/duration.ts",
         "tests/duration.test.ts"
@@ -20033,6 +20297,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 20,
@@ -20188,6 +20453,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 8,
@@ -20336,6 +20602,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "impact-analysis"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -20482,6 +20753,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -20631,6 +20903,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -20767,6 +21040,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -20919,6 +21193,10 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -21056,6 +21334,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -21211,6 +21493,11 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first",
+        "impact-analysis"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -21351,6 +21638,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/store/eventStore.ts",
@@ -21510,6 +21798,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "REQUIREMENTS.md",
         "src/domain/policy.ts",
@@ -21646,6 +21935,10 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "safe-shell"
+      ],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -21806,6 +22099,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 9,
@@ -21954,6 +22248,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 13,
@@ -22094,6 +22389,9 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "trace-to-requirement"
+      ],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -22229,6 +22527,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts"
       ],
@@ -22370,6 +22669,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -22506,6 +22806,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -22658,6 +22959,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -22811,6 +23113,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -22971,6 +23274,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis"
+      ],
       "filesChanged": [
         "REQUIREMENTS.md",
         "src/lib/duration.ts",
@@ -23118,6 +23425,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -23278,6 +23586,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "REQUIREMENTS.md",
         "src/domain/policy.ts",
@@ -23422,6 +23731,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -23577,6 +23890,9 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -23711,6 +24027,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -23863,6 +24180,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -24021,6 +24339,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 4,
@@ -24169,6 +24488,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "tests/domain.test.ts"
@@ -24303,6 +24623,10 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -24458,6 +24782,11 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/lib/duration.ts",
         "tests/duration.test.ts"
@@ -24613,6 +24942,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 18,
@@ -24761,6 +25091,11 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis",
+        "acceptance-first"
+      ],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -24926,6 +25261,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "REQUIREMENTS.md",
         "openapi.yaml",
@@ -25063,6 +25399,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -25215,6 +25552,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [
         "src/domain/booking.ts",
         "src/domain/policy.ts",
@@ -25351,6 +25689,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",
@@ -25511,6 +25850,10 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 0,
       "FLAGGED": 1,
+      "skillInvocations": [
+        "trace-to-requirement",
+        "impact-analysis"
+      ],
       "filesChanged": [
         "src/domain/policy.ts"
       ],
@@ -25664,6 +26007,7 @@
       "AC_MET": 0,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 0,
+      "skillInvocations": [],
       "filesChanged": [],
       "fileSetKey": "",
       "toolCalls": 10,
@@ -25804,6 +26148,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": null,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "tests/api-errors.test.ts"
@@ -25946,6 +26291,7 @@
       "AC_MET": 1,
       "NO_RETRO_IMPACT": 1,
       "FLAGGED": 1,
+      "skillInvocations": [],
       "filesChanged": [
         "src/api/routes.ts",
         "src/domain/booking.ts",

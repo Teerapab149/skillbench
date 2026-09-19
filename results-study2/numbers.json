@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T20:00:01.250Z",
+  "generatedAt": "2026-09-19T21:14:00.306Z",
   "source": "results-study2/latest.json",
   "simulated": false,
   "adapter": "claude-cli",
@@ -33,6 +33,24 @@
     },
     "ofDifference": 0.22375109969327078,
     "kDifference": 11
+  },
+  "secondary": {
+    "label": "KEY SECONDARY",
+    "metric": "RCRc",
+    "armA": "A5",
+    "armB": "A2",
+    "rateA": 0.5271915584415585,
+    "rateB": 0.615124458874459,
+    "diff": -0.08793290043290058,
+    "ciLo": -0.2575757575757576,
+    "ciHi": 0.05519480519480513,
+    "wins": 2,
+    "losses": 3,
+    "ties": 6,
+    "k": 11,
+    "p": 0.4375,
+    "gateOpen": false,
+    "tested": false
   },
   "allocation": {
     "arms": [
@@ -85,7 +103,10 @@
       "TASK": null,
       "passHatK": 0.2727272727272727,
       "jaccard": 0.7333333333333333,
-      "entropy": 0.6832132281484217
+      "entropy": 0.6832132281484217,
+      "RCRc": 0.6710858585858587,
+      "taskDoneRate": 0.75,
+      "RCRcGivenDone": 0.8947811447811449
     },
     "A1": {
       "n": 44,
@@ -96,7 +117,10 @@
       "TASK": null,
       "passHatK": 0.36363636363636365,
       "jaccard": 0.6868686868686869,
-      "entropy": 0.4965218309081658
+      "entropy": 0.4965218309081658,
+      "RCRc": 0.5054112554112554,
+      "taskDoneRate": 0.5227272727272727,
+      "RCRcGivenDone": 0.9668737060041409
     },
     "A2": {
       "n": 44,
@@ -107,7 +131,10 @@
       "TASK": null,
       "passHatK": 0.2727272727272727,
       "jaccard": 0.7272727272727272,
-      "entropy": 0.4153591708432229
+      "entropy": 0.4153591708432229,
+      "RCRc": 0.615124458874459,
+      "taskDoneRate": 0.6363636363636364,
+      "RCRcGivenDone": 0.9666241496598641
     },
     "A5": {
       "n": 44,
@@ -118,7 +145,48 @@
       "TASK": null,
       "passHatK": 0.2727272727272727,
       "jaccard": 0.712121212121212,
-      "entropy": 0.5062682617523138
+      "entropy": 0.5062682617523138,
+      "RCRc": 0.5271915584415585,
+      "taskDoneRate": 0.5454545454545454,
+      "RCRcGivenDone": 0.9665178571428572
+    }
+  },
+  "manipulation": {
+    "A0": {
+      "n": 44,
+      "skillsLoadedPerRun": 0,
+      "skillsInvokedPerRun": 0,
+      "runsLoadingAll": 0,
+      "runsInvokingAny": 0,
+      "totalInvocations": 0,
+      "totalLoads": 0
+    },
+    "A1": {
+      "n": 44,
+      "skillsLoadedPerRun": 0,
+      "skillsInvokedPerRun": 0,
+      "runsLoadingAll": 0,
+      "runsInvokingAny": 0,
+      "totalInvocations": 0,
+      "totalLoads": 0
+    },
+    "A2": {
+      "n": 44,
+      "skillsLoadedPerRun": 2.3636363636363638,
+      "skillsInvokedPerRun": 2.3636363636363638,
+      "runsLoadingAll": 0,
+      "runsInvokingAny": 44,
+      "totalInvocations": 104,
+      "totalLoads": 104
+    },
+    "A5": {
+      "n": 44,
+      "skillsLoadedPerRun": 0,
+      "skillsInvokedPerRun": 0.2727272727272727,
+      "runsLoadingAll": 0,
+      "runsInvokingAny": 9,
+      "totalInvocations": 12,
+      "totalLoads": 0
     }
   },
   "triggerF1": {

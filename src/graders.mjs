@@ -451,6 +451,15 @@ export function gradeRun(artifact, scenario) {
     FLAGGED: allPass(group('FL')),           // แจ้งเตือนสิ่งผิดปกติที่พบ
 
     // --- ตัวชี้วัดต้นทุน: context engineering ไม่ฟรี ต้องรายงานคู่กันเสมอ ---
+    /*
+     * ส่งผ่านเจตนาการเรียก skill มาด้วย — เพิ่ม 20 ก.ย. 2569 หลังเก็บข้อมูลครบแล้ว
+     *
+     * PRE-REGISTRATION-2 §7.1 บังคับให้รายงานจำนวนครั้งที่ A5 เรียก Skill
+     * แต่ข้อมูลนั้นอยู่แค่ใน artifact ดิบ ไม่ได้อยู่ในแถวคะแนนที่ analyze อ่าน
+     * เป็นการส่งผ่านค่าเฉย ๆ **ไม่มีผลต่อคะแนนใด ๆ** ยืนยันด้วยการให้คะแนนใหม่
+     * ทั้งชุดแล้วเทียบว่าไม่มี run ใดเปลี่ยนค่า
+     */
+    skillInvocations: [...(artifact.skillInvocations ?? [])],
     filesChanged: [...artifact.filesChanged].sort(),
     fileSetKey: [...artifact.filesChanged].sort().join('|'),
     toolCalls: artifact.toolCalls.length,
