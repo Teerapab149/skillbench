@@ -1,11 +1,11 @@
 # ตัวเลขสำหรับเด็ค
 
 <!-- generated-from: results/latest.json -->
-<!-- numbers-hash: 73cb4ab1ee55a39d -->
+<!-- numbers-hash: a718778086a21f49 -->
 <!-- dataset-stamp: 2026-09-14T17-02-34 -->
 
 > ⚠️ **ไฟล์นี้ถูกสร้างด้วยสคริปต์ ห้ามแก้ด้วยมือ**
-> ทุกตัวเลขมาจาก `results/numbers.json` ที่ `npm run analyze` เขียนไว้
+> ทุกตัวเลขมาจาก `analyze` ที่อ่าน `results/latest.json` แล้วเขียนลงไฟล์ตัวเลข
 > ถ้าตัวเลขไม่ถูก ให้แก้ที่ข้อมูลหรือที่ `analyze.mjs` แล้วสร้างใหม่ด้วย `npm run results:doc`
 > `npm run check:numbers` จะล้มถ้าไฟล์นี้ไม่ตรงกับข้อมูลปัจจุบัน
 

@@ -5,3 +5,42 @@ SkillBench — claude-cli
   11 scenarios x 4 arms x 4 reps = 176 runs
 
   experimentId: 5f3b49a4-1343-4419-8202-f5436e754961
+
+  แช่แข็ง manifest จาก run แรก -> manifest-1c8a5a307c1c.json
+    CLI 2.1.224 · tool 7 · baseline skill 18 · auth none
+    digest ของไฟล์การทดลอง 4503533902b99118
+  progress 1/176 (1%)     progress 2/176 (1%)     progress 3/176 (2%)     progress 4/176 (2%)     progress 5/176 (3%)     progress 6/176 (3%)     progress 7/176 (4%)     progress 8/176 (5%)     progress 9/176 (5%)     progress 10/176 (6%)     progress 11/176 (6%)     progress 12/176 (7%)     progress 13/176 (7%)     progress 14/176 (8%)     progress 15/176 (9%)     progress 16/176 (9%)     progress 17/176 (10%)     progress 18/176 (10%)     progress 19/176 (11%)     progress 20/176 (11%)     progress 21/176 (12%)     progress 22/176 (13%)     progress 23/176 (13%)     progress 24/176 (14%)     progress 25/176 (14%)     progress 26/176 (15%)     progress 27/176 (15%)     progress 28/176 (16%)     progress 29/176 (16%)     progress 30/176 (17%)     progress 31/176 (18%)     progress 32/176 (18%)     progress 33/176 (19%)     progress 34/176 (19%)     progress 35/176 (20%)     progress 36/176 (20%)     progress 37/176 (21%)     progress 38/176 (22%)   
+
+  หยุดชั่วคราว — You've hit your session limit · resets 12:30am (Asia/Bangkok)
+  เก็บไว้แล้ว 38 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study2/latest.json (+ graded-2026-09-18T14-30-18.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-09-18 21:30:18] รอบที่ 1 จบ · exit 0 · 0 -> 38/176
+[ตัวคุม 2026-09-18 21:30:18] ชนลิมิตยาว — รอ 185 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-09-19 00:35:00] รอบที่ 2 — เริ่มจาก 38/176
+
+SkillBench — claude-cli
+  11 scenarios x 4 arms x 4 reps = 176 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: 5f3b49a4-1343-4419-8202-f5436e754961
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 38/176 run
+
+  progress 39/176 (22%)     progress 40/176 (23%)     progress 41/176 (23%)     progress 42/176 (24%)     progress 43/176 (24%)     progress 44/176 (25%)     progress 45/176 (26%)     progress 46/176 (26%)     progress 47/176 (27%)     progress 48/176 (27%)     progress 49/176 (28%)     progress 50/176 (28%)     progress 51/176 (29%)     progress 52/176 (30%)     progress 53/176 (30%)     progress 54/176 (31%)     progress 55/176 (31%)     progress 56/176 (32%)     progress 57/176 (32%)     progress 58/176 (33%)     progress 59/176 (34%)     progress 60/176 (34%)     progress 61/176 (35%)     progress 62/176 (35%)     progress 63/176 (36%)     progress 64/176 (36%)     progress 65/176 (37%)     progress 66/176 (38%)     progress 67/176 (38%)     progress 68/176 (39%)     progress 69/176 (39%)     progress 70/176 (40%)     progress 71/176 (40%)     progress 72/176 (41%)   
+
+  หยุดชั่วคราว — You've hit your session limit · resets 5:30am (Asia/Bangkok)
+  เก็บไว้แล้ว 72 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study2/latest.json (+ graded-2026-09-18T19-08-49.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-09-19 02:08:49] รอบที่ 2 จบ · exit 0 · 38 -> 72/176
+[ตัวคุม 2026-09-19 02:08:49] ชนลิมิตยาว — รอ 206 นาทีแล้วยิงต่อ
