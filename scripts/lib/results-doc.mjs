@@ -53,7 +53,14 @@ function simulatedWarning(n) {
   ];
 }
 
-export function renderResultsDoc(n) {
+/*
+ * prefix: เลขหัวข้อของบทที่ 5
+ *
+ * งานนี้มีผลสองชุด และทั้งคู่สร้างจาก renderer ตัวเดียวกัน ถ้าไม่มี prefix
+ * ทั้งสองไฟล์จะมีหัวข้อ 5.1 5.2 เหมือนกันเป๊ะ สารบัญของเล่มจะมีเลขซ้ำ
+ * และการอ้างอิงข้ามบทจะกำกวมว่าหมายถึงชุดไหน
+ */
+export function renderResultsDoc(n, { prefix = '5' } = {}) {
   const L = [];
   const p = (line = '') => L.push(line);
 
@@ -67,7 +74,7 @@ export function renderResultsDoc(n) {
 
   // ---------- 5.1 ชุดข้อมูล ----------
   const a = n.allocation ?? {};
-  p('## 5.1 ชุดข้อมูลที่ใช้');
+  p(`## ${prefix}.1 ชุดข้อมูลที่ใช้`);
   p('');
   p('| รายการ | ค่า |');
   p('|---|---|');
@@ -89,7 +96,7 @@ export function renderResultsDoc(n) {
 
   // ---------- 5.2 ผลหลัก ----------
   const pr = n.primary;
-  p('## 5.2 ผลหลัก (primary endpoint)');
+  p(`## ${prefix}.2 ผลหลัก (primary endpoint)`);
   p('');
   if (!pr) {
     p('ชุดข้อมูลนี้ไม่มีทั้งสอง arm ที่ประกาศเป็น primary จึงไม่มีผลหลักให้รายงาน');
@@ -123,9 +130,9 @@ export function renderResultsDoc(n) {
   // ---------- 5.3 sensitivity ----------
   const ps = n.primarySensitivity;
   const be = n.budgetExhausted ?? { total: 0, byArm: {} };
-  p('## 5.3 ความไวของผลหลักต่อเกณฑ์ที่เลือก');
+  p(`## ${prefix}.3 ความไวของผลหลักต่อเกณฑ์ที่เลือก`);
   p('');
-  p('### 5.3.1 run ที่ชนเพดานงบ turn (Amendment 15)');
+  p(`### ${prefix}.3.1 run ที่ชนเพดานงบ turn`);
   p('');
   p(`run ที่ใช้ turn จนหมดงบถูก**นับในผลหลัก** เพราะเป็นพฤติกรรมของเอเจนต์ ไม่ใช่ความล้มเหลวของเครื่องมือวัด`);
   p('');
@@ -167,7 +174,7 @@ export function renderResultsDoc(n) {
 
   // ---------- 5.4 ICC ----------
   const icc = n.icc;
-  p('### 5.3.2 ICC ที่วัดได้จริง เทียบกับค่าที่ใช้วางแผน');
+  p(`### ${prefix}.3.2 ICC ที่วัดได้จริง เทียบกับค่าที่ใช้วางแผน`);
   p('');
   if (!icc) {
     p('ยังไม่มีค่า ICC ในชุดตัวเลขนี้');
@@ -186,7 +193,7 @@ export function renderResultsDoc(n) {
   p('');
 
   // ---------- 5.5 ต่อ arm ----------
-  p('## 5.4 ตัวชี้วัดรายกลุ่มทดลอง');
+  p(`## ${prefix}.4 ตัวชี้วัดรายกลุ่มทดลอง`);
   p('');
   p('| arm | n | CRIT | RCR | FULL | SCOPE | TASK | pass^k | Jaccard | Entropy |');
   p('|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|');
@@ -202,7 +209,7 @@ export function renderResultsDoc(n) {
   // ---------- แถวลำดับที่สองที่อ้างนัยสำคัญได้ ----------
   const sec = n.secondary;
   if (sec) {
-    p(`## 5.5 ${sec.label ?? 'KEY SECONDARY'} — \`${sec.metric}\` · ${sec.armA} เทียบ ${sec.armB}`);
+    p(`## ${prefix}.5 ${sec.label ?? 'KEY SECONDARY'} — \`${sec.metric}\` · ${sec.armA} เทียบ ${sec.armB}`);
     p('');
     p(`| ${sec.armA} | ${sec.armB} | ผลต่างเฉลี่ยรายโจทย์ | 95% CI | ชนะ/แพ้/เสมอ | k | p |`);
     p('|---|---|---|---|---|---:|---|');
@@ -221,7 +228,7 @@ export function renderResultsDoc(n) {
   // ---------- RCRc แยกเป็นสองส่วน ----------
   const hasSplit = Object.values(n.perArm ?? {}).some((v) => v.taskDoneRate != null);
   if (hasSplit) {
-    p('## 5.6 แยก `RCRc` ออกเป็นสองส่วน');
+    p(`## ${prefix}.6 แยก \`RCRc\` ออกเป็นสองส่วน`);
     p('');
     p('| arm | ทำงานสำเร็จ | ตามกฎเมื่อทำสำเร็จ | `RCRc` (ผลคูณ) |');
     p('|---|---:|---:|---:|');
@@ -238,7 +245,7 @@ export function renderResultsDoc(n) {
   // ---------- การตรวจสภาพการทดลอง ----------
   const mani = n.manipulation;
   if (mani && Object.keys(mani).length) {
-    p('## 5.7 การตรวจสภาพการทดลอง (manipulation check)');
+    p(`## ${prefix}.7 การตรวจสภาพการทดลอง (manipulation check)`);
     p('');
     p('| arm | เรียก skill ต่อ run | โหลดสำเร็จต่อ run | run ที่เรียกอย่างน้อยหนึ่งครั้ง | run ที่โหลดครบทุกตัว |');
     p('|---|---:|---:|---:|---:|');
@@ -256,7 +263,7 @@ export function renderResultsDoc(n) {
   // ---------- 5.6 Trigger F1 ----------
   const tf = n.triggerF1 ?? {};
   if (Object.keys(tf.primary ?? {}).length) {
-    p('## 5.8 ความแม่นของการยิง skill (Trigger F1)');
+    p(`## ${prefix}.8 ความแม่นของการยิง skill (Trigger F1)`);
     p('');
     p('รายงานสอง ground truth คู่กันตามที่แผนซึ่งประกาศล่วงหน้าผูกมัดไว้');
     p('');

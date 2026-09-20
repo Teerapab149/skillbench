@@ -15,7 +15,7 @@
     "dilution:make": "node scripts/make-dilution-arms.mjs",
     "dilution": "node src/runner.mjs --adapter claude-cli --config config/dilution.json --scenarios S08,S09 --reps 15 && node scripts/dilution-report.mjs",
     "analyze": "node src/analyze.mjs",
-    "results:doc": "node scripts/make-results-doc.mjs",
+    "results:doc": "node scripts/make-results-doc.mjs --prefix 5ก",
     "results:slides": "node scripts/make-slide-numbers.mjs",
     "results:all": "node src/analyze.mjs && node scripts/make-results-doc.mjs && node scripts/make-slide-numbers.mjs && node scripts/check-numbers.mjs",
     "check:numbers": "node scripts/check-numbers.mjs",
@@ -40,7 +40,7 @@
     "check:rcra": "node scripts/check-rcra-floor.mjs",
     "main:study2": "node scripts/supervise-collection.mjs --config config/arms-study2.json --out results-study2 --reps 4 --label 20-study2",
     "analyze:study2": "node src/analyze.mjs --config config/arms-study2.json --in results-study2/latest.json --out results-study2",
-    "results:doc:study2": "node scripts/make-results-doc.mjs --in results-study2/numbers.json --out report/ch5b-results-study2.md",
+    "results:doc:study2": "node scripts/make-results-doc.mjs --in results-study2/numbers.json --out report/ch5b-results-study2.md --prefix 5ข",
     "results:all:study2": "npm run analyze:study2 && npm run results:doc:study2 && node scripts/check-numbers.mjs"
   },
   "engines": {

@@ -26,7 +26,7 @@ const IN = path.resolve(ROOT, argv('--in', 'results/numbers.json'));
 const OUT = path.resolve(ROOT, argv('--out', 'report/ch5-results.md'));
 
 const numbers = loadNumbers(IN);
-const text = renderResultsDoc(numbers);
+const text = renderResultsDoc(numbers, { prefix: argv('--prefix', '5') });
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, text);

@@ -83,7 +83,7 @@ const numbers = loadNumbers(NUMBERS_FILE);
 let failed = failedTranscripts ? 1 : 0;
 
 const GENERATED = [
-  { file: path.join(ROOT, 'report', 'ch5-results.md'), render: renderResultsDoc, cmd: 'npm run results:doc' },
+  { file: path.join(ROOT, 'report', 'ch5-results.md'), render: renderResultsDoc, opts: { prefix: '5ก' }, cmd: 'npm run results:doc' },
   { file: path.join(ROOT, 'SLIDE-NUMBERS.md'), render: renderSlideNumbers, cmd: 'npm run results:slides' },
 ];
 
@@ -99,6 +99,7 @@ if (fs.existsSync(STUDY2_NUMBERS)) {
   GENERATED.push({
     file: path.join(ROOT, 'report', 'ch5b-results-study2.md'),
     render: renderResultsDoc,
+    opts: { prefix: '5ข' },
     numbersFile: STUDY2_NUMBERS,
     cmd: 'node scripts/make-results-doc.mjs --in results-study2/numbers.json --out report/ch5b-results-study2.md',
   });
@@ -114,7 +115,7 @@ for (const g of GENERATED) {
   const onDisk = fs.readFileSync(g.file, 'utf8');
   /* เอกสารแต่ละฉบับต้องถูกตรวจด้วยไฟล์ตัวเลขของชุดตัวเอง ไม่ใช่ของชุดที่ 1 เสมอ */
   const nums = g.numbersFile ? loadNumbers(g.numbersFile) : numbers;
-  const fresh = g.render(nums);
+  const fresh = g.render(nums, g.opts);
 
   if (onDisk.split(/\r?\n/).join('\n') !== fresh.split(/\r?\n/).join('\n')) {
     console.log(`  ❌ ${rel(g.file)} ไม่ตรงกับข้อมูลปัจจุบัน — แก้ด้วยมือหรือลืมสร้างใหม่`);
