@@ -25,40 +25,25 @@
 
 ## งานที่ต้องทำ เรียงตามลำดับที่ควรทำ
 
-### 1. ⛔ เขียนประวัติ git ใหม่ — ต้องให้ผู้วิจัยสั่งเอง
+### 1. ✅ เขียนประวัติ git ใหม่ — ทำแล้วเมื่อ 20 ก.ย. 2569
 
-**ทำไม:** commit `1be4f65` ถอดไฟล์ซ้ำ 116 MB ออกจากรีโปแล้ว **แต่ก้อนข้อมูลยังอยู่
-ในประวัติที่ commit `a0293c4`** ขนาด `.git` ปัจจุบัน **107 MB**
+ผู้วิจัยอนุมัติและดำเนินการแล้ว ไม่มีอะไรต้องทำต่อในข้อนี้
 
-**ทำไมผู้ช่วยทำให้ไม่ได้:** ระบบสิทธิ์บล็อก `git filter-branch` ไว้ในฐานะคำสั่งที่ทำลายได้
-ซึ่งถูกต้องแล้ว — การเขียนประวัติใหม่ย้อนกลับไม่ได้ถ้าไม่มีสำเนา
+| | ก่อน | หลัง |
+|---|---:|---:|
+| ขนาด `.git` | 107 MB | **38 MB** |
+| ไฟล์ที่ track | 307 MB | 266 MB |
+| ก้อนใหญ่ในประวัติ | 6 ก้อน | **2 ก้อน** — artifacts ตัวสุดท้ายของแต่ละชุด ซึ่งเป็นหลักฐานจริง |
 
-**ปลอดภัยที่จะทำ** เพราะ branch นี้ยังไม่เคย push ขึ้น `github.com/Teerapab149/skillbench`
-ถ้า push ไปแล้วจะยุ่งกว่านี้มาก
+ตรวจก่อนลบ tag สำรอง ไม่ใช่หลัง และผ่านทุกข้อ:
 
-```bash
-git tag backup-before-rewrite HEAD
-```
+- รายการไฟล์ของ commit เดียวกันก่อน/หลังเขียนใหม่ **ตรงกันทุกไฟล์**
+- ข้อความ commit ทั้ง 97 ตัวตรงกันหมด
+- `npm test` 200 ผ่าน · `npm run gate` exit 0 · `git fsck` สะอาด
+- ไฟล์ทั้ง 7 ที่ถอดออกจากรีโป **ยังอยู่บนดิสก์ครบ**
 
-```bash
-FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --index-filter 'git rm --cached --ignore-unmatch -q "results-study2/checkpoint-*.json" "results-study2/artifacts-2026-09-18*.json" "results-study2/artifacts-2026-09-19T10-31-24.json" "results-study2/graded-2026-09-18*.json" "results-study2/graded-2026-09-19T10-31-24.json"' --prune-empty HEAD
-```
-
-```bash
-git reflog expire --expire=now --all && git gc --prune=now --aggressive
-```
-
-**ตรวจหลังทำ** — ต้องได้ผลเหมือนเดิมทุกข้อ ถ้าข้อใดไม่ผ่านให้ย้อนด้วย
-`git reset --hard backup-before-rewrite`
-
-```bash
-du -sh .git && npm test && npm run gate && git status --porcelain
-```
-
-ลบ tag สำรองได้หลังมั่นใจแล้วเท่านั้น: `git tag -d backup-before-rewrite`
-
----
-
+**หมายเหตุสำหรับอนาคต:** branch นี้ยังไม่เคย push การเขียนประวัติใหม่จึงปลอดภัย
+ถ้า push ไปแล้วแล้วต้องทำอีกครั้ง จะต้อง force push และใครที่ clone ไปแล้วต้อง reset ตาม
 ### 2. บทที่ 1 ยังตั้งเป้าไม่ตรงกับบทที่ 7
 
 `report/ch1-introduction.md:52` ยังประกาศข้อเสนอหลักว่า
