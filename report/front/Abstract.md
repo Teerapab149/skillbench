@@ -26,14 +26,18 @@ a difference of 9.1 points (95% CI −6.8 to 27.3, p = 0.500) and study 2 measur
 11.0 points (95% CI −2.1 to 27.5, p = 0.250). The direction favoured conditional
 loading both times, but the confidence intervals straddle zero.
 
-**Why the two studies are inconclusive differs, and that difference is the
-study's main contribution.** In study 1 the lowest attainable p-value was 0.063,
-already above the threshold, because the primary metric conjoined every critical
-rule and pushed scores to the floor, leaving most tasks tied between arms. After
-repairing the metric in study 2 that floor fell to 0.0625, making significance
-attainable, and the observed result did not reach it. **Repairing the instrument
-moved the obstacle from impossible to insufficient**, and showed that what is
-missing is tasks, not measurement.
+**Both studies are inconclusive for the same reason, and identifying that reason
+is the study's main contribution.** The test treats each task as one unit, so a
+task on which the two arms tie carries no information. Both studies left exactly
+five of eleven tasks untied, which fixes the lowest attainable p-value at 0.0625
+in both — above the 0.05 threshold. **Significance was therefore mathematically
+out of reach in both studies before any data was seen**, however large the true
+effect. Repairing the metric did sharpen the estimate: the observed p-value fell
+from 0.500 to 0.250 and the lower bound of the interval moved from −6.8 to −2.1.
+It did not raise the ceiling, because the ceiling depends only on the number of
+untied tasks, which did not change. **What is missing is tasks, not measurement**
+— the condition the pre-registration had stated in advance, predicting that fewer
+than six untied tasks would put significance out of reach.
 
 Decomposing the repaired metric revealed that **every arm carrying rules complied
 with them more reliably than the arm with no rules, while completing fewer tasks.**
