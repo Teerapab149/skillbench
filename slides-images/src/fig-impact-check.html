@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_fig.css">
+<style>
+  body { width: 1380px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+
+  .box { border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .bh { padding: 12px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .bh .t { font-size: 19px; font-weight: 700; color: var(--blue); }
+  .bh .s { font-size: 14px; color: var(--mut); margin-top: 2px; }
+  .bb { padding: 14px 18px 15px; }
+
+  .br { display: grid; grid-template-columns: 186px 1fr 62px; align-items: center; height: 50px; }
+  .br .who { font-size: 16px; color: var(--mut); line-height: 1.2; }
+  .br .who b { display: block; font-size: 17px; color: var(--ink); }
+  .br.a0 .who b { color: var(--red); }
+  .br .track { height: 24px; background: var(--well); border-radius: 4px; position: relative; }
+  .br .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--green); }
+  .br.a0 .fill { background: #c9797e; }
+  .br .num { text-align: right; font-size: 17px; font-weight: 700;
+             font-family: 'Cascadia Mono', Consolas, monospace; color: var(--green); }
+  .br.a0 .num { color: var(--red); }
+  .br .zero { position: absolute; left: 7px; top: 3px; font-size: 13.5px; color: var(--red); font-weight: 700; }
+
+  .axl { display: grid; grid-template-columns: 186px 1fr 62px; font-size: 12.5px; color: var(--faint); }
+  .axl .in { position: relative; height: 15px; }
+  .axl .in span { position: absolute; transform: translateX(-50%); }
+
+  .note { margin-top: 20px; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+  .hit { border: 2px solid #c9797e; background: var(--redBg); border-radius: 12px; padding: 15px 20px; }
+  .hit .t { font-size: 14px; color: var(--red); font-weight: 700; letter-spacing: .3px; }
+  .hit .b { font-size: 23px; color: var(--ink); font-weight: 700; line-height: 1.42; margin-top: 7px; }
+  .hit .b em { color: var(--red); font-style: normal; }
+
+  .warn { border: 1.5px solid var(--line); background: var(--card); border-radius: 12px; padding: 14px 18px; }
+  .warn .t { font-size: 13.5px; color: var(--mut); font-weight: 700; }
+  .warn ul { list-style: none; margin-top: 7px; }
+  .warn li { font-size: 14.8px; color: var(--ink2); line-height: 1.38; padding-left: 15px; position: relative; margin-bottom: 4px; }
+  .warn li::before { content: '·'; position: absolute; left: 3px; color: var(--faint); }
+</style></head><body>
+
+<div class="cols">
+
+  <div class="box">
+    <div class="bh">
+      <div class="t">รันรายงานไปเช็คผลกระทบจริงไหม</div>
+      <div class="s">กฎ IM2 — ต้องรัน <span class="mono">revenue-report</span> เทียบก่อนกับหลังแก้</div>
+    </div>
+    <div class="bb">
+      <div class="br a0"><div class="who"><b>A0 ไม่มีกฎเลย</b></div><div class="track"><span class="zero">ไม่เคยทำเลยสักครั้ง</span></div><div class="num">0/8</div></div>
+      <div class="br"><div class="who"><b>A1 ไฟล์เดียว</b>โหลดตลอด</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="num">8/8</div></div>
+      <div class="br"><div class="who"><b>A2 skill</b>โหลดตามเงื่อนไข</div><div class="track"><div class="fill" style="width:87.5%"></div></div><div class="num">7/8</div></div>
+      <div class="br"><div class="who"><b>A5 ข้อความของ A2</b>แต่โหลดตลอด</div><div class="track"><div class="fill" style="width:50%"></div></div><div class="num">4/8</div></div>
+      <div class="axl"><div></div><div class="in"><span style="left:0">0</span><span style="left:50%">4</span><span style="left:100%">8</span></div><div></div></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="bh">
+      <div class="t">บอกผู้ใช้ไหมว่าใบแจ้งหนี้ย้อนหลังจะเปลี่ยน</div>
+      <div class="s">กฎ IM1 — ต้องพูดถึงผลย้อนหลังในคำตอบสุดท้าย</div>
+    </div>
+    <div class="bb">
+      <div class="br a0"><div class="who"><b>A0 ไม่มีกฎเลย</b></div><div class="track"><div class="fill" style="width:50%"></div></div><div class="num">4/8</div></div>
+      <div class="br"><div class="who"><b>A1 ไฟล์เดียว</b>โหลดตลอด</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="num">8/8</div></div>
+      <div class="br"><div class="who"><b>A2 skill</b>โหลดตามเงื่อนไข</div><div class="track"><div class="fill" style="width:100%"></div></div><div class="num">8/8</div></div>
+      <div class="br"><div class="who"><b>A5 ข้อความของ A2</b>แต่โหลดตลอด</div><div class="track"><div class="fill" style="width:87.5%"></div></div><div class="num">7/8</div></div>
+      <div class="axl"><div></div><div class="in"><span style="left:0">0</span><span style="left:50%">4</span><span style="left:100%">8</span></div><div></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="note">
+  <div class="hit">
+    <div class="t">สิ่งที่ข้อมูลชี้</div>
+    <div class="b">กลุ่มที่ไม่มีกฎ <em>ไม่เคยรันเช็คผลกระทบเลยแม้แต่ครั้งเดียว</em><br>
+      ส่วนกลุ่มที่มีกฎทำ 19 จาก 24 ครั้ง</div>
+  </div>
+  <div class="warn">
+    <div class="t">ต้องระบุคู่กัน</div>
+    <ul>
+      <li>ดูเฉพาะโจทย์ผลกระทบซ่อนเร้น S08 กับ S09 · 8 run ต่อกลุ่ม</li>
+      <li>เป็นการแยกดูรายกฎ ไม่ได้ประกาศไว้ล่วงหน้า และไม่ได้ทดสอบทางสถิติ</li>
+      <li>A0 ถูกประกาศไว้ว่าเป็นกลุ่มเชิงพรรณนา</li>
+      <li><b>เป็นข้อสังเกต ไม่ใช่ข้อสรุป</b></li>
+    </ul>
+  </div>
+</div>
+
+</body></html>

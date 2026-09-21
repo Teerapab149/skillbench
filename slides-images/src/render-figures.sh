@@ -18,6 +18,7 @@ for spec in \
   "fig-scenario-diff 1180,570" \
   "fig-p-floor 1310,356" \
   "fig-tradeoff 1460,428" \
+  "fig-impact-check 1430,576" \
   "fig-runs-map 1460,382" \
   "fig-effort 1380,152"
 do
@@ -33,7 +34,7 @@ done
 # แผ่นรวมภาพ — ต้องเรนเดอร์ท้ายสุด เพราะมันฝังไฟล์ png ที่เพิ่งสร้างไป
 "$CH" --headless --disable-gpu \
   "--screenshot=$B/figures/00-contact-sheet.png" \
-  --window-size=1500,7075 \
+  --window-size=1500,7700 \
   --default-background-color=F2F4F7FF \
   --hide-scrollbars \
   "file:///$B/src/fig-contact-sheet.html" 2>&1 | tail -1

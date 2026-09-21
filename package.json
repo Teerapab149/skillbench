@@ -43,7 +43,8 @@
     "results:doc:study2": "node scripts/make-results-doc.mjs --in results-study2/numbers.json --out report/ch5b-results-study2.md --prefix 5ข",
     "results:all:study2": "npm run analyze:study2 && npm run results:doc:study2 && node scripts/check-numbers.mjs",
     "arms:review": "node scripts/make-arms-review.mjs",
-    "check:arms-review": "node scripts/make-arms-review.mjs --check"
+    "check:arms-review": "node scripts/make-arms-review.mjs --check",
+    "toc": "node scripts/make-toc.mjs"
   },
   "engines": {
     "node": ">=18"
