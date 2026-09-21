@@ -69,3 +69,6 @@ evidence/transcripts/sessions/
 
 # ผลและสมุดบันทึกของชุดที่กำลังเก็บ — commit เมื่อรันจบ ไม่ใช่ระหว่างที่ fixture ถูกแก้อยู่
 results-study2/attempt-provenance/
+
+# เด็คที่ Canva AI สร้าง — เนื้อหาถูกเขียนใหม่จนผิดข้อเท็จจริง เก็บไว้อ้างอิงบนเครื่องเท่านั้น
+progress2/canva/*.pptx
