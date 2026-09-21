@@ -10,8 +10,10 @@
  *   2. hash ของชุดตัวเลขที่ประทับไว้ในเอกสาร ต้องตรงกับ numbers.json ปัจจุบัน
  *      จับกรณีที่เนื้อหาบังเอิญเหมือนกันแต่มาจากคนละชุดข้อมูล
  *
- *   3. ห้ามมีเอกสารไหนอ้าง dataset stamp ที่ไม่ใช่ชุดปัจจุบัน
+ *   3. ห้ามมีเอกสารไหนอ้าง dataset stamp ที่ไม่ใช่ของชุดข้อมูลปัจจุบันชุดใดชุดหนึ่ง
  *      จับกรณีคลาสสิก: เด็คยังอ้างตัวเลขของ run ก่อนหน้า
+ *      งานนี้มีสองชุดข้อมูล stamp ของทั้ง results/ และ results-study2/ จึงถูกต้องทั้งคู่
+ *      เอกสารที่จงใจบันทึกประวัติ ให้ใส่ `<!-- stale-stamp-ok: เหตุผล -->` แล้วด่านจะข้ามให้
  *
  *   4. ถ้าตัวเลขปัจจุบันมาจาก mock adapter เอกสารที่สร้างต้องประทับหัวไว้ว่าห้ามอ้าง
  *      จับกรณีที่อันตรายที่สุด: ตัวเลขปลอมเดินเข้าเล่มโดยไม่มีใครทัน
@@ -141,7 +143,22 @@ for (const g of GENERATED) {
 }
 
 // ---------- 3 ----------
+/*
+ * stamp ที่ถือว่า "ปัจจุบัน" คือ stamp ของชุดข้อมูลทุกชุดที่ยังใช้อยู่ ไม่ใช่แค่ชุดแรก
+ * ก่อนหน้านี้ด่านเทียบกับ results/ ชุดเดียว บทที่ 5ข ซึ่งอ้าง stamp ของ results-study2/
+ * ตามที่ควรจะเป็น จึงถูกเตือนตลอดไปโดยไม่มีอะไรผิด · เสียงเตือนที่ดังโดยไม่มีเหตุ
+ * อันตรายกว่าไม่เตือน เพราะทำให้คนเลิกอ่านคำเตือนจริง
+ */
+const currentStamps = new Set(
+  [NUMBERS_FILE, STUDY2_NUMBERS]
+    .filter((f) => fs.existsSync(f))
+    .map((f) => JSON.parse(fs.readFileSync(f, 'utf8')).stamp)
+    .filter(Boolean),
+);
 const currentStamp = numbers.stamp ?? null;
+
+/* เอกสารที่จงใจเก็บ stamp เก่าไว้เป็นบันทึกประวัติ ประกาศได้ด้วย marker นี้ */
+const OK_RE = /<!--\s*stale-stamp-ok:\s*([^>]*?)\s*-->/;
 const STAMP_RE = /\b20\d{2}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\b/g;
 const docs = [];
 for (const dir of [ROOT, path.join(ROOT, 'report')]) {
@@ -152,23 +169,29 @@ for (const dir of [ROOT, path.join(ROOT, 'report')]) {
 }
 
 const stale = [];
+const excused = [];
 for (const d of docs) {
   const text = fs.readFileSync(d, 'utf8');
-  for (const m of text.match(STAMP_RE) ?? []) {
-    if (currentStamp && m !== currentStamp) stale.push({ file: rel(d), stamp: m });
-  }
+  const found = (text.match(STAMP_RE) ?? []).filter((m) => !currentStamps.has(m));
+  if (!found.length) continue;
+  const ok = text.match(OK_RE);
+  if (ok) { excused.push({ file: rel(d), why: ok[1] }); continue; }
+  for (const m of found) stale.push({ file: rel(d), stamp: m });
 }
+
+for (const x of excused) console.log(`  ○ ${x.file} อ้าง stamp เก่าโดยเจตนา — ${x.why}`);
 
 if (!currentStamp) {
   console.log('  ⚠️  ชุดตัวเลขปัจจุบันไม่มี stamp จึงข้ามการตรวจ stamp เก่า');
 } else if (stale.length) {
-  console.log(`\n  ⚠️  พบการอ้าง dataset stamp ที่ไม่ใช่ชุดปัจจุบัน (${currentStamp}):`);
+  console.log(`\n  ⚠️  พบการอ้าง dataset stamp ที่ไม่ใช่ของชุดข้อมูลปัจจุบัน (${[...currentStamps].join(' · ')}):`);
   const byFile = new Map();
   for (const x of stale) byFile.set(x.file, new Set([...(byFile.get(x.file) ?? []), x.stamp]));
   for (const [f, stamps] of byFile) console.log(`      ${f}: ${[...stamps].join(', ')}`);
-  console.log('      ถ้าเป็นบันทึกประวัติโดยเจตนา ปล่อยไว้ได้ · ถ้าเป็นตัวเลขที่ยังอ้างอยู่ ต้องอัปเดต');
+  console.log('      ถ้าเป็นตัวเลขที่ยังอ้างอยู่ ต้องอัปเดต');
+  console.log('      ถ้าเป็นบันทึกประวัติโดยเจตนา ให้ใส่ <!-- stale-stamp-ok: เหตุผล --> ในไฟล์นั้น');
 } else {
-  console.log(`  ✅ ไม่มีเอกสารไหนอ้าง dataset stamp อื่นนอกจาก ${currentStamp}`);
+  console.log(`  ✅ ไม่มีเอกสารไหนอ้าง dataset stamp อื่นนอกจาก ${[...currentStamps].join(' · ')}`);
 }
 
 console.log('');
