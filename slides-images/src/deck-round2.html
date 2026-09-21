@@ -1,295 +1,181 @@
 <!doctype html>
 <html lang="th"><head><meta charset="utf-8">
 <style>
-  /* เด็คนำเสนอความก้าวหน้ารอบที่ 2 — 1600 × 900 ต่อหน้า
-     ข้อความทุกตัวคัดจาก progress2/สไลด์รอบ2.md ไม่มีการเรียบเรียงใหม่
-     เรนเดอร์เป็น PDF ด้วย  bash slides-images/src/render-deck.sh          */
+  /* เด็คคุยความก้าวหน้ารอบที่ 2 — 1600 × 900 ต่อหน้า
+     ตั้งใจให้เป็น "ของที่เปิดดูด้วยกัน" ไม่ใช่ "สไลด์ที่อ่านให้ฟัง"
+     เพราะรอบนี้เป็นการนั่งคุยตัวต่อตัว ไม่ใช่การนำเสนอหน้าห้อง
+
+     กติกาของเด็คนี้
+       · หน้าหนึ่งมีของให้ดูชิ้นเดียว ภาพหรือตาราง และมันได้พื้นที่เกือบทั้งหน้า
+       · ไม่มีหัวเรื่องตัวใหญ่ มีแค่ป้ายบอกว่ากำลังดูอะไรอยู่
+       · ไม่มี bullet ที่พูดแทนคน ข้อความที่ต้องพูดอยู่ใน progress2/คุยกับอาจารย์.md
+       · ใต้ของที่ดูมีบรรทัดสรุปสั้น ๆ ไว้กันลืม ไม่ใช่ไว้อ่านออกเสียง
+     ตัวเลขทุกตัวตรงกับ progress2/สไลด์รอบ2.md ซึ่งดึงมาจาก results/numbers.json
+     เรนเดอร์เป็น PDF ด้วย  bash slides-images/src/render-deck.sh                */
   @page { size: 1600px 900px; margin: 0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { background: #fff; }
   body { font-family: 'Leelawadee UI', 'Segoe UI', Tahoma, sans-serif; color: #15181d; }
   .mono { font-family: 'Cascadia Mono', Consolas, monospace; }
 
-  .slide {
+  .page {
     width: 1600px; height: 900px; position: relative;
-    padding: 58px 72px 64px; background: #fff;
+    padding: 54px 76px 52px; background: #fff;
     page-break-after: always; overflow: hidden;
     display: flex; flex-direction: column;
   }
-  .slide:last-child { page-break-after: auto; }
-  .slide > * { flex: 0 0 auto; }
+  .page:last-child { page-break-after: auto; }
+  .page > * { flex: 0 0 auto; }
 
-  .kicker { font-size: 19px; color: #1f5fa8; font-weight: 700; letter-spacing: .6px; }
-  h1 { font-size: 52px; font-weight: 700; line-height: 1.22; margin-top: 10px; }
-  h1 .hl { color: #1f5fa8; }
-  .sub { font-size: 23px; color: #6d7480; margin-top: 14px; line-height: 1.45; }
+  /* ป้ายบอกว่ากำลังดูอะไร — เบา ๆ ไม่แย่งความสนใจไปจากของที่ดู */
+  .label { font-size: 23px; color: #7a818b; font-weight: 600; letter-spacing: .2px; }
+  .label b { color: #15181d; font-weight: 700; }
+  .rule { height: 1px; background: #e4e8ed; margin-top: 15px; }
 
-  .num { position: absolute; right: 40px; bottom: 30px; font-size: 16px; color: #aeb4bd;
-         font-family: 'Cascadia Mono', Consolas, monospace; }
+  /* พื้นที่ของชิ้นงาน — กินที่ที่เหลือทั้งหมด */
+  .stage { flex: 1 1 auto; min-height: 0; margin-top: 30px;
+           display: flex; flex-direction: column; gap: 16px;
+           align-items: center; justify-content: center; }
+  .stage img { max-width: 100%; display: block; }
+  .stage > .full { width: 100%; }
 
-  .body { flex: 1 1 auto; min-height: 0; overflow: hidden;
-          display: flex; align-items: center; justify-content: center; margin-top: 22px; }
-  /* สไลด์ที่เนื้อหาเป็นข้อความล้วน — วางเนื้อหาไว้ราวหนึ่งในสี่จากขอบบนของพื้นที่ว่าง
-     ไม่ชิดบนจนเหลือที่ว่างครึ่งหน้าล่าง และไม่กลางจนหลุดจากหัวเรื่อง
-     ถ้าเนื้อหาสูงเต็มกรอบ ตัวคั่นทั้งสองจะหดเป็นศูนย์เอง */
-  .body.top { flex-direction: column; align-items: stretch; justify-content: flex-start; }
-  .body.top::before { content: ""; flex: 1 1 0; }
-  .body.top::after  { content: ""; flex: 3 1 0; }
-  .body.top > * { width: 100%; flex: 0 1 auto; }
-  .body img { max-width: 100%; max-height: 100%; object-fit: contain;
-              border: 1px solid #d9dee4; border-radius: 10px; }
-  .pair { display: flex; gap: 20px; width: 100%; height: 100%; align-items: center; justify-content: center; }
-  .pair img { max-height: 100%; }
-  .stackrow { display: flex; flex-direction: column; gap: 14px; width: 100%; height: 100%;
-              min-height: 0; align-items: center; justify-content: center; }
+  /* บรรทัดกันลืมใต้ของที่ดู */
+  .cap { margin-top: 28px; font-size: 21px; line-height: 1.5; color: #5a616b; }
+  .cap b { color: #15181d; }
+  .cap + .cap { margin-top: 10px; }
+  .cap.warn { color: #a5474b; }
+  .cap.warn b { color: #8f2d32; }
 
-  .foot { font-size: 21px; color: #3d434d; line-height: 1.45; margin-top: 20px; }
-  .foot b { color: #15181d; }
-  .foot.warn { color: #b03a3f; }
+  .pg { position: absolute; right: 42px; bottom: 26px; font-size: 15px; color: #c8ced5;
+        font-family: 'Cascadia Mono', Consolas, monospace; }
 
   table { width: 100%; border-collapse: collapse; font-size: 23px; }
-  th { text-align: left; font-size: 18px; color: #6d7480; font-weight: 600;
-       padding: 0 18px 12px; border-bottom: 2px solid #d9dee4; }
+  th { text-align: left; font-size: 18px; color: #7a818b; font-weight: 600;
+       padding: 0 18px 12px; border-bottom: 2px solid #dde2e8; }
   th.r { text-align: right; }
-  td { padding: 13px 18px; border-bottom: 1px solid #e6e9ee; vertical-align: top; line-height: 1.35; }
+  td { padding: 14px 18px; border-bottom: 1px solid #edf0f3; vertical-align: top; line-height: 1.35; }
   td.r { text-align: right; font-family: 'Cascadia Mono', Consolas, monospace; }
-  td.k { color: #6d7480; }
+  td.k { color: #7a818b; }
   td b { color: #15181d; }
   .up { color: #2a7a38; font-weight: 700; }
-  .warnrow td { background: #faf0d9; }
+  .off td { background: #fcf6e8; }
+  .sm { display: block; font-size: 18px; color: #7a818b; margin-top: 4px; }
 
-  .cover { justify-content: center; }
-  .cover h1 { font-size: 66px; }
-  .cover .meta { font-size: 24px; color: #6d7480; margin-top: 34px; line-height: 1.6; }
-
-  .note { margin-top: 18px; padding: 15px 22px; border-left: 5px solid #1f5fa8;
-          background: #f2f6fb; font-size: 21px; line-height: 1.5; color: #3d434d; }
-  .note.red { border-left-color: #b03a3f; background: #fbf0f0; }
-  .note b { color: #15181d; }
-  .note .big { display: block; font-size: 26px; font-weight: 700; color: #15181d; margin-bottom: 6px; }
-
-  ul { list-style: none; margin-top: 10px; }
-  li { font-size: 24px; line-height: 1.5; padding-left: 30px; position: relative; margin-bottom: 14px; color: #3d434d; }
-  li::before { content: '—'; position: absolute; left: 0; color: #aeb4bd; }
-  li b { color: #15181d; }
+  /* หน้ายอมรับข้อผิดพลาด — ประโยคเดียว ตัวโต ไม่มี bullet */
+  .say { font-size: 40px; line-height: 1.5; font-weight: 700; color: #15181d;
+         max-width: 1300px; align-self: flex-start; }
+  .say .q { color: #7a818b; font-weight: 600; display: block; font-size: 30px; margin-bottom: 20px; }
+  .say .then { display: block; margin-top: 22px; color: #a5474b; }
 </style></head><body>
 
-<!-- ───────────────────────────── ปก -->
-<div class="slide cover">
-  <div class="kicker">รายงานความก้าวหน้า ครั้งที่ 2 · 22 กันยายน 2569</div>
-  <h1>การควบคุมพฤติกรรม LLM Agent ในงานพัฒนาระบบ<br>ด้วย <span class="hl">Context Engineering</span> และ <span class="hl">ระบบทักษะเอเจนต์</span></h1>
-  <div class="meta">
-    477-401 สัมมนาระบบสารสนเทศทางธุรกิจ<br>
-    ธีรภาพ 6610510149 · ธีรภัทร์ 6610510148
-  </div>
+<!-- ─────────────────────────────────────────── 1 · ตารางส่วนต่าง -->
+<div class="page">
+  <div class="label">ความก้าวหน้าตั้งแต่ 14 สิงหาคม 2569 · <b>บอกไว้ vs เกิดขึ้นจริง</b></div>
+  <div class="rule"></div>
+  <div class="stage"><table class="full">
+    <tr><th style="width:24%"></th><th style="width:34%">รอบที่แล้วบอกไว้</th><th>เกิดขึ้นจริง</th></tr>
+    <tr><td class="k">ข้อมูล</td><td>64 run · ยังไม่เปรียบเทียบ</td><td><b class="up">396 run · เปรียบเทียบครบ</b></td></tr>
+    <tr><td class="k">ค่าใช้จ่าย</td><td>$72</td><td><b>$287</b></td></tr>
+    <tr class="off"><td class="k">แผนรัน</td><td>9 รอบต่อโจทย์ · 495 run</td>
+        <td>ประกาศจริง 6 รอบ · <b>เก็บได้ 4 รอบ</b> เพราะชนโควตา
+        <span class="sm">ใช้กฎสำรองที่ประกาศล่วงหน้า — ตัดรอบเท่ากันทุกกลุ่ม ไม่ทิ้งกลุ่มไหน</span></td></tr>
+    <tr><td class="k">โมเดล</td><td>ยังไม่ล็อก</td><td><b class="mono">claude-sonnet-5</b></td></tr>
+    <tr class="off"><td class="k">จำนวนชุดทดลอง</td><td>ชุดเดียว</td><td><b>ทำรอบที่ 2 เพิ่ม</b></td></tr>
+    <tr><td class="k">กลุ่มทดลอง</td><td>5 กลุ่ม</td><td>รอบ 2 เหลือ 4 กลุ่ม · <b>เพิ่ม A5</b></td></tr>
+    <tr class="off"><td class="k">H3 rule dilution</td><td>วางไว้ 150 run</td><td><b>ไม่ได้เก็บ</b></td></tr>
+  </table></div>
+  <div class="cap">แถวที่ไฮไลต์คือสิ่งที่<b>ไม่เป็นไปตามแผน</b> · ที่เหลือเป็นไปตามที่บอกไว้หรือดีกว่า</div>
+  <div class="pg">1</div>
 </div>
 
-<!-- ───────────────────────────── 1 -->
-<div class="slide">
-  <div class="kicker">1 · วันนี้มาเล่าอะไร</div>
-  <h1>ความก้าวหน้าตั้งแต่ <span class="hl">14 สิงหาคม</span></h1>
-  <div class="body top">
-    <div style="width:100%">
-      <div class="note">
-        <span class="big">ครั้งที่แล้ว</span>
-        เครื่องมือวัดเสร็จ เก็บ calibration 64 run · <b>ยังไม่ได้เปรียบเทียบระหว่างกลุ่มเลย</b>
-      </div>
-      <div class="note" style="margin-top:22px;border-left-color:#2a7a38;background:#eef7f0">
-        <span class="big">วันนี้</span>
-        เก็บข้อมูลจบแล้ว <b>396 run</b> · เปรียบเทียบครบ <b>2 ชุด</b> · ร่างรายงานครบ <b>7 บท</b>
-        พร้อมบทคัดย่อ Abstract และสารบัญ
-      </div>
-      <div class="foot">มีหลายอย่างไม่เป็นไปตามแผน จะเล่าให้ฟังทีละข้อ</div>
-    </div>
-  </div>
-  <div class="num">1</div>
+<!-- ─────────────────────────────────────────── 2 · แผนที่ run -->
+<div class="page">
+  <div class="label">ทำไมต้องมีรอบที่สอง · <b>แผนที่ run ทั้งหมด</b></div>
+  <div class="rule"></div>
+  <div class="stage"><img src="../figures/2x/fig-runs-map.png" style="width:1448px"></div>
+  <div class="cap">ซ้ายคือวิธีให้คะแนนเดิม <b>มีแค่สองสี ผ่านครบ หรือ ศูนย์</b> — โจทย์ส่วนใหญ่เลยได้เท่ากันทั้งสองกลุ่ม</div>
+  <div class="cap">ขวาคือรอบที่ 2 ให้คะแนนเป็นสัดส่วน <b>เริ่มมีเฉดให้แยกความต่างได้</b></div>
+  <div class="pg">2</div>
 </div>
 
-<!-- ───────────────────────────── 2 -->
-<div class="slide">
-  <div class="kicker">2 · เทียบกับที่รายงานไว้รอบที่แล้ว</div>
-  <h1>บอกไว้ <span class="hl">vs</span> เกิดขึ้นจริง</h1>
-  <div class="body top">
-    <table>
-      <tr><th style="width:24%">&nbsp;</th><th style="width:36%">รอบที่แล้วบอกไว้</th><th>เกิดขึ้นจริง</th></tr>
-      <tr><td class="k">ข้อมูล</td><td>64 run · ยังไม่เปรียบเทียบ</td><td><b class="up">396 run · เปรียบเทียบครบ</b></td></tr>
-      <tr><td class="k">ค่าใช้จ่าย</td><td>$72</td><td><b>$287</b></td></tr>
-      <tr class="warnrow"><td class="k">แผนรัน</td><td>9 รอบต่อโจทย์ · 495 run</td>
-          <td>ประกาศจริง 6 รอบ · <b>เก็บได้ 4 รอบ</b> เพราะชนโควตา<br>
-              <span style="font-size:19px;color:#6d7480">ใช้กฎสำรองที่ประกาศล่วงหน้า — ตัดรอบเท่ากันทุกกลุ่ม ไม่ทิ้งกลุ่มไหน</span></td></tr>
-      <tr><td class="k">โมเดล</td><td>ยังไม่ล็อก</td><td><b class="mono">claude-sonnet-5</b></td></tr>
-      <tr class="warnrow"><td class="k">จำนวนชุดทดลอง</td><td>ชุดเดียว</td><td><b>ทำรอบที่ 2 เพิ่ม — ไม่ได้อยู่ในแผน</b></td></tr>
-      <tr><td class="k">กลุ่มทดลอง</td><td>5 กลุ่ม</td><td>รอบ 2 เหลือ 4 กลุ่ม · <b>เพิ่ม A5</b></td></tr>
-      <tr><td class="k">H3 rule dilution</td><td>วางไว้ 150 run</td><td><b>ไม่ได้เก็บ</b></td></tr>
-    </table>
-  </div>
-  <div class="num">2</div>
+<!-- ─────────────────────────────────────────── 3 · ผล -->
+<div class="page">
+  <div class="label">ผลการเปรียบเทียบ · <b>skill นำทั้งสองรอบ</b></div>
+  <div class="rule"></div>
+  <div class="stage"><table class="full">
+    <tr><th style="width:12%"></th><th style="width:18%">วิธีให้คะแนน</th><th class="r">skill</th>
+        <th class="r">ไฟล์เดียว</th><th class="r">ต่างกัน</th><th style="padding-left:40px">ช่วงความเชื่อมั่น 95%</th><th class="r">p</th></tr>
+    <tr><td class="k">รอบ 1</td><td class="mono">CRIT</td><td class="r">36.4%</td><td class="r">27.3%</td>
+        <td class="r"><b>+9.1</b></td><td class="mono" style="padding-left:40px">−6.8 ถึง +27.3</td><td class="r">0.500</td></tr>
+    <tr><td class="k">รอบ 2</td><td class="mono">RCRc</td><td class="r">61.5%</td><td class="r">50.5%</td>
+        <td class="r"><b>+11.0</b></td><td class="mono" style="padding-left:40px">−2.1 ถึง +27.5</td><td class="r">0.250</td></tr>
+  </table></div>
+  <div class="cap warn">สองรอบให้คะแนนคนละแบบ <b>ตัวเลขข้ามแถวเทียบกันไม่ได้</b> — ดูได้เฉพาะคอลัมน์ “ต่างกัน”</div>
+  <div class="cap">ช่วงความเชื่อมั่นคร่อมศูนย์ทั้งคู่ → <b>สรุปไม่ได้ ไม่ใช่ไม่ต่างกัน</b></div>
+  <div class="pg">3</div>
 </div>
 
-<!-- ───────────────────────────── 3 -->
-<div class="slide">
-  <div class="kicker">3 · เหตุผลที่ต้องทำเพิ่มอีกรอบ</div>
-  <h1>ทำไมต้องมี<span class="hl">การทดลองรอบที่ 2</span></h1>
-  <div class="body"><img src="../figures/fig-runs-map.png" style="max-height:520px"></div>
-  <div class="foot">
-    <b>วิธีให้คะแนนของเราเองยังมีปัญหา</b> — ตัวเดิมบังคับว่าต้องผ่านกฎวิกฤตครบทุกข้อถึงได้คะแนน
-    พลาดข้อเดียวได้ศูนย์ · ซ้ายมีแค่สองสี ขวามีเฉด
+<!-- ─────────────────────────────────────────── 4 · ต้นตอ -->
+<div class="page">
+  <div class="label">ต้นตอมีข้อเดียว · <b>ความเสี่ยงที่รายงานไว้เมื่อ 14 ส.ค. เกิดขึ้นจริง</b></div>
+  <div class="rule"></div>
+  <div class="stage">
+    <img src="../figures/2x/fig-scenario-diff.png" style="height:400px;width:auto">
+    <img src="../figures/2x/fig-p-floor.png" style="height:240px;width:auto">
   </div>
-  <div class="num">3</div>
+  <div class="cap">โจทย์ 11 ข้อ · เสมอ 6 ข้อ · <b>เหลือให้ข้อมูลแค่ 5</b> → เพดาน p ที่เป็นไปได้คือ 0.0625 ซึ่งสูงกว่าเกณฑ์ 0.05</div>
+  <div class="cap"><b>เป็นไปไม่ได้ทางคณิตศาสตร์ตั้งแต่ก่อนเห็นข้อมูล</b> · รอบ 1 กับรอบ 2 ติดเพดานเดียวกันเป๊ะ</div>
+  <div class="pg">4</div>
 </div>
 
-<!-- ───────────────────────────── 3b -->
-<div class="slide">
-  <div class="kicker">3 (ต่อ) · เปลี่ยนตัวชี้วัดครั้งที่สอง</div>
-  <h1>รู้ว่าดูไม่ดี จึง<span class="hl">กันตัวเองไว้สามชั้น</span></h1>
-  <div class="body top">
-    <div style="width:100%">
-      <ul>
-        <li><b>เหตุผลที่เปลี่ยนไม่ใช่เพราะผลไม่สวย</b> แต่เพราะตัวเดิมนับกฎที่ไม่เคยถูกทดสอบเลยว่าผ่าน
-            ซึ่งเป็นการวัดที่ผิดอยู่แล้ว ควรซ่อมไม่ว่าผลจะออกทางไหน</li>
-        <li><b>ตั้งด่านทดสอบตัวใหม่ที่ล้มได้</b> เอา AI ปลอมที่ไม่ทำงานเลยป้อนเข้าไป ต้องได้คะแนนใกล้ศูนย์
-            ถ้าไม่ผ่านก็ใช้ตัวชี้วัดนี้ไม่ได้</li>
-        <li><b>ประกาศแผนใหม่ลงวันที่ก่อนเก็บข้อมูลรอบสอง</b> และเขียนไว้ตรง ๆ ว่าเขียนหลังเห็นผลรอบแรกแล้ว
-            เห็นอะไรไปบ้าง · ผลรอบแรกยังอยู่ในเล่มครบ ไม่ได้ลบ</li>
-      </ul>
-      <div class="note" style="margin-top:22px">
-        และที่สำคัญ — <b>ผลทั้งสองรอบยังสรุปไม่ได้เหมือนกัน การเปลี่ยนไม่ได้ทำให้ผลสวยขึ้น</b>
-      </div>
-    </div>
-  </div>
-  <div class="num">4</div>
+<!-- ─────────────────────────────────────────── 5 · ของใหม่ 1 -->
+<div class="page">
+  <div class="label">ของใหม่ที่ไม่ได้อยู่ในแผน · <b>กฎทำให้ AI ไปเช็คผลกระทบจริง</b></div>
+  <div class="rule"></div>
+  <div class="stage"><img src="../figures/2x/fig-impact-check.png" style="width:1430px"></div>
+  <div class="cap">กลุ่มที่ไม่มีกฎ <b>ไม่เคยรันเช็คเลยแม้แต่ครั้งเดียว 0 จาก 8</b> · กลุ่มที่มีกฎทำ 19 จาก 24</div>
+  <div class="cap warn">เป็นข้อสังเกต ไม่ใช่ข้อสรุป — ยังไม่ได้ทดสอบทางสถิติ และไม่ได้ประกาศไว้ล่วงหน้า</div>
+  <div class="pg">5</div>
 </div>
 
-<!-- ───────────────────────────── 4 -->
-<div class="slide">
-  <div class="kicker">4 · ผลการเปรียบเทียบ</div>
-  <h1>skill นำทั้งสองรอบ <span class="hl">แต่ยังฟันธงไม่ได้</span></h1>
-  <div class="body top">
-    <div style="width:100%">
-      <table>
-        <tr><th style="width:12%">&nbsp;</th><th style="width:16%">วิธีให้คะแนน</th>
-            <th class="r">skill</th><th class="r">ไฟล์เดียว</th><th class="r">ต่างกัน</th>
-            <th class="r">ช่วงความเชื่อมั่น 95%</th><th class="r">p</th></tr>
-        <tr><td class="k">รอบ 1</td><td class="mono">CRIT</td><td class="r">36.4%</td><td class="r">27.3%</td>
-            <td class="r"><b>+9.1</b></td><td class="r">−6.8 ถึง +27.3</td><td class="r">0.500</td></tr>
-        <tr><td class="k">รอบ 2</td><td class="mono">RCRc</td><td class="r">61.5%</td><td class="r">50.5%</td>
-            <td class="r"><b>+11.0</b></td><td class="r">−2.1 ถึง +27.5</td><td class="r">0.250</td></tr>
-      </table>
-      <div class="note red" style="margin-top:20px">
-        <b>สองรอบใช้วิธีให้คะแนนคนละแบบ ตัวเลขข้ามแถวเทียบกันไม่ได้</b> — ดูได้เฉพาะคอลัมน์ “ต่างกัน”
-        ซึ่งเป็นการเทียบภายในรอบเดียวกัน
-      </div>
-      <div class="note" style="margin-top:16px">
-        <span class="big">ช่วงความเชื่อมั่นคร่อมศูนย์ทั้งคู่</span>
-        ต้องพูดว่า <b>“สรุปไม่ได้” ไม่ใช่ “ไม่ต่างกัน”</b> — “ไม่ต่างกัน” แปลว่าพิสูจน์แล้วว่าเท่ากัน
-        ซึ่งเราไม่ได้พิสูจน์ เราแค่ยังแยกไม่ออก
-      </div>
-    </div>
-  </div>
-  <div class="num">5</div>
+<!-- ─────────────────────────────────────────── 6 · ของใหม่ 2 -->
+<div class="page">
+  <div class="label">ของใหม่ที่ไม่ได้อยู่ในแผน · <b>กฎซื้อความมีวินัย ด้วยราคาคืองานที่เสร็จน้อยลง</b></div>
+  <div class="rule"></div>
+  <div class="stage"><img src="../figures/2x/fig-tradeoff.png" style="width:1448px"></div>
+  <div class="cap">กลุ่มไม่มีกฎ <b>ทำงานสำเร็จมากที่สุด 75%</b> แต่ตามกฎแย่ที่สุด · กลุ่มที่มีกฎตามกฎได้ 0.967 เท่ากันหมด แต่สำเร็จน้อยกว่า</div>
+  <div class="cap warn">เป็นข้อสังเกต ไม่ใช่ข้อสรุป — A0 ถูกประกาศไว้ว่าเป็นกลุ่มเชิงพรรณนา</div>
+  <div class="pg">6</div>
 </div>
 
-<!-- ───────────────────────────── 5 -->
-<div class="slide">
-  <div class="kicker">5 · ต้นตอมีข้อเดียว</div>
-  <h1>ทำไมยังฟันธงไม่ได้ — <span class="hl">ความเสี่ยงที่รายงานไว้ 14 ส.ค. เกิดขึ้นจริง</span></h1>
-  <div class="body"><div class="stackrow">
-    <img src="../figures/fig-scenario-diff.png" style="height:372px;width:auto">
-    <img src="../figures/fig-p-floor.png" style="height:212px;width:auto">
+<!-- ─────────────────────────────────────────── 7 · สิ่งที่พลาด -->
+<div class="page">
+  <div class="label">ยอมรับตรงไปตรงมา</div>
+  <div class="rule"></div>
+  <div class="stage"><div class="say">
+    <span class="q">รอบที่แล้วผมรายงานอาจารย์เองว่า</span>
+    “ทางออกคือเพิ่มจำนวนโจทย์ ไม่ใช่เพิ่มรอบ”
+    <span class="then">แต่ตอนออกแบบรอบที่ 2 ผมใช้โจทย์ 11 ข้อเดิม ไม่ได้เพิ่ม</span>
   </div></div>
-  <div class="num">6</div>
+  <div class="cap">ทั้งที่จังหวะนั้นเพิ่มได้ ไม่ผิดหลักอะไรเลย เพราะเป็นชุดข้อมูลใหม่ทั้งชุด → <b>รอบสองไปติดเพดานเดิม</b></div>
+  <div class="cap">บันทึกไว้ในบทข้อจำกัดแล้ว และเป็น<b>ข้อเสนอแนะอันดับหนึ่ง</b>สำหรับงานต่อยอด</div>
+  <div class="pg">7</div>
 </div>
 
-<!-- ───────────────────────────── 5b -->
-<div class="slide">
-  <div class="kicker">5 (ต่อ) · อ่านตัวเลขยังไง</div>
-  <h1>โจทย์ที่ให้ข้อมูลมีแค่ <span class="hl">5 จาก 11</span></h1>
-  <div class="body top">
-    <div style="width:100%">
-      <ul>
-        <li>รอบที่แล้วรายงานว่า <b>ICC วัดได้ 0.335 เพดานข้อมูลตันที่ 33 หน่วยต่อกลุ่ม</b>
-            และทางเดียวที่จะทะลุเพดานคือ<b>เพิ่มจำนวนโจทย์ ไม่ใช่เพิ่มรอบ</b></li>
-        <li>การทดสอบนับ <b>โจทย์</b> เป็นหน่วยข้อมูล ไม่ใช่นับ run — <b>หน่วยคือ 11 ไม่ใช่ 176</b></li>
-        <li>โจทย์ 11 ข้อ มี <b>6 ข้อที่ผลต่างเป็นศูนย์สนิท</b> — สามข้อง่ายเกินไปได้เต็มทั้งคู่
-            อีกสามข้อยากเกินไปได้ศูนย์ทั้งคู่</li>
-        <li>เหลือโจทย์ที่ให้ข้อมูล 5 ข้อ ซึ่งทำให้ <b>ค่า p ต่ำที่สุดที่เป็นไปได้คือ 0.0625</b>
-            ซึ่งมากกว่าเกณฑ์ 0.05</li>
-      </ul>
-      <div class="note red" style="margin-top:18px">
-        <b>ต่อให้ skill ชนะรวดทั้ง 5 ข้อ ก็ยังไม่ผ่านเกณฑ์อยู่ดี — เป็นไปไม่ได้ทางคณิตศาสตร์ตั้งแต่ก่อนเห็นข้อมูล</b><br>
-        <span style="font-size:19px">รอบที่ 2 ได้ 5 ข้อเท่าเดิม · การซ่อมวิธีให้คะแนนทำให้ผลคมขึ้นจาก 0.500 เหลือ 0.250 แต่ไม่ได้แก้เรื่องจำนวนโจทย์</span>
-      </div>
-    </div>
-  </div>
-  <div class="num">7</div>
-</div>
-
-<!-- ───────────────────────────── 6 -->
-<div class="slide">
-  <div class="kicker">6 · ของใหม่ที่ไม่ได้อยู่ในแผน</div>
-  <h1>กฎทำให้ AI <span class="hl">ไปเช็คผลกระทบจริง</span></h1>
-  <div class="body"><img src="../figures/fig-impact-check.png" style="max-height:520px"></div>
-  <div class="foot warn">
-    เป็น<b>ข้อสังเกต ไม่ใช่ข้อสรุป</b> — ยังไม่ได้ทดสอบทางสถิติ และไม่ได้ประกาศไว้ล่วงหน้า
-  </div>
-  <div class="num">8</div>
-</div>
-
-<!-- ───────────────────────────── 6b -->
-<div class="slide">
-  <div class="kicker">6 (ต่อ) · แยกคะแนนเป็นสองส่วน</div>
-  <h1>กฎซื้อความมีวินัย <span class="hl">ด้วยราคาคือความสำเร็จของงาน</span></h1>
-  <div class="body"><img src="../figures/fig-tradeoff.png" style="max-height:520px"></div>
-  <div class="foot warn">
-    เป็น<b>ข้อสังเกต ไม่ใช่ข้อสรุป</b> — ยังไม่ได้ทดสอบทางสถิติ · A0 ถูกประกาศไว้ว่าเป็นกลุ่มเชิงพรรณนา
-  </div>
-  <div class="num">9</div>
-</div>
-
-<!-- ───────────────────────────── 7 -->
-<div class="slide">
-  <div class="kicker">7 · ยอมรับตรงไปตรงมา</div>
-  <h1>สิ่งที่<span class="hl">พลาด</span></h1>
-  <div class="body top">
-    <div style="width:100%">
-      <div class="note red">
-        <span class="big">รอบที่แล้วผมรายงานอาจารย์เองว่า “ทางออกคือเพิ่มจำนวนโจทย์ ไม่ใช่เพิ่มรอบ”</span>
-        แต่ตอนออกแบบรอบที่ 2 <b>กลับใช้โจทย์ 11 ข้อเดิม ไม่ได้เพิ่ม</b>
-      </div>
-      <ul style="margin-top:22px">
-        <li>ทั้งที่จังหวะนั้น<b>เพิ่มได้ ไม่ผิดหลักอะไรเลย</b> เพราะเป็นชุดข้อมูลใหม่ทั้งชุด
-            และเขียนกฎการเพิ่มโจทย์เตรียมไว้ในเอกสารประกาศแผนแล้วด้วยซ้ำ</li>
-        <li>ผลคือ <b>รอบที่ 2 ไปติดเพดานเดิม</b></li>
-        <li>เหตุผลตอนนั้นคือเวลาและโควตา — โจทย์ใหม่หนึ่งข้อต้องผ่านด่านตรวจสี่ด่าน
-            และเพิ่ม 5 ข้อหมายถึงรันเพิ่มอีก 80 run</li>
-        <li><b>มองย้อนกลับไปคือตัดสินใจผิด</b> บันทึกไว้ในบทข้อจำกัดแล้ว
-            และเป็นข้อเสนอแนะอันดับหนึ่งสำหรับงานต่อยอด</li>
-      </ul>
-    </div>
-  </div>
-  <div class="num">10</div>
-</div>
-
-<!-- ───────────────────────────── 8 -->
-<div class="slide">
-  <div class="kicker">8 · สถานะและแผนถึงวันส่ง</div>
-  <h1>เหลืออะไร <span class="hl">และทันไหม</span></h1>
-  <div class="body top">
-    <div style="width:100%">
-      <table>
-        <tr><td style="width:58%">เก็บข้อมูล</td><td><b class="up">จบแล้ว ไม่ต้องเก็บเพิ่ม</b></td></tr>
-        <tr><td>บทที่ 1 ถึง 7</td><td><b class="up">ร่างครบแล้ว</b></td></tr>
-        <tr><td>บทคัดย่อ · Abstract · สารบัญ</td><td><b class="up">เสร็จแล้ว</b></td></tr>
-        <tr class="warnrow"><td>ตรวจเอกสารอ้างอิง 6 จุด</td><td><b>ยังไม่ได้ตรวจ</b> — ผู้วิจัยต้องเปิดเปเปอร์ตรวจเอง</td></tr>
-        <tr class="warnrow"><td>ประกอบเล่มลง template ของคณะ</td><td><b>ยังไม่ทำ</b></td></tr>
-      </table>
-      <div class="note" style="margin-top:24px;border-left-color:#2a7a38;background:#eef7f0">
-        <span class="big">ที่เหลือเป็นงานเรียบเรียง ไม่ใช่งานวิจัยแล้ว</span>
-        ประเมินว่าเหลือราว <b>5–6 วันทำงาน</b> — ขอเช็คกับอาจารย์ว่ากำหนดส่งจริงคือวันไหน
-      </div>
-    </div>
-  </div>
-  <div class="num">11</div>
+<!-- ─────────────────────────────────────────── 8 · เหลืออะไร -->
+<div class="page">
+  <div class="label">เหลืออะไร <b>และทันไหม</b></div>
+  <div class="rule"></div>
+  <div class="stage"><table class="full">
+    <tr><td style="width:58%">เก็บข้อมูล</td><td><b class="up">จบแล้ว ไม่ต้องเก็บเพิ่ม</b></td></tr>
+    <tr><td>บทที่ 1 ถึง 7</td><td><b class="up">ร่างครบแล้ว</b></td></tr>
+    <tr><td>บทคัดย่อ · Abstract · สารบัญ</td><td><b class="up">เสร็จแล้ว</b></td></tr>
+    <tr class="off"><td>ตรวจเอกสารอ้างอิง 6 จุด</td><td><b>ยังไม่ได้ตรวจ</b> — ผู้วิจัยต้องเปิดเปเปอร์ตรวจเอง</td></tr>
+    <tr class="off"><td>ประกอบเล่มลง template ของคณะ</td><td><b>ยังไม่ทำ</b></td></tr>
+  </table></div>
+  <div class="cap">ที่เหลือเป็น<b>งานเรียบเรียง ไม่ใช่งานวิจัยแล้ว</b> · ประเมินราว 5–6 วันทำงาน</div>
+  <div class="cap"><b>กำหนดส่งเล่มจริงวันไหนครับ</b> — ขอเช็คให้ตรงกัน</div>
+  <div class="pg">8</div>
 </div>
 
 </body></html>

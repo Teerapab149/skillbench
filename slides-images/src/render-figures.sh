@@ -38,3 +38,23 @@ done
   --default-background-color=F2F4F7FF \
   --hide-scrollbars \
   "file:///$B/src/fig-contact-sheet.html" 2>&1 | tail -1
+
+# ชุด 2x สำหรับเด็คนำเสนอ — ภาพเดียวกัน แต่ละเอียดเป็นสองเท่า ไม่ให้แตกบนโปรเจกเตอร์
+# แยกโฟลเดอร์ไว้ ไม่ให้ไปกระทบแผ่นรวมภาพกับเอกสารที่อ้างขนาดเดิม
+mkdir -p "$B/figures/2x"
+for spec in \
+  "fig-scenario-diff 1180,570" \
+  "fig-p-floor 1310,356" \
+  "fig-tradeoff 1460,428" \
+  "fig-impact-check 1430,576" \
+  "fig-runs-map 1460,382"
+do
+  set -- $spec
+  "$CH" --headless --disable-gpu \
+    "--screenshot=$B/figures/2x/$1.png" \
+    --window-size=$2 \
+    --force-device-scale-factor=2 \
+    --default-background-color=00000000 \
+    --hide-scrollbars \
+    "file:///$B/src/$1.html" 2>&1 | tail -1
+done
