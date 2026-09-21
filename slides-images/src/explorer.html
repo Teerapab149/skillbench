@@ -89,6 +89,20 @@ details.ex .bd p{margin:9px 0}
 details.ex .bd table{margin:10px 0;font-size:14px}
 details.ex .bd ul{margin:8px 0 8px 20px}
 details.ex .bd li{margin:5px 0}
+.bridge{background:linear-gradient(180deg,#eef3fa,#f7f9fc);border:1px solid #d5e0ee;border-radius:14px;padding:22px 26px;margin-bottom:22px}
+.bridge .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.8px;color:var(--blue);
+  background:#e2ecf8;padding:3px 11px;border-radius:999px;margin-bottom:11px}
+.bridge p{font-size:17px;color:var(--ink2);margin:7px 0}
+.bridge b{color:var(--ink)}
+.bridge .then{color:var(--mut)}
+.status{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.status .s{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px 16px;border-top:3px solid var(--green)}
+.status .s.pend{border-top-color:var(--amber)}
+.status .s.stop{border-top-color:var(--red)}
+.status .s .t{font-size:12px;color:var(--mut);font-weight:700;letter-spacing:.4px}
+.status .s .v{font-size:17px;font-weight:700;margin-top:5px;line-height:1.35}
+.status .s .n{font-size:13px;color:var(--mut);margin-top:5px;line-height:1.45}
+@media(max-width:1000px){.status{grid-template-columns:1fr 1fr}}
 .analogy{border-left:3px solid var(--purple);background:#f7f5fc;padding:10px 16px;border-radius:0 7px 7px 0;margin:11px 0}
 .analogy b{color:var(--purple)}
 @media(max-width:1000px){.grid2{grid-template-columns:1fr}
@@ -110,7 +124,7 @@ details.ex .bd li{margin:5px 0}
   <a href="#control">7 · คุมตัวแปรยังไง</a>
   <a href="#miss">8 · สิ่งที่พลาด</a>
   <a href="#left">9 · เหลืออะไร</a>
-  <div class="grp">เปิดของจริง</div>
+  <div class="grp">ภาคผนวก — เปิดเมื่อถูกถาม</div>
   <a href="#arms">กฎที่ส่งให้เอเจนต์</a>
   <a href="#scen">โจทย์ทั้ง 11 ข้อ</a>
   <a href="#explore">ไล่ดู run ทีละตัว</a>
@@ -120,6 +134,29 @@ details.ex .bd li{margin:5px 0}
 
 <!-- ══════════════ 1 ══════════════ -->
 <section id="delta" class="on">
+  <div class="bridge">
+    <span class="tag">ต่อจากรอบที่ 1 · 14 สิงหาคม</span>
+    <p><b>รอบที่แล้วผมจบที่ “เครื่องมือวัดเสร็จ แต่ยังเปรียบเทียบไม่ได้”</b>
+      เก็บไป 64 run ซึ่งเป็น calibration ล้วน ๆ และ<b>ยังไม่ได้เทียบ A1 กับ A2 เลยสักคู่</b>
+      เพราะระหว่างทางเจอตัวแปรกวน — <b>เพดานจำนวน turn ที่ตั้งไว้ 25 ไปตัดงานของ A2 ก่อนทำเสร็จ</b>
+      (A2 ใช้ turn มากกว่าใน 9 จาก 11 โจทย์ · p = 0.0039)
+      ถ้าฝืนเทียบตอนนั้น ผลจะเอียงไปทาง “ไม่ต่างกัน” เพราะเพดานที่เราตั้งเอง ไม่ใช่เพราะพฤติกรรมของ AI</p>
+    <p class="then"><b>วันนี้มาเล่าว่าหลังจากวันนั้นทำอะไรไปบ้าง</b> — ขึ้นเพดาน เก็บข้อมูลใหม่ทั้งหมด
+      ล็อกโมเดล และ<b>เทียบ A2 กับ A1 ได้แล้วจริง ๆ ทั้งสองชุด</b>
+      แต่มีหลายอย่างไม่เป็นไปตามแผน ซึ่งจะเล่าทีละข้อ</p>
+  </div>
+
+  <div class="status">
+    <div class="s"><div class="t">การเก็บข้อมูล</div><div class="v">จบแล้ว</div>
+      <div class="n">รอบที่ 2 เก็บครบ ไม่ต้องเก็บเพิ่มอีกแม้แต่ run เดียว</div></div>
+    <div class="s"><div class="t">การเปรียบเทียบ A2 กับ A1</div><div class="v">ทำแล้ว ทั้งสองชุด</div>
+      <div class="n">สิ่งที่รอบที่แล้วยังทำไม่ได้ ตอนนี้ทำได้แล้ว</div></div>
+    <div class="s stop"><div class="t">ผลของคำถามหลัก</div><div class="v">ยังสรุปไม่ได้</div>
+      <div class="n">skill นำทั้งสองรอบ แต่ช่วงความเชื่อมั่นคร่อมศูนย์ — <b>ไม่ใช่ “ไม่ต่างกัน”</b></div></div>
+    <div class="s pend"><div class="t">งานที่เหลือ</div><div class="v">งานเรียบเรียง</div>
+      <div class="n">ตรวจเอกสารอ้างอิง · อภิปรายผล · จัดรูปเล่ม <b>ไม่ใช่งานวิจัยแล้ว</b></div></div>
+  </div>
+
   <h2>ความก้าวหน้าตั้งแต่ 14 สิงหาคม — <span class="hl">บอกไว้ vs เกิดขึ้นจริง</span></h2>
   <p class="lead">ครั้งที่แล้วเครื่องมือวัดเสร็จ เก็บ calibration ไป 64 run แต่ยังไม่ได้เปรียบเทียบระหว่างกลุ่มเลยสักคู่
     วันนี้เก็บข้อมูลจบแล้ว เปรียบเทียบครบสองชุด และร่างรายงานครบเจ็ดบท
@@ -180,6 +217,48 @@ details.ex .bd li{margin:5px 0}
   <div class="note warn"><span class="hd">อย่าพูดเกินกว่าที่ภาพแสดง</span>
     รอบที่ 2 ให้คะแนนเป็นสัดส่วนแล้วก็จริง แต่ <b id="x-shade"></b>
     มันไม่ได้แก้ให้หาย แค่พอทำให้ค่า p ขยับ <b>ส่วนจำนวนโจทย์ที่ให้ข้อมูลยังเท่าเดิม</b> ซึ่งเป็นตัวที่ตัดสินจริง</div>
+  <h3>รอบที่ 2 เปลี่ยนแผนตรงไหนบ้าง และเปลี่ยนเพราะอะไร</h3>
+  <p class="lead" style="margin-bottom:14px">สามอย่างนี้ต้องพูดเอง ไม่ใช่รอให้ถาม
+    เพราะทุกข้อ<b>ทำให้ชุดข้อมูลเล็กลง</b> ซึ่งเป็นทิศทางที่คนอ่านงานวิจัยควรสงสัยไว้ก่อน</p>
+  <div class="card"><table>
+    <tr><th style="width:22%">เปลี่ยนอะไร</th><th style="width:30%">แผนเดิมของรอบที่ 1</th><th>รอบที่ 2 และเหตุผล</th></tr>
+    <tr><td><b>จำนวนกลุ่ม</b></td><td>5 กลุ่ม — A0 A1 A2 A3 A4</td>
+      <td><b>4 กลุ่ม — A0 A1 A2 และ A5 ที่เพิ่มใหม่</b>
+      <div class="tiny"><b>A3</b> จับคู่ความยาวกับ A1 จึงตอบคำถามของคู่ A1–A0 ไม่ใช่คู่ A1–A2
+        และ <b>A5 คุมข้อความในคู่ที่เกี่ยวข้องได้ตรงกว่า</b> ·
+        <b>A4</b> ตอบเรื่องความทนทานต่อ injection ซึ่งเป็นคนละคำถาม ·
+        ทั้งคู่<b>ยังอยู่ครบในผลของชุดที่ 1</b> ไม่ได้ลบทิ้ง</div></td></tr>
+    <tr><td><b>กลุ่มที่เพิ่ม</b></td><td>ไม่มี</td>
+      <td><b>A5 — ข้อความของ A2 แบนเป็นไฟล์เดียว โหลดตลอดเวลา</b>
+      <div class="tiny">ปิดช่องที่รอบแรกยังตอบไม่ได้ว่า ถ้า A2 ชนะ มันชนะเพราะ<b>วิธีโหลด</b>
+        หรือเพราะ<b>ตัวหนังสือต่างกัน</b> — A5 ใช้ตัวหนังสือเดียวกับ A2 แต่โหลดแบบ A1</div></td></tr>
+    <tr class="off"><td><b>จำนวนรอบต่อโจทย์</b></td>
+      <td>9 รอบ · รวม 495 run
+      <div class="tiny">ระหว่างทางแก้เป็น <b>6 รอบ</b> (amendment) แล้ว<b>ชุดที่ 1 จบจริงที่ 4 รอบ</b>
+        เพราะชนโควตาและถูกยุติกลางคันโดยไม่ทราบสาเหตุ 4 ครั้ง</div></td>
+      <td><b>ชุดที่ 2 ประกาศ 4 รอบตั้งแต่ต้น · 4 × 11 × 4 = 176 run</b>
+      <div class="tiny">ไม่ใช่การตัดทีหลัง แต่เป็น<b>การลดเป้าหมายลงล่วงหน้าจากประสบการณ์จริงของชุดที่ 1</b>
+        และเขียนตรง ๆ ในเอกสารประกาศแผนว่า<b>ลดเพราะข้อจำกัดเชิงปฏิบัติการ ไม่ใช่จากการคำนวณกำลังการทดสอบ</b> ·
+        กฎสำรองถ้าชนโควตาอีกคือ<b>ตัดรอบเท่ากันทุกกลุ่ม ขั้นต่ำ 3 รอบ</b> ซึ่งไม่ได้ใช้
+        เพราะเก็บครบ <b>176 จาก 176 cell ไม่มีช่องว่างแม้แต่ช่องเดียว</b></div></td></tr>
+    <tr class="off"><td><b>สมมติฐาน H3</b></td><td>rule dilution · 150 run</td>
+      <td><b>ตัดออก ไม่ได้เก็บ</b>
+      <div class="tiny">โควตาไม่พอ · เขียนเป็น amendment ลงวันที่ และรายงานไว้ในบทข้อจำกัด</div></td></tr>
+    <tr><td><b>โมเดล</b></td><td>ยังไม่ล็อก · ข้อมูลรอบแรกใช้ Opus</td>
+      <td><b>ล็อก <span class="mono">claude-sonnet-5</span> ทุก run</b>
+      <div class="tiny">ประกาศก่อนเก็บข้อมูลเปรียบเทียบแม้แต่ run เดียว ·
+        <b>ข้อมูล Opus 64 run กลายเป็น development evidence เท่านั้น</b> ไม่ได้เอามาปนกับผล</div></td></tr>
+    <tr><td><b>เพดาน turn</b></td><td>25 — ตัวแปรกวนที่เจอในรอบแรก</td>
+      <td><b>80 เท่ากันทุกกลุ่ม</b>
+      <div class="tiny">ขึ้นเป็นสองขั้น 25 → 50 → 80 แต่ละขั้นเป็น amendment ลงวันที่ ·
+        ข้อมูลที่เก็บด้วยเพดานเก่าถูกตัดออกทั้งหมด <b>ไม่ได้เอามารวม</b></div></td></tr>
+  </table></div>
+  <div class="note warn"><span class="hd">จุดที่ต้องพูดให้ชัด ไม่ให้ดูเหมือนเลือกข้อมูล</span>
+    การเปลี่ยนทุกข้อข้างบน<b>ตัดสินจากเหตุผลเชิงวิธีวิทยาหรือข้อจำกัดภายนอก ไม่ใช่จากผลเปรียบเทียบ</b>
+    — เพราะตอนตัดสินใจ <b>ยังไม่เคยดูผลเปรียบเทียบระหว่างกลุ่มเลย</b> ซึ่งเป็นข้อห้ามที่ประกาศไว้ล่วงหน้า
+    · ทุกข้อเขียนเป็น amendment ลงวันที่ ตรวจย้อนได้
+    <br><b>และผลที่ออกมาก็ไม่ได้สวยขึ้นเลย</b> ทั้งสองรอบยังสรุปไม่ได้เหมือนกัน</div>
+
   <div class="note"><span class="hd">เปลี่ยนตัวชี้วัดสองครั้งแล้ว กันตัวเองไว้สามชั้น</span>
     <b>หนึ่ง</b> เหตุผลที่เปลี่ยนไม่ใช่เพราะผลไม่สวย แต่เพราะตัวเดิมนับกฎที่ไม่เคยถูกทดสอบเลยว่าผ่าน
     ซึ่งเป็นการวัดที่ผิดอยู่แล้ว ควรซ่อมไม่ว่าผลจะออกทางไหน ·
@@ -531,8 +610,10 @@ document.querySelectorAll('nav a').forEach((a) => a.addEventListener('click', (e
     ['ข้อมูล', '64 run · ยังไม่เปรียบเทียบ', '<b class="up">' + (n1 + n2) + ' run · เปรียบเทียบครบ</b><div class="tiny">' + n1 + ' (รอบ 1) + ' + n2 + ' (รอบ 2) · ชุดที่ 1 เก็บมา ' + S.s1.runs.length + ' run แต่การวิเคราะห์ใช้ ' + S.s1.reps + ' รอบแรกตามที่ประกาศไว้</div>', 0],
     ['ค่าใช้จ่าย', '$72', '<b>$287</b>', 0],
     ['แผนรัน', '9 รอบต่อโจทย์ · 495 run',
-      'ประกาศจริง 6 รอบ · <b>เก็บได้ ' + S.s2.reps + ' รอบ</b> เพราะชนโควตา'
-      + '<div class="tiny">ใช้กฎสำรองที่ประกาศล่วงหน้า — ตัดรอบเท่ากันทุกกลุ่ม ไม่ทิ้งกลุ่มไหน</div>', 1],
+      '<b>ชุดที่ 1 จบที่ ' + S.s1.reps + ' รอบ · ชุดที่ 2 ประกาศ ' + S.s2.reps + ' รอบตั้งแต่ต้น</b>'
+      + '<div class="tiny">ชุดที่ 1 แก้แผนเป็น 6 รอบแล้วชนโควตา จบจริงที่ ' + S.s1.reps + ' · '
+      + 'ชุดที่ 2 จึงประกาศ ' + S.s2.reps + ' รอบไว้ล่วงหน้าเลย ไม่ใช่ตัดทีหลัง · '
+      + 'กฎสำรองที่ประกาศไว้คือตัดรอบเท่ากันทุกกลุ่ม ขั้นต่ำ 3 รอบ ซึ่งไม่ได้ใช้</div>', 1],
     ['โมเดล', 'ยังไม่ล็อก', '<b class="mono">claude-sonnet-5</b>', 0],
     ['จำนวนชุดทดลอง', 'ชุดเดียว', '<b>ทำรอบที่ 2 เพิ่ม — ไม่ได้อยู่ในแผน</b>', 1],
     ['กลุ่มทดลอง', S.s1.arms.length + ' กลุ่ม',
