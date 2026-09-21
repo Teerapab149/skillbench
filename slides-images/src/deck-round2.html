@@ -17,6 +17,7 @@
     display: flex; flex-direction: column;
   }
   .slide:last-child { page-break-after: auto; }
+  .slide > * { flex: 0 0 auto; }
 
   .kicker { font-size: 19px; color: #1f5fa8; font-weight: 700; letter-spacing: .6px; }
   h1 { font-size: 52px; font-weight: 700; line-height: 1.22; margin-top: 10px; }
@@ -26,14 +27,21 @@
   .num { position: absolute; right: 40px; bottom: 30px; font-size: 16px; color: #aeb4bd;
          font-family: 'Cascadia Mono', Consolas, monospace; }
 
-  .body { flex: 1; display: flex; align-items: center; justify-content: center; margin-top: 26px; }
-  .body.top { align-items: flex-start; }
+  .body { flex: 1 1 auto; min-height: 0; overflow: hidden;
+          display: flex; align-items: center; justify-content: center; margin-top: 22px; }
+  /* สไลด์ที่เนื้อหาเป็นข้อความล้วน — วางเนื้อหาไว้ราวหนึ่งในสี่จากขอบบนของพื้นที่ว่าง
+     ไม่ชิดบนจนเหลือที่ว่างครึ่งหน้าล่าง และไม่กลางจนหลุดจากหัวเรื่อง
+     ถ้าเนื้อหาสูงเต็มกรอบ ตัวคั่นทั้งสองจะหดเป็นศูนย์เอง */
+  .body.top { flex-direction: column; align-items: stretch; justify-content: flex-start; }
+  .body.top::before { content: ""; flex: 1 1 0; }
+  .body.top::after  { content: ""; flex: 3 1 0; }
+  .body.top > * { width: 100%; flex: 0 1 auto; }
   .body img { max-width: 100%; max-height: 100%; object-fit: contain;
               border: 1px solid #d9dee4; border-radius: 10px; }
   .pair { display: flex; gap: 20px; width: 100%; height: 100%; align-items: center; justify-content: center; }
   .pair img { max-height: 100%; }
   .stackrow { display: flex; flex-direction: column; gap: 14px; width: 100%; height: 100%;
-              align-items: center; justify-content: center; }
+              min-height: 0; align-items: center; justify-content: center; }
 
   .foot { font-size: 21px; color: #3d434d; line-height: 1.45; margin-top: 20px; }
   .foot b { color: #15181d; }
@@ -122,7 +130,7 @@
 <div class="slide">
   <div class="kicker">3 · เหตุผลที่ต้องทำเพิ่มอีกรอบ</div>
   <h1>ทำไมต้องมี<span class="hl">การทดลองรอบที่ 2</span></h1>
-  <div class="body"><img src="../figures/fig-runs-map.png"></div>
+  <div class="body"><img src="../figures/fig-runs-map.png" style="max-height:520px"></div>
   <div class="foot">
     <b>วิธีให้คะแนนของเราเองยังมีปัญหา</b> — ตัวเดิมบังคับว่าต้องผ่านกฎวิกฤตครบทุกข้อถึงได้คะแนน
     พลาดข้อเดียวได้ศูนย์ · ซ้ายมีแค่สองสี ขวามีเฉด
@@ -186,8 +194,8 @@
   <div class="kicker">5 · ต้นตอมีข้อเดียว</div>
   <h1>ทำไมยังฟันธงไม่ได้ — <span class="hl">ความเสี่ยงที่รายงานไว้ 14 ส.ค. เกิดขึ้นจริง</span></h1>
   <div class="body"><div class="stackrow">
-    <img src="../figures/fig-scenario-diff.png" style="max-height:56%">
-    <img src="../figures/fig-p-floor.png" style="max-height:38%">
+    <img src="../figures/fig-scenario-diff.png" style="height:372px;width:auto">
+    <img src="../figures/fig-p-floor.png" style="height:212px;width:auto">
   </div></div>
   <div class="num">6</div>
 </div>
@@ -220,7 +228,7 @@
 <div class="slide">
   <div class="kicker">6 · ของใหม่ที่ไม่ได้อยู่ในแผน</div>
   <h1>กฎทำให้ AI <span class="hl">ไปเช็คผลกระทบจริง</span></h1>
-  <div class="body"><img src="../figures/fig-impact-check.png"></div>
+  <div class="body"><img src="../figures/fig-impact-check.png" style="max-height:520px"></div>
   <div class="foot warn">
     เป็น<b>ข้อสังเกต ไม่ใช่ข้อสรุป</b> — ยังไม่ได้ทดสอบทางสถิติ และไม่ได้ประกาศไว้ล่วงหน้า
   </div>
@@ -231,7 +239,7 @@
 <div class="slide">
   <div class="kicker">6 (ต่อ) · แยกคะแนนเป็นสองส่วน</div>
   <h1>กฎซื้อความมีวินัย <span class="hl">ด้วยราคาคือความสำเร็จของงาน</span></h1>
-  <div class="body"><img src="../figures/fig-tradeoff.png"></div>
+  <div class="body"><img src="../figures/fig-tradeoff.png" style="max-height:520px"></div>
   <div class="foot warn">
     เป็น<b>ข้อสังเกต ไม่ใช่ข้อสรุป</b> — ยังไม่ได้ทดสอบทางสถิติ · A0 ถูกประกาศไว้ว่าเป็นกลุ่มเชิงพรรณนา
   </div>
