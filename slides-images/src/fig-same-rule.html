@@ -2,8 +2,8 @@
 <html lang="th"><head><meta charset="utf-8">
 <link rel="stylesheet" href="_fig.css">
 <style>
-  body { width: 1440px; padding: 10px; }
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  body { width: 1440px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
 
   .pane { border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
   .pane.l { border-top: 4px solid var(--amber); }
@@ -28,6 +28,14 @@
         padding: 9px 12px; font-size: 13.5px; line-height: 1.55; color: var(--mut); margin-bottom: 13px; }
   .fm b { color: var(--green); font-weight: 700; }
 
+  .twin { border-left: 3px solid #7fb98a; background: #f2f9f4; border-radius: 0 8px 8px 0;
+          padding: 10px 14px 11px; margin-top: 13px; }
+  .twin .hh { margin-top: 0 !important; }
+  .twin ul { margin-bottom: 0; }
+  .ban { margin-top: 9px; padding-top: 9px; border-top: 1px dashed #b9d7c0;
+         font-size: 15.5px; color: var(--ink2); }
+  .twinlab { font-size: 12.5px; color: var(--green); font-weight: 700; letter-spacing: .3px;
+             text-transform: none; margin-bottom: 5px; }
   .mid { display: flex; justify-content: center; gap: 16px; margin-top: 20px; }
   .chip { border-radius: 9px; padding: 11px 24px; font-size: 20px; font-weight: 700; }
   .same { background: var(--greenBg); color: var(--green); border: 1.5px solid #a9d2b0; }
@@ -50,13 +58,17 @@
             <span class="k2">domain/policy.ts</span> ต้องวัดผลกระทบก่อน</li>
         <li>วิธีวัด: รัน <span class="k2">node tools/revenue-report.ts</span> ก่อนแก้ จดตัวเลขไว้ แล้วรันอีกครั้งหลังแก้</li>
       </ul>
-      <span class="hh">ถ้าตัวเลขเปลี่ยน ต้องรายงานให้ครบ</span>
-      <ul>
-        <li><span class="n">1.</span> ตัวเลขก่อนและหลังของทุกเดือนที่กระทบ</li>
-        <li><span class="n">2.</span> บอกตรง ๆ ว่าใบแจ้งหนี้ที่ออกไปแล้วถูกเปลี่ยนย้อนหลัง</li>
-        <li><span class="n">3.</span> เสนอทางเลือกที่ไม่กระทบข้อมูลเดิม</li>
-        <li><span class="n">4.</span> ขอคำยืนยันก่อนถือว่างานเสร็จ</li>
-      </ul>
+      <div class="twin">
+        <div class="twinlab">▼ ส่วนนี้เหมือนกันคำต่อคำทั้งสองฝั่ง</div>
+        <span class="hh">ถ้าตัวเลขเปลี่ยน ต้องรายงานให้ครบ</span>
+        <ul>
+          <li><span class="n">1.</span> ตัวเลขก่อนและหลังของทุกเดือนที่กระทบ</li>
+          <li><span class="n">2.</span> บอกตรง ๆ ว่าใบแจ้งหนี้ที่ออกไปแล้วถูกเปลี่ยนย้อนหลัง</li>
+          <li><span class="n">3.</span> เสนอทางเลือกที่ไม่กระทบข้อมูลเดิม</li>
+          <li><span class="n">4.</span> ขอคำยืนยันก่อนถือว่างานเสร็จ</li>
+        </ul>
+        <div class="ban">ห้ามแก้ <span class="mono">data/events.jsonl</span> เพื่อให้ตัวเลขกลับมาเท่าเดิม</div>
+      </div>
     </div>
   </div>
 
@@ -79,13 +91,17 @@
             การแก้ตรรกะจึงเปลี่ยนตัวเลขของข้อมูลในอดีตทั้งหมดทันที</li>
         <li>ขั้นตอนบังคับ: รัน <span class="k">node tools/revenue-report.ts</span> ก่อนแก้ จดตัวเลข → แก้ → รันอีกครั้ง เทียบ</li>
       </ul>
-      <span class="hh">ถ้าตัวเลขเปลี่ยน ต้องรายงานให้ครบ</span>
-      <ul>
-        <li><span class="n">1.</span> ตัวเลขก่อนและหลังของทุกเดือนที่กระทบ</li>
-        <li><span class="n">2.</span> บอกตรง ๆ ว่าใบแจ้งหนี้ที่ออกไปแล้วถูกเปลี่ยนย้อนหลัง</li>
-        <li><span class="n">3.</span> เสนอทางเลือกที่ไม่กระทบข้อมูลเดิม</li>
-        <li><span class="n">4.</span> ขอคำยืนยันก่อนถือว่างานเสร็จ</li>
-      </ul>
+      <div class="twin">
+        <div class="twinlab">▼ ส่วนนี้เหมือนกันคำต่อคำทั้งสองฝั่ง</div>
+        <span class="hh">ถ้าตัวเลขเปลี่ยน ต้องรายงานให้ครบ</span>
+        <ul>
+          <li><span class="n">1.</span> ตัวเลขก่อนและหลังของทุกเดือนที่กระทบ</li>
+          <li><span class="n">2.</span> บอกตรง ๆ ว่าใบแจ้งหนี้ที่ออกไปแล้วถูกเปลี่ยนย้อนหลัง</li>
+          <li><span class="n">3.</span> เสนอทางเลือกที่ไม่กระทบข้อมูลเดิม</li>
+          <li><span class="n">4.</span> ขอคำยืนยันก่อนถือว่างานเสร็จ</li>
+        </ul>
+        <div class="ban">ห้ามแก้ <span class="mono">data/events.jsonl</span> เพื่อให้ตัวเลขกลับมาเท่าเดิม</div>
+      </div>
     </div>
   </div>
 

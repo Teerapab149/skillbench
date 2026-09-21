@@ -1,12 +1,32 @@
-/* ชุดสีของภาพประกอบ — ตั้งไว้สำหรับ "วางบนสไลด์พื้นขาวหรือพื้นอ่อน"
-   ถ้าเด็คเป็นธีมมืด ให้สลับค่าในบล็อกนี้บล็อกเดียว แล้วเรนเดอร์ใหม่ทั้งชุด */
+/* ชุดสีของภาพประกอบ — พื้นหลังทึบ วางบนสไลด์สีอะไรก็ได้
+   ถ้าจะสลับเป็นธีมมืด แก้เฉพาะบล็อก :root นี้ แล้วเรนเดอร์ใหม่ทั้งชุด
+   ด้วย  bash slides-images/src/render-figures.sh                         */
 :root{
-  --ink:#15181d; --ink2:#3d434d; --mut:#767d89; --faint:#9aa1ad;
-  --line:#d6dae1; --panel:#f4f6f8; --panel2:#eaedf1; --well:#eef1f4;
-  --blue:#1f5fa8; --green:#2a7a38; --amber:#96650a; --red:#b03a3f; --purple:#6a4aa0;
-  --blueBg:#e6eef8; --greenBg:#e6f2e8; --amberBg:#faf0dc; --redBg:#fae9ea; --purpleBg:#efe9f8;
+  /* พื้นหลังของภาพทั้งใบ และพื้นของการ์ดข้างใน */
+  --bg:#f2f4f7; --card:#ffffff;
+
+  /* ตัวหนังสือ */
+  --ink:#15181d; --ink2:#3d434d; --mut:#6d7480; --faint:#949ba6;
+
+  /* เส้นและแถบหัว */
+  --line:#d9dee4; --panel:#eef1f5; --panel2:#e4e8ee; --well:#f0f2f6;
+
+  /* สีเน้น */
+  --blue:#1f5fa8; --green:#2a7a38; --amber:#8e600a; --red:#b03a3f; --purple:#6a4aa0;
+  --blueBg:#e6eef8; --greenBg:#e4f1e7; --amberBg:#faf0d9; --redBg:#fae8e9; --purpleBg:#efe9f8;
 }
+
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{background:transparent}
-body{font-family:'Leelawadee UI','Segoe UI',Tahoma,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+html,body{background:var(--bg)}
+body{
+  font-family:'Leelawadee UI','Segoe UI',Tahoma,sans-serif;
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  padding:26px;
+}
 .mono{font-family:'Cascadia Mono',Consolas,monospace}
+
+/* การ์ดทุกชนิดในชุดนี้เป็นพื้นขาว เพื่อให้ลอยขึ้นมาจากพื้นภาพ */
+.box,.card,.pane,.map,.stat,.mult,.run,.wrap,.tbl,.step,.chip,.sheet{
+  background:var(--card);
+}

@@ -60,7 +60,7 @@ const head = (w) => `<!doctype html>
 <html lang="th"><head><meta charset="utf-8">
 <link rel="stylesheet" href="_fig.css">
 <style>
-  body { width: ${w}px; padding: 10px; }`;
+  body { width: ${w}px; }`;
 
 // ---------------------------------------------------------------- แผนที่ run
 const mapHtml = `${head(1400)}

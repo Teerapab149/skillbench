@@ -2,7 +2,8 @@
 <html lang="th"><head><meta charset="utf-8">
 <link rel="stylesheet" href="_fig.css">
 <style>
-  body { width: 1120px; padding: 10px; }
+  body { width: 1120px; }
+  .sheet { border: 1.5px solid var(--line); border-radius: 12px; padding: 18px 24px 16px; }
   .row { display: grid; grid-template-columns: 52px 1fr 82px 168px; align-items: center; height: 40px; }
   .lbl { font-size: 16px; font-weight: 700; font-family: 'Cascadia Mono', Consolas, monospace; color: var(--ink); }
   .row.tie .lbl { color: var(--faint); }
@@ -28,6 +29,8 @@
   .key { display: flex; gap: 22px; margin-top: 14px; padding-left: 52px; font-size: 14.5px; color: var(--mut); align-items: center; }
   .key i { width: 15px; height: 13px; border-radius: 3px; display: inline-block; margin-right: 6px; vertical-align: -1px; }
 </style></head><body>
+
+<div class="sheet">
 
 <div class="row"><div class="lbl">S01</div><div class="track"><div class="zero"></div><div class="bar neg" style="left:calc(20% - 3.58%);width:3.58%"></div></div><div class="val neg">−0.179</div><div class="why">ไฟล์เดียวชนะ</div></div>
 <div class="row tie"><div class="lbl">S02</div><div class="track"><div class="zero"></div><div class="bar nil"></div></div><div class="val nil">0.000</div><div class="why c">เสมอ · ได้เต็มทั้งคู่</div></div>
@@ -58,6 +61,8 @@
   <span><i style="background:#d4797f"></i>ไฟล์เดียว (A1) ดีกว่า</span>
   <span><i style="background:#c2c8d1"></i>เสมอ — ไม่ให้ข้อมูลในการทดสอบ</span>
   <span style="margin-left:auto;color:var(--faint)">ค่าเฉลี่ยรายโจทย์จาก 4 run ต่อกลุ่ม · ตัวชี้วัด RCRc</span>
+</div>
+
 </div>
 
 </body></html>
