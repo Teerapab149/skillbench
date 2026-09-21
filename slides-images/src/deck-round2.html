@@ -61,6 +61,18 @@
   .off td { background: #fcf6e8; }
   .sm { display: block; font-size: 18px; color: #7a818b; margin-top: 4px; }
 
+  /* แถบขั้นตอน — ใช้ตอบคำถาม "เทียบยังไง" ให้เห็นบนจอ ไม่ใช่ให้ผู้พูดอธิบายลอย ๆ */
+  .steps { display: flex; align-items: stretch; width: 100%; }
+  .st { flex: 1 1 0; background: #f4f6f9; border: 1px solid #e4e8ed; border-radius: 10px; padding: 14px 18px; }
+  .st .n { font-size: 15px; color: #7a818b; font-weight: 700; letter-spacing: .4px; }
+  .st .t { font-size: 20px; margin-top: 7px; line-height: 1.35; color: #3d434d; }
+  .st .t b { color: #15181d; }
+  .arw { display: flex; align-items: center; padding: 0 14px; color: #b6bcc4; font-size: 26px; }
+  .eg { width: 100%; font-size: 19px; line-height: 1.5; color: #5a616b;
+        border-left: 4px solid #1f5fa8; background: #f7f9fc; padding: 11px 20px; }
+  .eg b { color: #15181d; }
+  .eg .mono { font-size: 18px; }
+
   /* หน้ายอมรับข้อผิดพลาด — ประโยคเดียว ตัวโต ไม่มี bullet */
   .say { font-size: 40px; line-height: 1.5; font-weight: 700; color: #15181d;
          max-width: 1300px; align-self: flex-start; }
@@ -101,11 +113,28 @@
 
 <!-- ─────────────────────────────────────────── 3 · ผล -->
 <div class="page">
-  <div class="label">ผลการเปรียบเทียบ · <b>skill นำทั้งสองรอบ</b></div>
+  <div class="label">ผลการเปรียบเทียบ · <b>A2 (skill) เทียบ A1 (ไฟล์เดียว) — คู่หลักที่ประกาศไว้ล่วงหน้า</b></div>
   <div class="rule"></div>
-  <div class="stage"><table class="full">
-    <tr><th style="width:12%"></th><th style="width:18%">วิธีให้คะแนน</th><th class="r">skill</th>
-        <th class="r">ไฟล์เดียว</th><th class="r">ต่างกัน</th><th style="padding-left:40px">ช่วงความเชื่อมั่น 95%</th><th class="r">p</th></tr>
+  <div class="stage">
+  <div class="steps">
+    <div class="st"><div class="n">1 · ให้คะแนน</div>
+      <div class="t">คะแนน <b>ทีละ run</b><br>ฝั่งละ <b>44 run</b></div></div>
+    <div class="arw">→</div>
+    <div class="st"><div class="n">2 · จับกลุ่มตามโจทย์</div>
+      <div class="t">เฉลี่ย 4 รอบของโจทย์เดียวกัน<br>ฝั่งละ <b>11 ค่า</b></div></div>
+    <div class="arw">→</div>
+    <div class="st"><div class="n">3 · ลบกันในโจทย์เดียวกัน</div>
+      <div class="t">d = A2 − A1<br><b>ผลต่าง 11 ตัว</b> ← หน่วยข้อมูลจริง</div></div>
+    <div class="arw">→</div>
+    <div class="st"><div class="n">4 · ทดสอบ 11 ตัวนั้น</div>
+      <div class="t">sign-flip + cluster bootstrap<br>ได้ <b>ต่างกัน · CI · p</b></div></div>
+  </div>
+  <div class="eg">ตัวอย่างโจทย์ S04 — A2 รันสี่รอบได้ <span class="mono">0 · 1 · 1 · 1</span> เฉลี่ย <b>0.750</b>
+      · A1 ได้ <span class="mono">0 · 0 · 0 · 0</span> เฉลี่ย <b>0.000</b> → ผลต่าง <b>+0.750</b>
+      · <b>เฉลี่ยผลต่างทั้ง 11 โจทย์ = +11.0 จุด</b> คือคอลัมน์ “ต่างกัน”</div>
+  <table class="full">
+    <tr><th style="width:12%"></th><th style="width:18%">วิธีให้คะแนน</th><th class="r">A2 skill</th>
+        <th class="r">A1 ไฟล์เดียว</th><th class="r">ต่างกัน</th><th style="padding-left:40px">ช่วงความเชื่อมั่น 95%</th><th class="r">p</th></tr>
     <tr><td class="k">รอบ 1</td><td class="mono">CRIT</td><td class="r">36.4%</td><td class="r">27.3%</td>
         <td class="r"><b>+9.1</b></td><td class="mono" style="padding-left:40px">−6.8 ถึง +27.3</td><td class="r">0.500</td></tr>
     <tr><td class="k">รอบ 2</td><td class="mono">RCRc</td><td class="r">61.5%</td><td class="r">50.5%</td>
