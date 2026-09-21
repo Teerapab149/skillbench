@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_fig.css">
+<style>
+  body { width: 1420px; }
+
+  .flow { display: grid; grid-template-columns: 272px 58px 1fr 58px 216px; align-items: center; }
+
+  .src { border: 2px solid var(--blue); border-radius: 12px; background: var(--card);
+         padding: 20px 20px 18px; text-align: center; }
+  .src .t { font-size: 15px; color: var(--mut); }
+  .src .b { font-size: 26px; font-weight: 700; color: var(--ink); margin-top: 5px; line-height: 1.3; }
+  .src .s { font-size: 14.5px; color: var(--mut); margin-top: 9px; line-height: 1.45; }
+
+  .split { position: relative; height: 230px; }
+  .split svg { position: absolute; inset: 0; }
+
+  .ways { display: grid; grid-template-rows: 1fr 1fr; gap: 18px; }
+  .way { border: 1.5px solid var(--line); border-radius: 12px; background: var(--card);
+         padding: 14px 20px 15px; }
+  .way.a1 { border-left: 5px solid var(--amber); }
+  .way.a2 { border-left: 5px solid var(--green); }
+  .way .n { font-size: 20px; font-weight: 700; }
+  .way.a1 .n { color: var(--amber); } .way.a2 .n { color: var(--green); }
+  .way .d { font-size: 16.5px; color: var(--ink2); margin-top: 4px; line-height: 1.42; }
+  .way .w { display: inline-block; margin-top: 9px; font-size: 14.5px; font-weight: 700;
+            padding: 4px 11px; border-radius: 6px; }
+  .way.a1 .w { background: var(--amberBg); color: var(--amber); }
+  .way.a2 .w { background: var(--greenBg); color: var(--green); }
+
+  .ask { border: 2px solid var(--line); border-radius: 12px; background: var(--card);
+         padding: 22px 16px; text-align: center; }
+  .ask .q { font-size: 56px; font-weight: 700; color: var(--blue); line-height: 1; }
+  .ask .t { font-size: 18px; font-weight: 700; color: var(--ink); margin-top: 10px; line-height: 1.38; }
+
+  .arrowcol { text-align: center; font-size: 26px; color: var(--faint); }
+
+  .foot { margin-top: 20px; border: 1.5px dashed var(--line); border-radius: 12px;
+          padding: 13px 20px; font-size: 17.5px; color: var(--ink2); line-height: 1.5;
+          background: var(--card); text-align: center; }
+  .foot b { color: var(--ink); }
+</style></head><body>
+
+<div class="flow">
+
+  <div class="src">
+    <div class="t">ตัวตั้งต้น</div>
+    <div class="b">กฎการทำงาน<br>ชุดเดียวกัน</div>
+    <div class="s">ข้อความเดียวกันทุกตัวอักษร<br>ตรวจความเหมือนด้วยโปรแกรม</div>
+  </div>
+
+  <div class="split">
+    <svg viewBox="0 0 58 230" preserveAspectRatio="none">
+      <path d="M0,115 L26,115 L26,58 L58,58" fill="none" stroke="#c3a86a" stroke-width="2.5"/>
+      <path d="M0,115 L26,115 L26,172 L58,172" fill="none" stroke="#6aa877" stroke-width="2.5"/>
+    </svg>
+  </div>
+
+  <div class="ways">
+    <div class="way a1">
+      <div class="n">เขียน Context ให้</div>
+      <div class="d">เอากฎทั้งหมดใส่ไฟล์เดียว</div>
+      <div class="w">AI อ่านทุกครั้ง ไม่ว่างานนั้นจะเกี่ยวหรือไม่เกี่ยว</div>
+    </div>
+    <div class="way a2">
+      <div class="n">Agent Skills</div>
+      <div class="d">แยกกฎเป็นหน่วยย่อย แต่ละหน่วยมีเงื่อนไขกำกับ</div>
+      <div class="w">โหลดเฉพาะหน่วยที่ตรงกับงานตรงหน้า</div>
+    </div>
+  </div>
+
+  <div class="arrowcol">→</div>
+
+  <div class="ask">
+    <div class="q">?</div>
+    <div class="t">ผลต่างกันไหม</div>
+  </div>
+
+</div>
+
+<div class="foot">
+  เนื้อหากฎเหมือนกันเป๊ะ <b>ต่างกันอย่างเดียวคือกฎเข้าไปอยู่ในบริบทของ AI ตอนไหน</b>
+  &nbsp;·&nbsp; ยังไม่มีใครวัดเรื่องนี้อย่างเป็นระบบ ที่มีอยู่เป็นความรู้สึกว่า “ใส่แล้วดีขึ้น”
+</div>
+
+</body></html>

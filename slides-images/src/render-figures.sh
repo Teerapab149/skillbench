@@ -9,11 +9,12 @@ node "$B/src/fig-runs.gen.mjs"
 
 for spec in \
   "fig-arms 1560,590" \
+  "fig-question 1470,410" \
   "fig-how-we-measure 1640,462" \
   "fig-same-rule 1500,738" \
   "fig-fixture 1460,516" \
   "fig-retro-impact 1400,482" \
-  "fig-scenarios 1540,740" \
+  "fig-scenarios 1560,826" \
   "fig-scenario-diff 1180,570" \
   "fig-p-floor 1310,356" \
   "fig-tradeoff 1460,428" \
