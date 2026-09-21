@@ -24,7 +24,7 @@
     "fixture:test": "node --test \"fixtures/gpu-booking/tests/*.test.ts\"",
     "test": "node --test \"tests/*.test.mjs\"",
     "check:acceptance": "node scripts/check-acceptance.mjs && node scripts/check-acceptance-green.mjs && node scripts/check-acceptance-variants.mjs",
-    "gate": "node src/check-arms.mjs && node scripts/check-spec.mjs && node scripts/check-acceptance.mjs && node scripts/check-acceptance-green.mjs && node scripts/check-acceptance-variants.mjs && node scripts/make-coverage-map.mjs && node scripts/make-arms-explained.mjs && node scripts/gate-analysis.mjs && node scripts/check-rcra-floor.mjs && node scripts/check-numbers.mjs",
+    "gate": "node src/check-arms.mjs && node scripts/check-spec.mjs && node scripts/check-acceptance.mjs && node scripts/check-acceptance-green.mjs && node scripts/check-acceptance-variants.mjs && node scripts/make-coverage-map.mjs && node scripts/make-arms-explained.mjs && node scripts/make-arms-review.mjs --check && node scripts/gate-analysis.mjs && node scripts/check-rcra-floor.mjs && node scripts/check-numbers.mjs",
     "probe:runtime": "node scripts/probe-runtime.mjs",
     "gate0": "node src/runner.mjs --adapter claude-cli --reps 6 --stop-after-rep 0 --resume",
     "main": "node src/runner.mjs --adapter claude-cli --reps 6 --resume",
@@ -41,7 +41,9 @@
     "main:study2": "node scripts/supervise-collection.mjs --config config/arms-study2.json --out results-study2 --reps 4 --label 20-study2",
     "analyze:study2": "node src/analyze.mjs --config config/arms-study2.json --in results-study2/latest.json --out results-study2",
     "results:doc:study2": "node scripts/make-results-doc.mjs --in results-study2/numbers.json --out report/ch5b-results-study2.md --prefix 5ข",
-    "results:all:study2": "npm run analyze:study2 && npm run results:doc:study2 && node scripts/check-numbers.mjs"
+    "results:all:study2": "npm run analyze:study2 && npm run results:doc:study2 && node scripts/check-numbers.mjs",
+    "arms:review": "node scripts/make-arms-review.mjs",
+    "check:arms-review": "node scripts/make-arms-review.mjs --check"
   },
   "engines": {
     "node": ">=18"

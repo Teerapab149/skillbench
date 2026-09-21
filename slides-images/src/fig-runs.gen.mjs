@@ -131,7 +131,7 @@ const effortHtml = `${head(1320)}
   <div class="stat"><div class="v">${stat.n}</div><div class="k">run ที่วิเคราะห์</div></div>
   <div class="stat"><div class="v">${stat.hr}</div><div class="k">ชั่วโมงที่ agent ทำงาน</div></div>
   <div class="stat"><div class="v">${stat.tc}</div><div class="k">ครั้งที่เรียกใช้เครื่องมือ</div></div>
-  <div class="stat"><div class="v">${stat.ed}</div><div class="k">ไฟล์ที่ถูกแก้</div></div>
+  <div class="stat"><div class="v">${stat.ed}</div><div class="k">ครั้งที่แก้ไฟล์</div></div>
   <div class="stat"><div class="v">${stat.tok}M</div><div class="k">token ที่อ่านเข้าไป</div></div>
   <div class="stat"><div class="v">$${stat.usd}</div><div class="k">ค่าใช้จ่าย</div></div>
 </div>
