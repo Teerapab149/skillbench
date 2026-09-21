@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SkillBench — ความก้าวหน้ารอบที่ 2</title>
+<style>
+/* หน้าเปิดคุยกับอาจารย์ · ไฟล์เดียว เปิดออฟไลน์ได้ ไม่ต้องล็อกอิน
+   ตัวเลขทุกตัวอ่านจาก data.js ซึ่งสร้างจาก results/ และ results-study2/
+   ห้ามพิมพ์ตัวเลขลงใน HTML นี้ตรง ๆ                                        */
+:root{
+  --bg:#f5f7fa; --card:#fff; --ink:#15181d; --ink2:#3d434d; --mut:#6d7480;
+  --faint:#9aa1ab; --line:#e1e6ec; --panel:#eef2f7;
+  --blue:#1f5fa8; --green:#2a7a38; --amber:#8e600a; --red:#b03a3f; --purple:#6a4aa0;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:var(--bg)}
+body{font-family:'Leelawadee UI','Segoe UI',Tahoma,sans-serif;color:var(--ink);line-height:1.55}
+.mono,code,pre{font-family:'Cascadia Mono',Consolas,monospace}
+a{color:var(--blue)}
+
+/* ---------- โครง ---------- */
+.wrap{display:flex;min-height:100vh}
+nav{width:260px;flex:0 0 260px;background:var(--card);border-right:1px solid var(--line);
+    padding:22px 0;position:sticky;top:0;height:100vh;overflow:auto}
+nav h1{font-size:17px;padding:0 22px 4px;letter-spacing:.2px}
+nav .sub{font-size:13px;color:var(--mut);padding:0 22px 16px}
+nav a{display:block;padding:9px 22px;font-size:15px;color:var(--ink2);text-decoration:none;border-left:3px solid transparent}
+nav a:hover{background:var(--panel)}
+nav a.on{border-left-color:var(--blue);color:var(--blue);font-weight:700;background:var(--panel)}
+nav .grp{font-size:12px;color:var(--faint);padding:18px 22px 6px;font-weight:700;letter-spacing:.8px}
+main{flex:1 1 auto;min-width:0;padding:38px 46px 90px;max-width:1180px}
+section{display:none}
+section.on{display:block}
+h2{font-size:30px;line-height:1.3;margin-bottom:6px}
+h2 .hl{color:var(--blue)}
+.lead{font-size:17px;color:var(--ink2);margin-bottom:26px;max-width:860px}
+h3{font-size:19px;margin:30px 0 12px}
+
+/* ---------- ชิ้นส่วน ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin-bottom:18px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font-size:13px;color:var(--mut);font-weight:700;padding:0 12px 9px;border-bottom:2px solid var(--line)}
+th.r,td.r{text-align:right}
+td{padding:10px 12px;border-bottom:1px solid #eef1f5;vertical-align:top}
+td.n{font-family:'Cascadia Mono',Consolas,monospace}
+tr.off td{background:#fdf8ec}
+.up{color:var(--green);font-weight:700}
+.dn{color:var(--red);font-weight:700}
+.note{border-left:4px solid var(--blue);background:#f2f6fb;padding:13px 18px;border-radius:0 8px 8px 0;margin:14px 0;font-size:15px;color:var(--ink2)}
+.note.red{border-left-color:var(--red);background:#fbf1f1}
+.note.warn{border-left-color:var(--amber);background:#fdf8ec}
+.note b{color:var(--ink)}
+.note .hd{display:block;font-weight:700;color:var(--ink);margin-bottom:4px;font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+button.chip{font:inherit;font-size:14px;padding:6px 14px;border:1px solid var(--line);background:var(--card);
+  border-radius:999px;cursor:pointer;color:var(--ink2)}
+button.chip:hover{border-color:var(--blue);color:var(--blue)}
+button.chip.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+.steps{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.st{flex:1 1 200px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 16px;font-size:14px;color:var(--ink2)}
+.st .n{font-size:12px;color:var(--mut);font-weight:700;letter-spacing:.5px}
+.st b{color:var(--ink)}
+pre{background:#f7f9fb;border:1px solid var(--line);border-radius:8px;padding:14px 16px;
+    font-size:13px;line-height:1.6;overflow:auto;max-height:440px;white-space:pre-wrap;word-break:break-word}
+.kv{display:flex;flex-wrap:wrap;gap:8px 26px;font-size:14px;color:var(--mut);margin-bottom:10px}
+.kv b{color:var(--ink)}
+.bar{height:9px;background:#e9edf2;border-radius:5px;overflow:hidden;min-width:80px}
+.bar>i{display:block;height:100%;background:var(--green)}
+.bar.r>i{background:var(--red)}
+.bar.a>i{background:var(--amber)}
+.tiny{font-size:13px;color:var(--mut)}
+.rowlink{cursor:pointer}
+.rowlink:hover td{background:var(--panel)}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--panel);color:var(--mut)}
+.pill.ok{background:#e9f4ec;color:var(--green)}
+.pill.no{background:#fbeced;color:var(--red)}
+.pill.on{background:#e8f0fa;color:var(--blue);font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:1000px){.grid2{grid-template-columns:1fr}
+  .wrap{flex-direction:column}nav{width:auto;height:auto;position:static;flex:0 0 auto}
+  main{padding:24px 18px 70px}}
+</style></head><body>
+
+<div class="wrap">
+<nav>
+  <h1>SkillBench</h1>
+  <div class="sub">ความก้าวหน้ารอบที่ 2 · 22 ก.ย. 2569</div>
+  <div class="grp">เรื่องที่จะเล่า</div>
+  <a href="#delta" class="on">1 · บอกไว้ vs เกิดขึ้นจริง</a>
+  <a href="#runs">2 · ทำไมต้องมีรอบที่สอง</a>
+  <a href="#result">3 · ผลการเปรียบเทียบ</a>
+  <a href="#why">4 · ทำไมยังฟันธงไม่ได้</a>
+  <a href="#impact">5 · กฎเปลี่ยนพฤติกรรมจริง</a>
+  <a href="#tradeoff">6 · วินัยแลกกับงานที่เสร็จ</a>
+  <a href="#control">7 · คุมตัวแปรยังไง</a>
+  <a href="#miss">8 · สิ่งที่พลาด</a>
+  <a href="#left">9 · เหลืออะไร</a>
+  <div class="grp">เปิดของจริง</div>
+  <a href="#arms">กฎที่ส่งให้เอเจนต์</a>
+  <a href="#scen">โจทย์ทั้ง 11 ข้อ</a>
+  <a href="#explore">ไล่ดู run ทีละตัว</a>
+</nav>
+
+<main>
+
+<!-- ══════════════ 1 ══════════════ -->
+<section id="delta" class="on">
+  <h2>ความก้าวหน้าตั้งแต่ 14 สิงหาคม — <span class="hl">บอกไว้ vs เกิดขึ้นจริง</span></h2>
+  <p class="lead">ครั้งที่แล้วเครื่องมือวัดเสร็จ เก็บ calibration ไป 64 run แต่ยังไม่ได้เปรียบเทียบระหว่างกลุ่มเลยสักคู่
+    วันนี้เก็บข้อมูลจบแล้ว เปรียบเทียบครบสองชุด และร่างรายงานครบเจ็ดบท
+    <b>แถวที่ไฮไลต์คือสิ่งที่ไม่เป็นไปตามแผน</b></p>
+  <div class="card"><table id="t-delta"></table></div>
+  <div class="note"><span class="hd">A5 คืออะไร และทำไมถึงเพิ่มเข้ามา</span>
+    คำถามวิจัยคือ “กฎชุดเดียวกัน วางคนละที่ ให้ผลต่างกันไหม” ถ้า skill ชนะ ต้องตอบให้ได้ว่าชนะเพราะ
+    <b>โครงสร้างการโหลด</b> หรือเพราะ <b>ตัวหนังสือมันต่างกัน</b> —
+    A5 ใช้ตัวหนังสือชุดเดียวกับ A2 เป๊ะ แต่โหลดตลอดเวลาแบบ A1 จึงแยกสองอย่างนี้ออกจากกันได้
+    <br><a href="#arms">→ เปิดอ่านข้อความจริงของทุกกลุ่ม</a></div>
+</section>
+
+<!-- ══════════════ 2 ══════════════ -->
+<section id="runs">
+  <h2>ทำไมต้องมีรอบที่สอง — <span class="hl">วิธีให้คะแนนของเราเองยังมีปัญหา</span></h2>
+  <p class="lead">ตัวชี้วัดของรอบแรกบังคับว่าต้องผ่านกฎวิกฤต <b>ครบทุกข้อ</b> ถึงจะได้คะแนน พลาดข้อเดียวได้ศูนย์
+    คะแนนเลยไปกองอยู่ที่ศูนย์ และเมื่อกองที่ศูนย์ โจทย์ส่วนใหญ่ก็ได้เท่ากันทั้งสองกลุ่ม
+    <b>ซึ่งไม่บอกอะไรเราเลยว่ากลุ่มไหนดีกว่า</b></p>
+  <div class="chips" id="c-runs"></div>
+  <div class="card"><div id="m-runs"></div>
+    <p class="tiny" style="margin-top:14px">แต่ละแถวคือกลุ่มทดลอง แต่ละคอลัมน์คือโจทย์ 1 ข้อ ในช่องมี 4 ขีดคือรัน 4 รอบ ·
+      <b>คลิกที่ขีดใดก็ได้เพื่อเปิด run นั้น</b></p></div>
+  <div class="note warn"><span class="hd">อย่าพูดเกินกว่าที่ภาพแสดง</span>
+    รอบที่ 2 ให้คะแนนเป็นสัดส่วนแล้วก็จริง แต่ <b id="x-shade"></b>
+    มันไม่ได้แก้ให้หาย แค่พอทำให้ค่า p ขยับ <b>ส่วนจำนวนโจทย์ที่ให้ข้อมูลยังเท่าเดิม</b> ซึ่งเป็นตัวที่ตัดสินจริง</div>
+  <div class="note"><span class="hd">เปลี่ยนตัวชี้วัดสองครั้งแล้ว กันตัวเองไว้สามชั้น</span>
+    <b>หนึ่ง</b> เหตุผลที่เปลี่ยนไม่ใช่เพราะผลไม่สวย แต่เพราะตัวเดิมนับกฎที่ไม่เคยถูกทดสอบเลยว่าผ่าน
+    ซึ่งเป็นการวัดที่ผิดอยู่แล้ว ควรซ่อมไม่ว่าผลจะออกทางไหน ·
+    <b>สอง</b> ตั้งด่านทดสอบที่ล้มได้ เอาเอเจนต์ปลอมสามแบบป้อนเข้าไป แบบที่สำคัญที่สุดคือตัวที่
+    <b>ทำงานสำเร็จจริงแต่ละเมิดกฎห้ามทุกข้อ ต้องได้ไม่เกิน 0.50</b> ·
+    <b>สาม</b> ประกาศแผนใหม่ลงวันที่ก่อนเก็บข้อมูล และเขียนตรง ๆ ว่าเขียนหลังเห็นผลรอบแรกแล้ว
+    <br><br><b>และที่สำคัญที่สุด — ผลทั้งสองรอบยังสรุปไม่ได้เหมือนกัน การเปลี่ยนไม่ได้ทำให้ผลสวยขึ้น</b></div>
+</section>
+
+<!-- ══════════════ 3 ══════════════ -->
+<section id="result">
+  <h2>ผลการเปรียบเทียบ — <span class="hl">A2 (skill) เทียบ A1 (ไฟล์เดียว)</span></h2>
+  <p class="lead">เทียบ <b>คู่เดียว</b> ไม่ได้เอาทุกกลุ่มมารวมกัน เพราะ A2 กับ A1 ได้กฎเนื้อหาเดียวกันทุกตัวอักษร
+    ต่างกันแค่วิธีส่งเข้า context <b>คู่นี้จึงเป็นคู่เดียวที่ตอบคำถามวิจัยได้</b>
+    และประกาศไว้ล่วงหน้าตั้งแต่ก่อนเก็บข้อมูลว่าเป็นคู่หลัก</p>
+  <div class="steps">
+    <div class="st"><div class="n">1 · ให้คะแนน</div>คะแนน <b>ทีละ run</b><br>ฝั่งละ <b>44 run</b></div>
+    <div class="st"><div class="n">2 · จับกลุ่มตามโจทย์</div>เฉลี่ย 4 รอบของโจทย์เดียวกัน<br>ฝั่งละ <b>11 ค่า</b></div>
+    <div class="st"><div class="n">3 · ลบกันในโจทย์เดียวกัน</div>d = A2 − A1<br><b>ผลต่าง 11 ตัว</b> ← หน่วยข้อมูลจริง</div>
+    <div class="st"><div class="n">4 · ทดสอบ 11 ตัวนั้น</div>sign-flip + cluster bootstrap<br>ได้ <b>ต่างกัน · CI · p</b></div>
+  </div>
+  <div class="note"><span class="hd">ทำไมต้องจับกลุ่มตามโจทย์ก่อน</span>
+    4 run ของโจทย์เดียวกันไม่เป็นอิสระต่อกัน — โจทย์เดียวกัน สภาพเดียวกัน ผลคล้ายกัน
+    <b>ถ้านับเป็น 44 ชิ้นอิสระ จะหลอกตัวเองว่ามีข้อมูลเยอะกว่าความจริง แล้วได้ p ที่เล็กเกินจริง</b></div>
+  <div class="card"><table id="t-result"></table></div>
+  <div class="note red"><span class="hd">สองรอบให้คะแนนคนละแบบ ตัวเลขข้ามแถวเทียบกันไม่ได้</span>
+    ดูได้เฉพาะคอลัมน์ “ต่างกัน” ซึ่งเป็นการเทียบภายในรอบเดียวกัน ·
+    ช่วงความเชื่อมั่นคร่อมศูนย์ทั้งคู่ → <b>ต้องพูดว่า “สรุปไม่ได้” ไม่ใช่ “ไม่ต่างกัน”</b>
+    เพราะ “ไม่ต่างกัน” แปลว่าพิสูจน์แล้วว่าเท่ากัน ซึ่งเราไม่ได้พิสูจน์ เราแค่ยังแยกไม่ออก</div>
+  <h3>ตัวชี้วัดสองตัวนี้คืออะไร</h3>
+  <div class="grid2">
+    <div class="card"><b class="mono">CRIT</b> — ตัวชี้วัดของรอบที่ 1
+      <p style="margin:8px 0;color:var(--ink2);font-size:15px">กฎระดับวิกฤตในโจทย์นั้น
+      <b>ผ่านครบทุกข้อหรือไม่</b> ตอบได้แค่ 0 หรือ 1 · เป็นการ “และ” กันของกฎวิกฤต 9–10 ข้อ พลาดข้อเดียวได้ศูนย์</p>
+      <p class="tiny">เลข 36.4% คือสัดส่วนของ run ที่ A2 ได้ 1</p></div>
+    <div class="card"><b class="mono">RCRc</b> — ตัวชี้วัดของรอบที่ 2
+      <p style="margin:8px 0;color:var(--ink2);font-size:15px"><b>สัดส่วนกฎวิกฤตที่เข้าเงื่อนไขและผ่าน
+      โดยมีเงื่อนไขว่างานหลักต้องสำเร็จ</b> · ถ้างานหลักไม่สำเร็จค่าเป็น 0 · ถ้าวัดความสำเร็จไม่ได้ค่าเป็น null และ run นั้นออกจากการคำนวณ</p>
+      <p class="tiny">“งานหลักสำเร็จ” ตัดสินด้วยเทสยอมรับที่เอเจนต์มองไม่เห็น</p></div>
+  </div>
+  <div class="note warn"><span class="hd">ทำไมต้องเปลี่ยน — ตัวเดิมมีข้อบกพร่องสองชั้น</span>
+    <b>ชั้นที่ 1</b> กฎประเภท “ห้าม” เป็นจริงเสมอถ้าไม่ทำอะไรเลย เอเจนต์สังเคราะห์ที่นิ่งสนิทได้ <span class="mono">RCR</span> ราว 0.51–0.55 ·
+    <b>ชั้นที่ 2</b> ตัวชี้วัดให้รางวัลกับการลงมือทำ ไม่ใช่การทำถูก — artifact ปลอมที่ทำงานไม่สำเร็จเลยยังได้
+    <span class="mono">RCRa</span> 0.69 เทียบกับ run จริงราว 0.87
+    <br><br><b>ข้อจำกัดที่ต้องเปิดเผยคู่กันเสมอ</b> วัดจากชุดที่ 1 พบว่า <span class="mono">RCRc</span> ให้ค่าตรงกับผลของเทสยอมรับเป๊ะใน
+    <b>74.3% ของ run</b> แปลว่ามันตอบคำถาม “ทำงานได้ไหม” มากกว่า “ตามกฎแค่ไหน”</div>
+  <h3>คู่อื่นอยู่ตรงไหน</h3>
+  <div class="card"><table id="t-pairs"></table></div>
+</section>
+
+<!-- ══════════════ 4 ══════════════ -->
+<section id="why">
+  <h2>ต้นตอมีข้อเดียว — <span class="hl">ความเสี่ยงที่รายงานไว้เมื่อ 14 ส.ค. เกิดขึ้นจริง</span></h2>
+  <p class="lead">การทดสอบนับ <b>โจทย์</b> เป็นหน่วย ไม่ใช่นับ run เพราะ run จากโจทย์เดียวกันไม่เป็นอิสระต่อกัน
+    <b>หน่วยของเราคือ 11 ไม่ใช่ 176</b> — และใน 11 ข้อนั้น มีหลายข้อที่ผลต่างเป็นศูนย์สนิท จึงไม่ให้ข้อมูลกับการทดสอบ</p>
+  <div class="chips" id="c-why"></div>
+  <div class="card"><table id="t-why"></table>
+    <p class="tiny" style="margin-top:12px"><b>คลิกแถวใดก็ได้เพื่อดูโจทย์ข้อนั้นและ run ทั้งสี่รอบของทั้งสองกลุ่ม</b></p></div>
+  <div class="grid2">
+    <div class="card"><h3 style="margin-top:0">เพดานที่ตามมา</h3><div id="m-floor"></div></div>
+    <div class="card"><h3 style="margin-top:0">เทียบสองรอบ</h3><table id="t-cmp"></table>
+      <p class="tiny" style="margin-top:10px">สองบรรทัดบนเท่ากันเป๊ะ = <b>เพดานไม่เคยขยับ</b><br>
+        สองบรรทัดล่างดีขึ้น = การซ่อมตัวชี้วัดได้ผล แต่ไม่พอ</p></div>
+  </div>
+  <div class="note red"><span class="hd">พูดให้ตรง ไม่พูดเกิน</span>
+    เงื่อนไขนี้ <b>ประกาศไว้ก่อนเก็บข้อมูล</b> ว่าถ้า m ต่ำกว่า 6 นัยสำคัญจะเป็นไปไม่ได้
+    พอ m ออกมาเป็น 5 <b>ผลก็ถูกล็อกทันที ก่อนจะดูค่า p ด้วยซ้ำ</b>
+    <br><span class="tiny">ก่อนเก็บข้อมูล แผนประเมินไว้ว่า m ≈ 6 ซึ่งให้ p ต่ำสุด 0.031 และผ่านเกณฑ์ได้
+      จึงพูดว่า “เป็นไปไม่ได้ตั้งแต่ก่อนเห็นข้อมูล” ไม่ได้ — สิ่งที่ล็อกไว้ล่วงหน้าคือกติกา ไม่ใช่ผล</span></div>
+  <div class="note warn"><span class="hd">ระวังเลข ICC</span>
+    ที่รายงานอาจารย์ไว้เมื่อ 14 ส.ค. ว่า <b>0.335</b> นั้นวัดจาก Opus ตอน calibration
+    และ <span class="mono">PRE-REGISTRATION.md</span> เขียนห้ามไว้ตรง ๆ ว่าห้ามใช้อ้าง power ของ Sonnet
+    <b>ค่าที่วัดจากข้อมูลจริงของงานนี้คือ <span id="x-icc"></span></b></div>
+</section>
+
+<!-- ══════════════ 5 ══════════════ -->
+<section id="impact">
+  <h2>กฎทำให้ AI <span class="hl">ไปเช็คผลกระทบจริง</span></h2>
+  <p class="lead">โจทย์ S08 กับ S09 เป็นตระกูลผลกระทบซ่อนเร้น — ระบบเก็บข้อมูลแบบ event sourcing
+    แปลว่า <b>แก้สูตรคำนวณวันนี้ ใบแจ้งหนี้ของเดือนที่แล้วจะเปลี่ยนตามไปด้วย</b>
+    กฎสองข้อในตระกูลนี้สั่งให้ต้องไปตรวจและต้องบอกผู้ใช้</p>
+  <div class="card"><div id="m-im"></div></div>
+  <div class="note red"><span class="hd">เป็นข้อสังเกต ไม่ใช่ข้อสรุป</span>
+    ยังไม่ได้ทดสอบทางสถิติ และ<b>ไม่ได้ประกาศไว้ล่วงหน้า</b>ว่าจะแยกดูกฎรายข้อ จึงเพิ่มการทดสอบทีหลังไม่ได้ ·
+    A0 ถูกประกาศไว้ตั้งแต่ต้นว่าเป็น<b>กลุ่มเชิงพรรณนา</b> · n = 8 ต่อกลุ่ม เล็กมาก
+    <br>เขียนไว้ในเล่มว่าเป็นสมมติฐานที่ข้อมูลชี้ทาง และเสนอให้งานต่อยอดเอาไปตั้งเป็นสมมติฐานหลักแล้วเก็บใหม่</div>
+</section>
+
+<!-- ══════════════ 6 ══════════════ -->
+<section id="tradeoff">
+  <h2>กฎซื้อความมีวินัย <span class="hl">ด้วยราคาคืองานที่เสร็จน้อยลง</span></h2>
+  <p class="lead">แกะ <span class="mono">RCRc</span> ออกเป็นสองชิ้น เพราะมันคือการคูณกันของสองอย่าง —
+    <b>ทำงานสำเร็จแค่ไหน</b> คูณ <b>เมื่อสำเร็จแล้วตามกฎแค่ไหน</b></p>
+  <div class="card"><table id="t-trade"></table>
+    <p class="tiny" style="margin-top:12px">ลองคูณดูได้เลย · คอลัมน์ขวาสุดคือ <span class="mono">RCRc</span> ที่ใช้เป็นตัวชี้วัดหลัก</p></div>
+  <div class="note warn"><span class="hd">A0 ได้คะแนนรวมสูงสุด แต่ห้ามสรุปว่าไม่มีกฎดีกว่า</span>
+    ข้อมูลบอกว่ากลุ่มไม่มีกฎ<b>ปิดงานได้บ่อยกว่า</b> แต่หน้าที่แล้วแสดงว่ามันปิดงานโดย
+    <b>ไม่เคยเช็คว่าของเก่าพังไหมเลยสักครั้ง</b> ในระบบที่แก้สูตรวันนี้แล้วใบแจ้งหนี้เดือนที่แล้วเปลี่ยน
+    การปิดงานเร็วแบบนั้นคือความเสี่ยง ไม่ใช่ประสิทธิภาพ · และ A0 เป็นกลุ่มเชิงพรรณนา</div>
+  <div class="note"><span class="hd">สามกลุ่มที่มีกฎได้ 0.967 เท่ากัน — ปัดทศนิยมแล้วเท่า</span>
+    ตัวจริงต่างกันที่หลักที่สี่ <b id="x-967"></b> ·
+    เหตุผลที่ใกล้กันขนาดนี้คือ เมื่อทำงานสำเร็จแล้ว กฎที่เหลือส่วนใหญ่ผ่านได้ไม่ยาก
+    ความต่างระหว่างกลุ่มจึงไปอยู่ที่ว่า <b>ปิดงานได้ไหม</b> เป็นหลัก ซึ่งก็คือข้อจำกัดของ <span class="mono">RCRc</span> ที่ต้องเปิดเผยคู่กันเสมอ</div>
+</section>
+
+<!-- ══════════════ 7 ══════════════ -->
+<section id="control">
+  <h2>คุมตัวแปรยังไง — <span class="hl">สองอย่างที่ตรวจจับได้จริง</span></h2>
+  <p class="lead">เวลาพูดเรื่องคุมตัวแปร มันฟังเหมือนเขียนไว้ในเล่มเฉย ๆ สองอย่างนี้จับได้จริงและมีหลักฐาน</p>
+  <div class="card"><h3 style="margin-top:0">เอเจนต์เขียนหน่วยความจำถาวรออกนอกสนามทดลอง</h3>
+    <div class="kv"><span>run <b class="mono">S07-weekly-quota__A1__r3</b></span><span>19 ก.ย. 2569 · 22:44 น.</span><span>ชุดที่ 2</span></div>
+    <p style="color:var(--ink2);font-size:15px">เอเจนต์กลุ่ม A1 เรียก <span class="mono">Bash</span> อ่าน
+      <span class="mono">MEMORY.md</span> ก่อน แล้ว <span class="mono">Write</span> ไฟล์ลงโฟลเดอร์หน่วยความจำของเครื่อง
+      <b>ซึ่งอยู่นอกโฟลเดอร์ทดลอง และอยู่รอดข้าม run ข้ามกลุ่มทดลอง</b></p>
+    <div class="note red" style="margin-bottom:0"><span class="hd">ที่น่ากลัวคือเนื้อในไฟล์</span>
+      มีทั้ง<b>สรุปกฎของกลุ่มตัวเอง</b> และ<b>เฉลยของ S07</b> ซึ่งเป็นโจทย์ที่ไม่มีเอเจนต์ตัวไหนทำสำเร็จเลย
+      ถ้า run ถัดไปได้อ่าน ตัวแปรต้นของการทดลองพังทันที <b>และตัวเลขจะดูปกติทุกประการ ไม่มีใครรู้เลย</b>
+      <br><br><b>จับได้ทันทีที่ run นั้นจบ · หยุดทั้งชุด · run ถูกปฏิเสธ · ไม่มี run ถัดไปได้อ่าน</b>
+      <br><span class="tiny">หลักฐานอยู่ที่ <span class="mono">evidence/memory-contamination-2026-09-19/</span> รวมไฟล์ที่เอเจนต์เขียนจริง</span></div>
+  </div>
+  <div class="card"><h3 style="margin-top:0">ตรวจว่า skill โหลดถูกจังหวะไหม — trigger F1</h3>
+    <p style="color:var(--ink2);font-size:15px;margin-bottom:12px">เป็น <b>manipulation check</b> คือตรวจว่า
+      <i>สิ่งที่เราตั้งใจทำกับกลุ่มทดลองเกิดขึ้นจริงไหม</i> — skill โหลดตอนที่ควรโหลด และไม่โหลดตอนที่ไม่ควร
+      F1 = 1.000 แปลว่าถูกทุกครั้ง ไม่พลาดทั้งสองทาง</p>
+    <table id="t-trig"></table>
+    <p class="tiny" style="margin-top:12px">มีสองชุดเพราะ Amendment 16 พบว่าเกณฑ์เดิมจัด S06 S07 S11 ว่าควรโหลด skill ผลกระทบ
+      ทั้งที่สามข้อนั้นมีแต่กฎเชิงรับซึ่งผ่านได้ด้วยการไม่ทำอะไรผิด <b>ต้องรายงานทั้งสองชุด ไม่งั้นคือหยิบเลขที่สวยกว่า</b></p>
+  </div>
+  <div class="note"><span class="hd">ทำไมตัวเลขชุดนี้สำคัญกับการอ่านผล</span>
+    มันแปลว่า<b>กลไกส่งกฎทำงานถูกจังหวะ แต่ผลปลายทางไม่ขยับ ปัญหาจึงไม่ได้อยู่ที่การส่งกฎ</b> ·
+    ถ้าตัวเลขนี้ต่ำ เราจะตอบไม่ได้เลยว่าที่ไม่ต่างเพราะ skill ไม่โหลด หรือเพราะกฎไม่ช่วย</div>
+  <div class="note red"><b>ต้องพูดตรง ๆ</b> — กลไกจับได้เพราะมีคนเผื่อไว้ล่วงหน้าว่าหน่วยความจำอัตโนมัติเป็นตัวแปรที่ต้องคุม
+    <b>เราไม่มีทางรู้ว่ายังมีช่องแบบเดียวกันที่ยังไม่มีใครนึกถึงอีกกี่ช่อง</b></div>
+</section>
+
+<!-- ══════════════ 8 ══════════════ -->
+<section id="miss">
+  <h2>สิ่งที่<span class="hl">พลาด</span></h2>
+  <div class="note red" style="font-size:19px"><span class="hd" style="font-size:22px">รอบที่แล้วผมรายงานอาจารย์เองว่า “ทางออกคือเพิ่มจำนวนโจทย์ ไม่ใช่เพิ่มรอบ”</span>
+    แต่ตอนออกแบบรอบที่ 2 <b>ผมใช้โจทย์ 11 ข้อเดิม ไม่ได้เพิ่ม</b></div>
+  <div class="card"><table id="t-miss"></table></div>
+  <div class="note"><span class="hd">ถ้าเพิ่มอีก 5 ข้อจะเป็นยังไง</span>
+    m น่าจะขยับขึ้น และที่ m = 6 เพดาน p ลงมาเหลือ 2<sup>−5</sup> = <b>0.031 ซึ่งผ่านเกณฑ์ 0.05 ได้</b>
+    <br>เหตุผลที่ไม่ทำตอนนั้นคือเวลากับโควตา — โจทย์ใหม่หนึ่งข้อต้องผ่านด่านตรวจสี่ด่าน และเพิ่ม 5 ข้อแปลว่าต้องรันเพิ่มอีกราว 80 run
+    <br><br><b>มองย้อนกลับไปคือตัดสินใจผิด</b> บันทึกไว้ในบทข้อจำกัดแล้ว และเป็นข้อเสนอแนะอันดับหนึ่งสำหรับงานต่อยอด</div>
+</section>
+
+<!-- ══════════════ 9 ══════════════ -->
+<section id="left">
+  <h2>เหลืออะไร <span class="hl">และทันไหม</span></h2>
+  <div class="card"><table id="t-left"></table></div>
+  <div class="note"><span class="hd">ที่เหลือเป็นงานเรียบเรียง ไม่ใช่งานวิจัยแล้ว</span>
+    สามแถวล่างรวมกันราว <b>5–6 วันทำงาน</b> · ไม่ต้องเก็บข้อมูลเพิ่มแม้แต่ run เดียว
+    <br><br><b>กำหนดส่งเล่มจริงวันไหนครับ</b> — ยังไม่มีเอกสารไหนในโปรเจกต์ระบุไว้ ขอเช็คให้ตรงกัน</div>
+  <div class="note warn"><span class="hd">อีกหนึ่งอย่างที่ไม่ได้อยู่ในตาราง</span>
+    ต้องเซ็นรับ 3 ข้อใน <span class="mono">PRE-REGISTRATION-2.md</span> §9 โดยเฉพาะข้อที่ยอมรับว่า
+    <b>เปลี่ยนตัวชี้วัดหลักหลังเห็นผลชุดที่ 1 แล้ว</b></div>
+</section>
+
+<!-- ══════════════ กฎ ══════════════ -->
+<section id="arms">
+  <h2>กฎที่ส่งให้เอเจนต์ — <span class="hl">ข้อความจริง ไม่ได้ย่อ</span></h2>
+  <p class="lead">นี่คือสิ่งที่ยังไม่เคยเอามาให้ดูเลย ทั้งที่มันคือตัวแปรต้นของงานทั้งชิ้น
+    <b>A1 กับ A2 มีกฎเนื้อหาเดียวกัน</b> ต่างกันแค่ A1 ยัดไว้ในไฟล์เดียวที่โหลดตลอดเวลา
+    ส่วน A2 แยกเป็น skill ที่โหลดเมื่อเข้าเงื่อนไข · A5 คือข้อความของ A2 แบนกลับเป็นไฟล์เดียว</p>
+  <div class="chips" id="c-arms"></div>
+  <div id="m-arms"></div>
+</section>
+
+<!-- ══════════════ โจทย์ ══════════════ -->
+<section id="scen">
+  <h2>โจทย์ทั้ง 11 ข้อ — <span class="hl">6 ตระกูลกับดัก</span></h2>
+  <p class="lead">สนามทดลองคือระบบจองการ์ดจอ <span class="mono">fixtures/gpu-booking</span> —
+    GPU 4 ใบ · 4 บทบาท · 7 สถานะ · ข้อกำหนด 43 ข้อ · เหตุการณ์ตั้งต้น 268 รายการ · เทสเดิม 34 ตัว
+    <b>คลิกโจทย์เพื่อดูกฎของมันและผลรายกลุ่ม</b></p>
+  <div class="card"><table id="t-scen"></table></div>
+  <div id="m-scen"></div>
+</section>
+
+<!-- ══════════════ run ══════════════ -->
+<section id="explore">
+  <h2>ไล่ดู run ทีละตัว</h2>
+  <p class="lead">ทุก run ที่เก็บมาอยู่ที่นี่ พร้อมผลตรวจกฎทีละข้อ <b>คลิกแถวเพื่อกางรายละเอียด</b></p>
+  <div class="card"><h3 style="margin-top:0">คำสั่งที่ใช้เก็บและวิเคราะห์ข้อมูลจริง</h3>
+    <p class="tiny" style="margin-bottom:10px">คัดจาก <span class="mono">package.json</span> ของโปรเจกต์ ไม่ได้พิมพ์ขึ้นใหม่</p>
+<pre style="max-height:none"># เก็บข้อมูลชุดที่ 2 — 4 กลุ่ม x 11 โจทย์ x 4 รอบ
+node scripts/supervise-collection.mjs --config config/arms-study2.json \
+     --out results-study2 --reps 4 --label 20-study2
+
+# วิเคราะห์ แล้วสร้างบทที่ 5ข กับไฟล์ตัวเลขใหม่ทั้งชุด
+npm run results:all:study2
+
+# ด่านตรวจก่อนเชื่อตัวเลขใด ๆ — ต้อง exit 0
+npm run gate
+npm test</pre>
+    <p class="tiny"><span class="mono">npm run gate</span> ตรวจตั้งแต่ข้อความกฎของทุกกลุ่มตรงกับที่ประกาศไว้ไหม ·
+      เอเจนต์ปลอมได้คะแนนต่ำตามเกณฑ์ไหม · ไปจนถึงตัวเลขในเล่มตรงกับ <span class="mono">numbers.json</span> ทุกตัวไหม
+      <b>ถ้าข้อใดข้อหนึ่งไม่ผ่าน มันหยุดและไม่ยอมสร้างเอกสาร</b></p></div>
+  <div class="chips" id="c-exp-study"></div>
+  <div class="chips" id="c-exp-arm"></div>
+  <div class="chips" id="c-exp-sc"></div>
+  <div class="card"><div class="tiny" id="x-count" style="margin-bottom:10px"></div><table id="t-exp"></table></div>
+  <div id="m-run"></div>
+</section>
+
+</main>
+</div>
+
+<!-- DATA -->
+<script>
+/* ═══════════ เครื่องมือเล็ก ๆ ═══════════ */
+const $ = (s) => document.querySelector(s);
+const el = (t, c, h) => { const n = document.createElement(t); if (c) n.className = c; if (h !== undefined) n.innerHTML = h; return n; };
+const pct = (x) => (x * 100).toFixed(1) + '%';
+const f3 = (x) => x.toFixed(3);
+const pts = (x) => (x >= 0 ? '+' : '') + (x * 100).toFixed(1);
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const S = window.SB;
+if (!S) {
+  document.body.innerHTML = '<div style="max-width:640px;margin:80px auto;font-family:sans-serif;line-height:1.7">'
+    + '<h1 style="font-size:22px">ไฟล์นี้ไม่มีข้อมูลอยู่ข้างใน</h1>'
+    + '<p>หน้านี้ต้องเป็นไฟล์ที่สร้างจาก <code>node slides-images/src/make-explorer-data.mjs</code> '
+    + 'ซึ่งจะฝังข้อมูลลงในไฟล์เดียวให้เรียบร้อย</p>'
+    + '<p>ถ้าเปิดไฟล์ต้นฉบับใน <code>slides-images/src/</code> โดยตรงจะเจอหน้านี้ '
+    + 'ให้เปิด <code>progress2/explorer/index.html</code> แทน</p></div>';
+  throw new Error("no data");
+}
+const ARMNAME = { A0: 'A0 ไม่มีกฎเลย', A1: 'A1 ไฟล์เดียว โหลดตลอด', A2: 'A2 skill โหลดตามเงื่อนไข',
+  A3: 'A3 ยาหลอกจับคู่ความยาว', A4: 'A4 skill + ลูกล่อ injection', A5: 'A5 ข้อความของ A2 โหลดตลอด' };
+const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+const runsOf = (st, f) => st.runs.filter(f);
+/* ชุดที่ 1 เก็บเกินโควตาไว้บางรอบ — การวิเคราะห์ใช้ 4 รอบแรกเท่านั้น */
+const core = (st) => st.runs.filter((r) => r.rep < st.reps);
+
+/* ═══════════ นำทาง ═══════════ */
+document.querySelectorAll('nav a').forEach((a) => a.addEventListener('click', (e) => {
+  e.preventDefault();
+  const id = a.getAttribute('href').slice(1);
+  document.querySelectorAll('nav a').forEach((x) => x.classList.toggle('on', x === a));
+  document.querySelectorAll('section').forEach((s) => s.classList.toggle('on', s.id === id));
+  window.scrollTo(0, 0);
+}));
+
+/* ═══════════ 1 · ตารางส่วนต่าง ═══════════ */
+(() => {
+  const n1 = core(S.s1).length, n2 = core(S.s2).length;
+  const rows = [
+    ['ข้อมูล', '64 run · ยังไม่เปรียบเทียบ', '<b class="up">' + (n1 + n2) + ' run · เปรียบเทียบครบ</b><div class="tiny">' + n1 + ' (รอบ 1) + ' + n2 + ' (รอบ 2) · ชุดที่ 1 เก็บมา ' + S.s1.runs.length + ' run แต่การวิเคราะห์ใช้ ' + S.s1.reps + ' รอบแรกตามที่ประกาศไว้</div>', 0],
+    ['ค่าใช้จ่าย', '$72', '<b>$287</b>', 0],
+    ['แผนรัน', '9 รอบต่อโจทย์ · 495 run',
+      'ประกาศจริง 6 รอบ · <b>เก็บได้ ' + S.s2.reps + ' รอบ</b> เพราะชนโควตา'
+      + '<div class="tiny">ใช้กฎสำรองที่ประกาศล่วงหน้า — ตัดรอบเท่ากันทุกกลุ่ม ไม่ทิ้งกลุ่มไหน</div>', 1],
+    ['โมเดล', 'ยังไม่ล็อก', '<b class="mono">claude-sonnet-5</b>', 0],
+    ['จำนวนชุดทดลอง', 'ชุดเดียว', '<b>ทำรอบที่ 2 เพิ่ม — ไม่ได้อยู่ในแผน</b>', 1],
+    ['กลุ่มทดลอง', S.s1.arms.length + ' กลุ่ม',
+      'รอบ 2 เหลือ ' + S.s2.arms.length + ' กลุ่ม · <b>เพิ่ม A5</b>'
+      + '<div class="tiny">ตัด A3 เพราะจับคู่ความยาวกับ A1 จึงตอบคำถามของคู่ A1–A0 ไม่ใช่ A1–A2 · ตัด A4 เพราะตอบเรื่อง injection ซึ่งเป็นคนละคำถาม</div>', 0],
+    ['H3 rule dilution', 'วางไว้ 150 run', '<b>ไม่ได้เก็บ</b> — โควตาไม่พอ เขียนเป็น amendment ลงวันที่แล้ว', 1],
+  ];
+  $('#t-delta').innerHTML = '<tr><th style="width:20%"></th><th style="width:32%">รอบที่แล้วบอกไว้</th><th>เกิดขึ้นจริง</th></tr>'
+    + rows.map((r) => '<tr' + (r[3] ? ' class="off"' : '') + '><td style="color:var(--mut)">' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>').join('');
+})();
+
+/* ═══════════ 2 · แผนที่ run ═══════════ */
+let runStudy = 's2';
+(() => {
+  const cs = $('#c-runs');
+  [['s1', 'รอบที่ 1 · ให้คะแนนแบบ CRIT'], ['s2', 'รอบที่ 2 · ให้คะแนนแบบ RCRc']].forEach(([k, t]) => {
+    const b = el('button', 'chip' + (k === runStudy ? ' on' : ''), t);
+    b.onclick = () => { runStudy = k; cs.querySelectorAll('button').forEach((x) => x.classList.remove('on')); b.classList.add('on'); drawMap(); };
+    cs.appendChild(b);
+  });
+  /* เฉดของรอบ 2 — คำนวณ ห้ามพิมพ์มือ */
+  const v = core(S.s2).map((r) => r.rcrc).filter((x) => x !== null);
+  const ends = v.filter((x) => x === 0 || x === 1).length;
+  $('#x-shade').textContent = 'เฉดที่เพิ่มมามีแค่ ' + (v.length - ends) + ' จาก ' + v.length
+    + ' run อีก ' + ends + ' run (' + Math.round(100 * ends / v.length) + '%) ยังเป็น 0 หรือ 1 เป๊ะ';
+})();
+
+function drawMap() {
+  const st = S[runStudy], metric = runStudy === 's1' ? 'crit' : 'rcrc';
+  const box = $('#m-runs'); box.innerHTML = '';
+  const tb = el('table');
+  tb.innerHTML = '<tr><th style="width:150px"></th>' + st.scenarios.map((s) => '<th style="text-align:center;font-size:11px">' + s.slice(0, 3) + '</th>').join('') + '</tr>';
+  st.arms.forEach((a) => {
+    const tr = el('tr');
+    tr.appendChild(el('td', null, '<b>' + a + '</b> <span class="tiny">' + ARMNAME[a].replace(a + ' ', '') + '</span>'));
+    st.scenarios.forEach((sc) => {
+      const td = el('td'); td.style.padding = '5px 3px';
+      const cell = el('div'); cell.style.cssText = 'display:flex;gap:2px;justify-content:center';
+      core(st).filter((r) => r.arm === a && r.sc === sc).sort((x, y) => x.rep - y.rep).forEach((r) => {
+        const v = r[metric];
+        const d = el('div'); d.title = r.id + ' · ' + (v === null ? 'null' : f3(v));
+        d.style.cssText = 'width:9px;height:20px;border-radius:2px;cursor:pointer;background:'
+          + (v === null ? '#d7dce2' : v === 0 ? '#e6eaee' : 'rgba(42,122,56,' + (0.25 + 0.75 * v) + ')');
+        d.onclick = () => openRun(runStudy, r.id, '#m-runs');
+        cell.appendChild(d);
+      });
+      td.appendChild(cell); tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  box.appendChild(tb);
+}
+drawMap();
+
+/* ═══════════ 3 · ผล ═══════════ */
+(() => {
+  const r1 = S.s1.primary, r2 = S.s2.primary, sec = S.s2.secondary;
+  $('#t-result').innerHTML =
+    '<tr><th style="width:9%"></th><th style="width:14%">วิธีให้คะแนน</th><th class="r">A2 skill</th><th class="r">A1 ไฟล์เดียว</th>'
+    + '<th class="r">ต่างกัน</th><th class="r">ช่วงความเชื่อมั่น 95%</th><th class="r">p</th><th class="r">ชนะ/แพ้/เสมอ</th></tr>'
+    + [['รอบ 1', r1], ['รอบ 2', r2]].map(([lb, r]) =>
+      '<tr><td style="color:var(--mut)">' + lb + '</td><td class="n">' + r.metric + '</td>'
+      + '<td class="r n">' + pct(r.rateA) + '</td><td class="r n">' + pct(r.rateB) + '</td>'
+      + '<td class="r n"><b>' + pts(r.diff) + '</b></td>'
+      + '<td class="r n">' + pts(r.ciLo) + ' ถึง ' + pts(r.ciHi) + '</td>'
+      + '<td class="r n">' + r.p.toFixed(3) + '</td>'
+      + '<td class="r n">' + r.wins + '/' + r.losses + '/' + r.ties + '</td></tr>').join('');
+
+  $('#t-pairs').innerHTML = '<tr><th>คู่</th><th style="width:24%">สถานะ</th><th style="width:34%">อ้างนัยสำคัญได้ไหม</th></tr>'
+    + '<tr class="off"><td><b>A2 เทียบ A1</b> — กฎเดียวกัน ต่างที่วิธีโหลด</td><td><b>primary</b></td><td><b>ได้ — คู่นี้คู่เดียว</b></td></tr>'
+    + '<tr><td><b>A5 เทียบ A2</b> — ข้อความเดียวกัน ต่างที่โหลดตลอด vs ตามเงื่อนไข<div class="tiny">วัดได้ '
+      + pts(sec.diff) + ' จุด · CI ' + pts(sec.ciLo) + ' ถึง ' + pts(sec.ciHi) + ' · p = ' + sec.p + '</div></td>'
+      + '<td>key secondary</td><td>ได้เมื่อ primary มีนัยสำคัญก่อน — <b>primary ไม่ผ่าน ประตูไม่เปิด</b></td></tr>'
+      + '<tr><td>A2–A0 · A1–A3 · A2–A3 · A4–A2 <span class="tiny">(รอบ 1)</span></td><td>รายงานประกอบ</td>'
+      + '<td><b>ไม่ได้</b> รายงานค่าและ CI เท่านั้น</td></tr>';
+})();
+
+/* ═══════════ 4 · รายโจทย์ ═══════════ */
+let whyStudy = 's2';
+(() => {
+  const cs = $('#c-why');
+  [['s1', 'รอบที่ 1 · CRIT'], ['s2', 'รอบที่ 2 · RCRc']].forEach(([k, t]) => {
+    const b = el('button', 'chip' + (k === whyStudy ? ' on' : ''), t);
+    b.onclick = () => { whyStudy = k; cs.querySelectorAll('button').forEach((x) => x.classList.remove('on')); b.classList.add('on'); drawWhy(); };
+    cs.appendChild(b);
+  });
+  const i1 = S.s1.icc, i2 = S.s2.icc;
+  const rng = (o) => { const v = Object.values(o.byArm); return f3(Math.min(...v)) + '–' + f3(Math.max(...v)); };
+  $('#x-icc').innerHTML = 'ICC ของผลต่าง ' + f3(i1.ofDifference) + ' (รอบ 1) และ ' + f3(i2.ofDifference)
+    + ' (รอบ 2) · รายกลุ่ม ' + rng(i1) + ' และ ' + rng(i2);
+})();
+
+function scenDiff(key) {
+  const st = S[key], m = key === 's1' ? 'crit' : 'rcrc';
+  return st.scenarios.map((sc) => {
+    const g = (arm) => core(st).filter((r) => r.arm === arm && r.sc === sc).map((r) => r[m]).filter((x) => x !== null);
+    const a = g('A2'), b = g('A1');
+    return { sc, a: a.length ? mean(a) : null, b: b.length ? mean(b) : null, d: (a.length && b.length) ? mean(a) - mean(b) : null };
+  });
+}
+
+function drawWhy() {
+  const rows = scenDiff(whyStudy), st = S[whyStudy];
+  const max = Math.max(...rows.map((r) => Math.abs(r.d ?? 0))) || 1;
+  $('#t-why').innerHTML = '<tr><th style="width:22%">โจทย์</th><th style="width:16%">ตระกูลกับดัก</th><th class="r">A2</th><th class="r">A1</th>'
+    + '<th style="width:26%">ผลต่าง</th><th class="r">d</th><th>อ่านว่าอะไร</th></tr>'
+    + rows.map((r) => {
+      const d = r.d ?? 0, w = Math.abs(d) / max * 100;
+      const tie = d === 0;
+      const lab = tie ? (r.a === 1 ? 'เสมอ · ได้เต็มทั้งคู่ <span class="tiny">ง่ายเกินไป</span>'
+        : r.a === 0 ? 'เสมอ · ได้ศูนย์ทั้งคู่ <span class="tiny">ยากเกินไป</span>' : 'เสมอ')
+        : d > 0 ? '<b class="up">skill ชนะ</b>' : '<b class="dn">ไฟล์เดียวชนะ</b>';
+      return '<tr class="rowlink" data-sc="' + r.sc + '"><td><b>' + r.sc.slice(0, 3) + '</b> <span class="tiny">' + r.sc.slice(4) + '</span></td>'
+        + '<td class="tiny">' + ((S.scenarios[r.sc] || {}).family || '') + '</td>'
+        + '<td class="r n">' + (r.a === null ? '—' : f3(r.a)) + '</td><td class="r n">' + (r.b === null ? '—' : f3(r.b)) + '</td>'
+        + '<td><div class="bar' + (d < 0 ? ' r' : '') + '" style="' + (tie ? 'opacity:.35' : '') + '"><i style="width:' + w + '%"></i></div></td>'
+        + '<td class="r n">' + (d > 0 ? '+' : '') + f3(d) + '</td><td>' + lab + '</td></tr>';
+    }).join('');
+  $('#t-why').querySelectorAll('tr.rowlink').forEach((tr) => tr.onclick = () => openScen(tr.dataset.sc, '#t-why'));
+
+  const nz = rows.filter((r) => r.d !== null && r.d !== 0).length;
+  const p = S[whyStudy].primary;
+  $('#m-floor').innerHTML =
+    '<div class="kv"><span>โจทย์ทั้งหมด <b>' + st.scenarios.length + '</b></span>'
+    + '<span>เสมอ <b>' + (st.scenarios.length - nz) + '</b></span>'
+    + '<span>ให้ข้อมูล <b>m = ' + nz + '</b></span></div>'
+    + '<pre style="max-height:none">p ต่ำสุดที่เป็นไปได้ = 2^(1−m)\n                   = 2^(1−' + nz + ') = ' + (Math.pow(2, 1 - nz)).toFixed(4)
+    + '\nเกณฑ์ที่ต้องผ่าน   = 0.05\n→ ' + (Math.pow(2, 1 - nz) > 0.05 ? 'ไม่มีทางผ่าน' : 'ผ่านได้') + '</pre>'
+    + '<p class="tiny">m คือจำนวนโจทย์ที่ผลต่างไม่เป็นศูนย์ · โจทย์ที่เสมอไม่ให้ข้อมูลกับการทดสอบแบบ sign-flip เพราะไม่มีเครื่องหมายให้พลิก</p>';
+}
+(() => {
+  const f = (k) => { const n = scenDiff(k).filter((r) => r.d !== null && r.d !== 0).length; return { m: n, floor: Math.pow(2, 1 - n) }; };
+  const a = f('s1'), b = f('s2');
+  $('#t-cmp').innerHTML = '<tr><th></th><th class="r">รอบ 1</th><th class="r">รอบ 2</th></tr>'
+    + '<tr class="off"><td>โจทย์ที่ให้ข้อมูล m</td><td class="r n">' + a.m + '</td><td class="r n">' + b.m + '</td></tr>'
+    + '<tr class="off"><td>p ต่ำสุดที่เป็นไปได้</td><td class="r n">' + a.floor.toFixed(4) + '</td><td class="r n">' + b.floor.toFixed(4) + '</td></tr>'
+    + '<tr><td>p ที่วัดได้จริง</td><td class="r n">' + S.s1.primary.p.toFixed(3) + '</td><td class="r n">' + S.s2.primary.p.toFixed(3) + '</td></tr>'
+    + '<tr><td>ขอบล่างของ CI 95%</td><td class="r n">' + pts(S.s1.primary.ciLo) + '</td><td class="r n">' + pts(S.s2.primary.ciLo) + '</td></tr>';
+})();
+drawWhy();
+
+/* ═══════════ 5 · impact ═══════════ */
+(() => {
+  const st = S.s2, SCS = ['S08-rounding-change', 'S09-rate-change'];
+  const cnt = (arm, rid) => {
+    const rs = core(st).filter((r) => r.arm === arm && SCS.includes(r.sc));
+    let ok = 0, n = 0;
+    rs.forEach((r) => { const x = r.rules.find((q) => q.id === rid); if (x) { n++; if (x.ok) ok++; } });
+    return { ok, n };
+  };
+  const block = (rid, title, desc) => {
+    const rows = st.arms.map((a) => { const c = cnt(a, rid);
+      return '<tr><td><b>' + a + '</b> <span class="tiny">' + ARMNAME[a].replace(a + ' ', '') + '</span></td>'
+        + '<td style="width:46%"><div class="bar' + (a === 'A0' ? ' r' : '') + '"><i style="width:' + (c.n ? 100 * c.ok / c.n : 0) + '%"></i></div></td>'
+        + '<td class="r n"><b>' + c.ok + ' / ' + c.n + '</b></td></tr>'; }).join('');
+    const w = st.arms.filter((a) => a !== 'A0').reduce((s, a) => { const c = cnt(a, rid); return { ok: s.ok + c.ok, n: s.n + c.n }; }, { ok: 0, n: 0 });
+    const z = cnt('A0', rid);
+    return '<div class="card"><h3 style="margin-top:0">' + title + '</h3><p class="tiny" style="margin-bottom:10px">กฎ <b class="mono">'
+      + rid + '</b> — ' + desc + '</p><table>' + rows + '</table>'
+      + '<div class="note' + (z.ok === 0 ? ' red' : '') + '" style="margin-bottom:0">กลุ่มไม่มีกฎ <b>' + z.ok + ' จาก ' + z.n
+      + '</b> · สามกลุ่มที่มีกฎรวมกัน <b>' + w.ok + ' จาก ' + w.n + '</b></div></div>';
+  };
+  $('#m-im').outerHTML = '<div class="grid2">'
+    + block('IM2', 'รันรายงานไปเช็คผลกระทบจริงไหม', 'ต้องตรวจผลกระทบก่อนหรือหลังแก้ ด้วยการรันดูยอดรวม')
+    + block('IM1', 'บอกผู้ใช้ไหมว่าใบแจ้งหนี้ย้อนหลังจะเปลี่ยน', 'ต้องรายงานว่าใบแจ้งหนี้ย้อนหลังจะเปลี่ยนค่า')
+    + '</div>';
+})();
+
+/* ═══════════ 6 · tradeoff ═══════════ */
+(() => {
+  const st = S.s2;
+  const rows = st.arms.map((a) => {
+    const rs = core(st).filter((r) => r.arm === a);
+    const done = rs.filter((r) => r.done === true);
+    const succ = done.length / rs.length;
+    const comply = mean(done.map((r) => {
+      const ap = r.rules.filter((q) => q.app && q.sev === 'critical');
+      return ap.length ? ap.filter((q) => q.ok).length / ap.length : 1;
+    }));
+    const rcrc = mean(rs.map((r) => r.rcrc).filter((x) => x !== null));
+    return { a, succ, comply, rcrc };
+  });
+  $('#t-trade').innerHTML = '<tr><th>กลุ่ม</th><th style="width:22%">ทำงานสำเร็จไหม</th><th class="r">สำเร็จ</th>'
+    + '<th style="width:22%">ตามกฎเมื่อสำเร็จ</th><th class="r">ตามกฎ</th><th class="r">คูณกัน</th><th class="r">RCRc จริง</th></tr>'
+    + rows.map((r) => '<tr><td><b>' + r.a + '</b> <span class="tiny">' + ARMNAME[r.a].replace(r.a + ' ', '') + '</span></td>'
+      + '<td><div class="bar a"><i style="width:' + (r.succ * 100) + '%"></i></div></td><td class="r n">' + pct(r.succ) + '</td>'
+      + '<td><div class="bar' + (r.a === 'A0' ? ' r' : '') + '"><i style="width:' + (r.comply * 100) + '%"></i></div></td>'
+      + '<td class="r n">' + f3(r.comply) + '</td><td class="r n">' + f3(r.succ * r.comply) + '</td>'
+      + '<td class="r n"><b>' + f3(r.rcrc) + '</b></td></tr>').join('');
+  $('#x-967').textContent = rows.filter((r) => r.a !== 'A0').map((r) => r.a + ' = ' + r.comply.toFixed(4)).join(' · ');
+})();
+
+/* ═══════════ 7 · trigger ═══════════ */
+(() => {
+  const t = S.s2.trigger;
+  if (!t) { $('#t-trig').innerHTML = '<tr><td class="tiny">ไม่มีข้อมูล trigger ในชุดนี้</td></tr>'; return; }
+  const P = t.primary.A2, Q = (t.sensitivity || {}).A2 || {};
+  $('#t-trig').innerHTML = '<tr><th>skill</th><th class="r">ชุดหลัก</th><th class="r">ชุด sensitivity</th></tr>'
+    + Object.keys(P).map((k) => '<tr><td class="n">' + k + '</td><td class="r n">' + P[k].toFixed(3) + '</td>'
+      + '<td class="r n"' + (Q[k] !== undefined && Q[k] < P[k] ? ' style="color:var(--red);font-weight:700"' : '') + '>'
+      + (Q[k] === undefined ? '—' : Q[k].toFixed(3)) + '</td></tr>').join('');
+})();
+
+/* ═══════════ 8 · สิ่งที่พลาด ═══════════ */
+$('#t-miss').innerHTML = '<tr><th style="width:24%">เมื่อไหร่</th><th>เกิดอะไร</th></tr>'
+  + '<tr><td>ก่อนเก็บชุดที่ 1</td><td><span class="mono">PLAN-FINAL-14D.md</span> §2 เขียนไว้ว่า <b>ถ้ามีโควตาเหลือ ห้ามเอาไปเพิ่มรอบ ให้เอาไปเพิ่มโจทย์</b></td></tr>'
+  + '<tr><td>14 ส.ค. 2569</td><td>รายงานอาจารย์ด้วยตัวเองว่าทางออกคือเพิ่มโจทย์</td></tr>'
+  + '<tr><td>ระหว่างเก็บชุดที่ 1</td><td>Amendment 14 ยกเลิกข้อนั้น เพราะเพิ่มโจทย์กลางคันจะทำให้ชุดข้อมูลไม่เท่ากัน — <b>อันนี้ถูกต้อง</b></td></tr>'
+  + '<tr class="off"><td><b>ออกแบบชุดที่ 2</b></td><td>เป็นชุดใหม่ทั้งชุด <b>เพิ่มโจทย์ได้โดยไม่มีต้นทุนเชิงวิธีวิทยาเลย แต่เลือกไม่เพิ่ม</b> ← จุดที่ผิด</td></tr>';
+
+/* ═══════════ 9 · เหลืออะไร ═══════════ */
+$('#t-left').innerHTML = '<tr><th style="width:52%">งาน</th><th>สถานะ</th><th class="r">ประเมิน</th></tr>'
+  + [['เก็บข้อมูล', '<b class="up">จบแล้ว ไม่ต้องเก็บเพิ่ม</b>', '', 0],
+     ['บทที่ 1 ถึง 7', '<b class="up">ร่างครบแล้ว</b>', '', 0],
+     ['บทคัดย่อ · Abstract · สารบัญ', '<b class="up">เสร็จแล้ว</b>', '', 0],
+     ['ตรวจเอกสารอ้างอิง — ติดธงไว้ 4 จุด แต่บทที่ 2 ผูกเงื่อนไขตัวเองว่าต้องอ่านต้นฉบับครบ 12 รายการ',
+      '<b>ยังไม่ได้ตรวจ</b> — ผู้วิจัยต้องเปิดเปเปอร์เอง', '1 วัน', 1],
+     ['ประกอบเล่มลง template ของคณะ + สารบัญตาราง 65 ตาราง', '<b>ยังไม่ทำ</b>', '2–3 วัน', 1],
+     ['ทำสไลด์ฉบับสมบูรณ์สำหรับสอบป้องกัน', '<b>ยังไม่ทำ</b>', '2 วัน', 1]]
+    .map((r) => '<tr' + (r[3] ? ' class="off"' : '') + '><td>' + r[0] + '</td><td>' + r[1] + '</td><td class="r n">' + r[2] + '</td></tr>').join('');
+
+/* ═══════════ กฎรายกลุ่ม ═══════════ */
+(() => {
+  const cs = $('#c-arms');
+  const list = Object.keys(S.arms).filter((a) => S.arms[a].length);
+  list.unshift('A0');
+  [...new Set(list)].forEach((a, i) => {
+    const b = el('button', 'chip' + (i === 0 ? '' : ''), ARMNAME[a] || a);
+    b.onclick = () => { cs.querySelectorAll('button').forEach((x) => x.classList.remove('on')); b.classList.add('on'); drawArm(a); };
+    cs.appendChild(b);
+    if (a === 'A1') { b.classList.add('on'); }
+  });
+  drawArm('A1');
+})();
+function drawArm(a) {
+  const fs = S.arms[a] || [];
+  const box = $('#m-arms');
+  if (!fs.length) {
+    box.innerHTML = '<div class="card"><h3 style="margin-top:0">' + (ARMNAME[a] || a) + '</h3>'
+      + '<p style="color:var(--ink2)">กลุ่มนี้<b>ไม่ได้รับข้อความกฎใด ๆ เลย</b> เอเจนต์เห็นแค่โจทย์กับ fixture '
+      + 'เป็นเส้นฐานล่างสุดที่เอาไว้ตอบว่า “การมีกฎเลยดีกว่าไม่มีไหม” ซึ่งเป็นคนละคำถามกับคำถามหลักของงาน</p></div>';
+    return;
+  }
+  box.innerHTML = '<div class="card"><h3 style="margin-top:0">' + (ARMNAME[a] || a) + '</h3>'
+    + '<div class="kv"><span>ไฟล์ทั้งหมด <b>' + fs.length + '</b></span><span>ตัวอักษรรวม <b>'
+    + fs.reduce((n, f) => n + f.text.length, 0).toLocaleString() + '</b></span></div>'
+    + fs.map((f) => '<div style="margin-top:16px"><b class="mono">' + f.name + '</b> '
+      + '<span class="pill ' + (f.always ? 'on' : '') + '">' + (f.always ? 'โหลดตลอดเวลา' : 'โหลดเมื่อเข้าเงื่อนไข') + '</span>'
+      + '<span class="tiny"> · ' + f.text.length.toLocaleString() + ' ตัวอักษร</span>'
+      + '<pre>' + esc(f.text) + '</pre></div>').join('') + '</div>';
+}
+
+/* ═══════════ โจทย์ ═══════════ */
+(() => {
+  const st = S.s2, d = scenDiff('s2');
+  $('#t-scen').innerHTML = '<tr><th style="width:24%">โจทย์</th><th style="width:18%">ตระกูลกับดัก</th><th class="r">กฎวิกฤต</th>'
+    + '<th class="r">A2</th><th class="r">A1</th><th class="r">ผลต่าง</th></tr>'
+    + st.scenarios.map((sc) => {
+      const j = S.scenarios[sc] || { rules: [] };
+      const row = d.find((x) => x.sc === sc) || {};
+      return '<tr class="rowlink" data-sc="' + sc + '"><td><b>' + sc.slice(0, 3) + '</b> <span class="tiny">' + sc.slice(4) + '</span></td>'
+        + '<td class="tiny">' + (j.family || '') + '</td><td class="r n">' + j.rules.filter((r) => r.sev === 'critical').length + '</td>'
+        + '<td class="r n">' + (row.a === null || row.a === undefined ? '—' : f3(row.a)) + '</td>'
+        + '<td class="r n">' + (row.b === null || row.b === undefined ? '—' : f3(row.b)) + '</td>'
+        + '<td class="r n">' + (row.d ? (row.d > 0 ? '+' : '') + f3(row.d) : '0.000') + '</td></tr>';
+    }).join('');
+  $('#t-scen').querySelectorAll('tr.rowlink').forEach((tr) => tr.onclick = () => openScen(tr.dataset.sc, '#t-scen'));
+})();
+
+function openScen(sc, scrollTo) {
+  const j = S.scenarios[sc] || { rules: [] };
+  const st = S.s2;
+  const runs = core(st).filter((r) => r.sc === sc);
+  const per = st.arms.map((a) => {
+    const rs = runs.filter((r) => r.arm === a).sort((x, y) => x.rep - y.rep);
+    return '<tr><td><b>' + a + '</b></td>' + rs.map((r) =>
+      '<td class="r n rowlink" data-run="' + r.id + '" style="cursor:pointer">' + (r.rcrc === null ? '—' : f3(r.rcrc)) + '</td>').join('')
+      + '<td class="r n"><b>' + (rs.length ? f3(mean(rs.map((r) => r.rcrc).filter((x) => x !== null))) : '—') + '</b></td></tr>'; }).join('');
+  const box = document.querySelector('#m-scen') || document.querySelector('#m-run');
+  const target = document.querySelector('#scen').classList.contains('on') ? $('#m-scen') : $('#m-scen');
+  target.innerHTML = '<div class="card"><h3 style="margin-top:0">' + sc + '</h3>'
+    + '<div class="kv"><span>ตระกูล <b>' + (j.family || '—') + '</b></span><span>กฎทั้งหมด <b>' + j.rules.length + '</b></span></div>'
+    + (j.prompt ? '<p class="tiny" style="margin-bottom:10px">โจทย์ที่ให้เอเจนต์</p><pre style="max-height:200px">' + esc(j.prompt) + '</pre>' : '')
+    + '<h3>กฎของโจทย์ข้อนี้</h3><table>'
+    + '<tr><th style="width:10%">รหัส</th><th style="width:14%">ชั้น</th><th>กฎบอกว่าอะไร</th></tr>'
+    + j.rules.map((r) => '<tr><td class="n">' + r.id + '</td><td><span class="pill' + (r.sev === 'critical' ? ' no' : '') + '">'
+      + r.sev + '</span></td><td>' + esc(r.desc) + '</td></tr>').join('') + '</table>'
+    + '<h3>RCRc รายรอบ · รอบที่ 2 <span class="tiny">คลิกตัวเลขเพื่อเปิด run นั้น</span></h3><table>'
+    + '<tr><th>กลุ่ม</th>' + Array.from({ length: st.reps }, (_, i) => '<th class="r">รอบ ' + (i + 1) + '</th>').join('') + '<th class="r">เฉลี่ย</th></tr>'
+    + per + '</table></div>';
+  target.querySelectorAll('[data-run]').forEach((td) => td.onclick = () => openRun('s2', td.dataset.run, '#m-scen'));
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ═══════════ run explorer ═══════════ */
+let expStudy = 's2', expArm = '', expSc = '';
+function chipRow(sel, items, cur, set) {
+  const cs = $(sel); cs.innerHTML = '';
+  items.forEach(([v, t]) => {
+    const b = el('button', 'chip' + (v === cur() ? ' on' : ''), t);
+    b.onclick = () => { set(v); redrawExp(); };
+    cs.appendChild(b);
+  });
+}
+function redrawExp() {
+  chipRow('#c-exp-study', [['s1', 'รอบที่ 1'], ['s2', 'รอบที่ 2']], () => expStudy, (v) => { expStudy = v; expArm = ''; expSc = ''; });
+  const st = S[expStudy];
+  chipRow('#c-exp-arm', [['', 'ทุกกลุ่ม'], ...st.arms.map((a) => [a, a])], () => expArm, (v) => { expArm = v; });
+  chipRow('#c-exp-sc', [['', 'ทุกโจทย์'], ...st.scenarios.map((s) => [s, s.slice(0, 3)])], () => expSc, (v) => { expSc = v; });
+  const rows = core(st).filter((r) => (!expArm || r.arm === expArm) && (!expSc || r.sc === expSc));
+  $('#x-count').textContent = 'แสดง ' + rows.length + ' run จากทั้งหมด ' + core(st).length + ' run ในรอบนี้';
+  $('#t-exp').innerHTML = '<tr><th>run</th><th class="r">RCRc</th><th class="r">CRIT</th><th>งานสำเร็จ</th>'
+    + '<th class="r">กฎวิกฤตผ่าน</th><th>skill ที่โหลด</th><th class="r">วินาที</th></tr>'
+    + rows.map((r) => {
+      const cr = r.rules.filter((q) => q.sev === 'critical' && q.app);
+      return '<tr class="rowlink" data-run="' + r.id + '"><td class="n" style="font-size:13px">' + r.id + '</td>'
+        + '<td class="r n">' + (r.rcrc === null ? '—' : f3(r.rcrc)) + '</td>'
+        + '<td class="r n">' + (r.crit === null || r.crit === undefined ? '—' : r.crit) + '</td>'
+        + '<td><span class="pill ' + (r.done ? 'ok' : 'no') + '">' + (r.done ? 'สำเร็จ' : 'ไม่สำเร็จ') + '</span></td>'
+        + '<td class="r n">' + cr.filter((q) => q.ok).length + ' / ' + cr.length + '</td>'
+        + '<td class="tiny">' + (r.skills.length ? r.skills.join(' · ') : '—') + '</td>'
+        + '<td class="r n">' + (r.ms ? Math.round(r.ms / 1000) : '—') + '</td></tr>';
+    }).join('');
+  $('#t-exp').querySelectorAll('tr.rowlink').forEach((tr) => tr.onclick = () => openRun(expStudy, tr.dataset.run, '#m-run'));
+}
+redrawExp();
+
+function openRun(key, id, anchor) {
+  const r = S[key].runs.find((x) => x.id === id);
+  if (!r) return;
+  const cr = r.rules.filter((q) => q.sev === 'critical');
+  const box = $(anchor === '#m-run' ? '#m-run' : anchor);
+  const html = '<div class="card"><h3 style="margin-top:0">' + r.id + '</h3>'
+    + '<div class="kv"><span>กลุ่ม <b>' + (ARMNAME[r.arm] || r.arm) + '</b></span><span>โจทย์ <b>' + r.sc + '</b></span>'
+    + '<span>รอบที่ <b>' + (r.rep + 1) + '</b></span><span>RCRc <b>' + (r.rcrc === null ? '—' : f3(r.rcrc)) + '</b></span>'
+    + '<span>งานหลัก <b>' + (r.done ? 'สำเร็จ' : 'ไม่สำเร็จ') + '</b></span>'
+        + '<span>เวลา <b>' + (r.ms ? Math.round(r.ms / 1000) + ' วินาที' : '—') + '</b></span>'
+    + '<span>ค่าใช้จ่าย <b>' + (r.usd ? '$' + r.usd.toFixed(3) : '—') + '</b></span></div>'
+    + (r.skills.length ? '<p class="tiny">skill ที่โหลดจริง: <b>' + r.skills.join(' · ') + '</b></p>' : '')
+    + (r.files.length ? '<p class="tiny">ไฟล์ที่แก้: <span class="mono">' + r.files.join(' · ') + '</span></p>' : '')
+    + '<h3>ผลตรวจกฎวิกฤตทีละข้อ</h3><table><tr><th style="width:10%">รหัส</th><th style="width:14%">ผล</th><th>กฎ</th></tr>'
+    + cr.map((q) => '<tr><td class="n">' + q.id + '</td><td><span class="pill ' + (!q.app ? '' : q.ok ? 'ok' : 'no') + '">'
+      + (!q.app ? 'ไม่เข้าเงื่อนไข' : q.ok ? 'ผ่าน' : 'ตก') + '</span></td><td>' + esc(q.desc) + '</td></tr>').join('')
+    + '</table><p class="tiny" style="margin-top:12px">กฎที่ “ไม่เข้าเงื่อนไข” ไม่ถูกนับใน RCRc เพราะ run นั้นไม่มีโอกาสละเมิดมัน — '
+    + 'นี่คือข้อบกพร่องชั้นที่ 1 ที่ตัวชี้วัดเดิมนับว่าผ่าน</p></div>';
+  box.innerHTML = html;
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+</script>
+</body></html>

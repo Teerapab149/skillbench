@@ -91,11 +91,18 @@ const data = {
   arms: Object.fromEntries(['A0', 'A1', 'A2', 'A3', 'A4', 'A5'].map((a) => [a, armFiles(a)])),
 };
 
+/* ฝังข้อมูลลงในหน้าเว็บเลย ให้เป็นไฟล์เดียวจบ
+   แยกเป็น data.js ไม่ได้ เพราะพอส่งไฟล์เดียวให้ใครแล้วเปิด มันจะว่างเปล่า */
 const dir = path.join(R, 'progress2', 'explorer');
 fs.mkdirSync(dir, { recursive: true });
-const js = 'window.SB = ' + JSON.stringify(data) + ';';
-fs.writeFileSync(path.join(dir, 'data.js'), js);
-console.log('เขียน progress2/explorer/data.js · ' + (js.length / 1024).toFixed(0) + ' KB'
+const tpl = rd('slides-images/src/explorer.html');
+const inline = '<scr' + 'ipt>window.SB = ' + JSON.stringify(data).split('</').join('<\/') + ';</scr' + 'ipt>';
+if (!tpl.includes('<!-- DATA -->')) throw new Error('ไม่พบจุดฝังข้อมูล <!-- DATA --> ใน explorer.html');
+const out = tpl.replace('<!-- DATA -->', inline);
+fs.writeFileSync(path.join(dir, 'index.html'), out);
+const stale = path.join(dir, 'data.js');
+if (fs.existsSync(stale)) fs.rmSync(stale);
+console.log('เขียน progress2/explorer/index.html · ไฟล์เดียวจบ · ' + (out.length / 1024 / 1024).toFixed(2) + ' MB'
   + ' · run ' + (data.s1.runs.length + data.s2.runs.length)
   + ' · โจทย์ ' + Object.keys(scenarios).length
   + ' · ไฟล์กฎ ' + Object.values(data.arms).reduce((n, v) => n + v.length, 0));
