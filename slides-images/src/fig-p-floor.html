@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_fig.css">
+<style>
+  body { width: 1250px; padding: 10px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: stretch; }
+  .box { border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .bh { padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+        font-size: 16px; font-weight: 700; color: var(--blue); }
+  .bb { padding: 13px 16px 14px; flex: 1; }
+
+  .tl { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; font-size: 16.5px; color: var(--ink2); }
+  .tl b { font-size: 21px; font-family: 'Cascadia Mono', Consolas, monospace; }
+  .tl.g b { color: var(--green); } .tl.r b { color: var(--red); } .tl.d b { color: var(--faint); }
+  .tl.tot { border-top: 1.5px solid var(--line); margin-top: 8px; padding-top: 11px; color: var(--ink); font-weight: 700; }
+  .tl.tot b { color: var(--amber); font-size: 26px; }
+
+  .eq { font-family: 'Cascadia Mono', Consolas, monospace; font-size: 19px; color: var(--ink2); line-height: 1.95; }
+  .eq .hl { color: var(--amber); font-weight: 700; }
+  .eq .bad { color: var(--red); font-weight: 700; }
+  .eq .dim { color: var(--faint); }
+  .verdict { margin-top: 13px; padding: 12px 14px; background: var(--redBg); border-radius: 8px;
+             font-size: 17.5px; color: var(--red); line-height: 1.45; font-weight: 700; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th { font-size: 13.5px; color: var(--mut); font-weight: 600; text-align: right; padding-bottom: 7px; }
+  th:first-child { text-align: left; }
+  td { padding: 6px 0; text-align: right; font-family: 'Cascadia Mono', Consolas, monospace; color: var(--ink2); }
+  td:first-child { text-align: left; font-family: inherit; }
+  tr.key td { color: var(--amber); font-weight: 700; }
+  tr.good td { color: var(--green); }
+  .same { font-size: 14.5px; color: var(--mut); margin-top: 10px; line-height: 1.45; }
+  .same b { color: var(--ink); }
+</style></head><body>
+
+<div class="cols">
+
+  <div class="box">
+    <div class="bh">นับหน่วยที่ให้ข้อมูล</div>
+    <div class="bb">
+      <div class="tl g"><span>skill ชนะ</span><b>3</b></div>
+      <div class="tl r"><span>ไฟล์เดียวชนะ</span><b>2</b></div>
+      <div class="tl d"><span>เสมอ — ง่ายเกิน ได้เต็มทั้งคู่</span><b>3</b></div>
+      <div class="tl d"><span>เสมอ — ยากเกิน ได้ศูนย์ทั้งคู่</span><b>3</b></div>
+      <div class="tl tot"><span>โจทย์ที่ให้ข้อมูล <span class="mono">m</span></span><b>5 / 11</b></div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="bh">เพดานที่ตามมา</div>
+    <div class="bb">
+      <div class="eq">
+        p ต่ำสุดที่เป็นไปได้ = 2<sup>(1−m)</sup><br>
+        <span class="dim">=</span> 2<sup>(1−5)</sup> <span class="dim">=</span> 1/16 <span class="dim">=</span> <span class="hl">0.0625</span><br>
+        เกณฑ์ที่ต้องผ่าน <span class="dim">=</span> <span class="hl">0.05</span><br>
+        <span class="bad">0.0625 &gt; 0.05</span>
+      </div>
+      <div class="verdict">นัยสำคัญเป็นไปไม่ได้ทางคณิตศาสตร์<br>ตั้งแต่ก่อนเห็นข้อมูล</div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="bh">เทียบสองรอบ</div>
+    <div class="bb">
+      <table>
+        <tr><th>&nbsp;</th><th>รอบ 1</th><th>รอบ 2</th></tr>
+        <tr class="key"><td>โจทย์ที่ให้ข้อมูล m</td><td>5</td><td>5</td></tr>
+        <tr class="key"><td>p ต่ำสุดที่เป็นไปได้</td><td>0.0625</td><td>0.0625</td></tr>
+        <tr class="good"><td>p ที่วัดได้จริง</td><td>0.500</td><td>0.250</td></tr>
+        <tr class="good"><td>ขอบล่างของ 95% CI</td><td>−6.8%</td><td>−2.1%</td></tr>
+      </table>
+      <div class="same">
+        <b>สองบรรทัดบนเท่ากันเป๊ะ — เพดานไม่เคยขยับ</b><br>
+        การซ่อมตัวชี้วัดทำให้ผลคมขึ้น แต่ไม่ได้เพิ่มจำนวนโจทย์
+      </div>
+    </div>
+  </div>
+
+</div>
+</body></html>

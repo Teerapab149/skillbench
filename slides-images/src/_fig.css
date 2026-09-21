@@ -1,0 +1,12 @@
+/* ชุดสีของภาพประกอบ — ตั้งไว้สำหรับ "วางบนสไลด์พื้นขาวหรือพื้นอ่อน"
+   ถ้าเด็คเป็นธีมมืด ให้สลับค่าในบล็อกนี้บล็อกเดียว แล้วเรนเดอร์ใหม่ทั้งชุด */
+:root{
+  --ink:#15181d; --ink2:#3d434d; --mut:#767d89; --faint:#9aa1ad;
+  --line:#d6dae1; --panel:#f4f6f8; --panel2:#eaedf1; --well:#eef1f4;
+  --blue:#1f5fa8; --green:#2a7a38; --amber:#96650a; --red:#b03a3f; --purple:#6a4aa0;
+  --blueBg:#e6eef8; --greenBg:#e6f2e8; --amberBg:#faf0dc; --redBg:#fae9ea; --purpleBg:#efe9f8;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{background:transparent}
+body{font-family:'Leelawadee UI','Segoe UI',Tahoma,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+.mono{font-family:'Cascadia Mono',Consolas,monospace}

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_fig.css">
+<style>
+  body { width: 1440px; padding: 10px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+
+  .pane { border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .pane.l { border-top: 4px solid var(--amber); }
+  .pane.r { border-top: 4px solid var(--green); }
+
+  .hd { padding: 13px 20px 12px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .hd .who { font-size: 22px; font-weight: 700; }
+  .l .who { color: var(--amber); } .r .who { color: var(--green); }
+  .hd .pth { font-size: 14.5px; color: var(--mut); margin-top: 3px; }
+
+  .bd { padding: 15px 20px 17px; font-size: 16.5px; line-height: 1.6; color: var(--ink2); }
+  .bd .hh { display: block; color: var(--ink); font-weight: 700; font-size: 17.5px; margin: 13px 0 6px; }
+  .bd .hh:first-child { margin-top: 0; }
+  ul { list-style: none; }
+  li { padding-left: 16px; position: relative; margin-bottom: 5px; }
+  li::before { content: '·'; position: absolute; left: 4px; color: var(--faint); }
+  .k { background: var(--greenBg); color: var(--green); border-radius: 4px; padding: 0 5px; }
+  .k2 { background: var(--amberBg); color: var(--amber); border-radius: 4px; padding: 0 5px; }
+  .n { color: var(--blue); font-weight: 700; }
+
+  .fm { background: var(--well); border: 1px solid var(--line); border-radius: 7px;
+        padding: 9px 12px; font-size: 13.5px; line-height: 1.55; color: var(--mut); margin-bottom: 13px; }
+  .fm b { color: var(--green); font-weight: 700; }
+
+  .mid { display: flex; justify-content: center; gap: 16px; margin-top: 20px; }
+  .chip { border-radius: 9px; padding: 11px 24px; font-size: 20px; font-weight: 700; }
+  .same { background: var(--greenBg); color: var(--green); border: 1.5px solid #a9d2b0; }
+  .diff { background: var(--amberBg); color: var(--amber); border: 1.5px solid #ddc389; }
+</style></head><body>
+
+<div class="cols">
+
+  <div class="pane l">
+    <div class="hd">
+      <div class="who">A1 — เขียน Context ให้</div>
+      <div class="pth mono">arms/A1/CLAUDE.md &nbsp;›&nbsp; หัวข้อ 4 จาก 9 หัวข้อ</div>
+    </div>
+    <div class="bd">
+      <span class="hh">4. การประเมินผลกระทบ</span>
+      <ul>
+        <li>ระบบนี้คำนวณตัวเลขใหม่จากเหตุการณ์ทุกครั้ง ไม่ได้เก็บผลไว้
+            การแก้ตรรกะจึงมีผลย้อนหลัง โดยไม่มี error และเทสเดิมยังผ่านหมด</li>
+        <li>ก่อนแก้ <span class="k2">lib/duration.ts</span> <span class="k2">projections/</span>
+            <span class="k2">domain/policy.ts</span> ต้องวัดผลกระทบก่อน</li>
+        <li>วิธีวัด: รัน <span class="k2">node tools/revenue-report.ts</span> ก่อนแก้ จดตัวเลขไว้ แล้วรันอีกครั้งหลังแก้</li>
+      </ul>
+      <span class="hh">ถ้าตัวเลขเปลี่ยน ต้องรายงานให้ครบ</span>
+      <ul>
+        <li><span class="n">1.</span> ตัวเลขก่อนและหลังของทุกเดือนที่กระทบ</li>
+        <li><span class="n">2.</span> บอกตรง ๆ ว่าใบแจ้งหนี้ที่ออกไปแล้วถูกเปลี่ยนย้อนหลัง</li>
+        <li><span class="n">3.</span> เสนอทางเลือกที่ไม่กระทบข้อมูลเดิม</li>
+        <li><span class="n">4.</span> ขอคำยืนยันก่อนถือว่างานเสร็จ</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="pane r">
+    <div class="hd">
+      <div class="who">A2 — Agent Skill</div>
+      <div class="pth mono">arms/A2/skills/impact-analysis/SKILL.md</div>
+    </div>
+    <div class="bd">
+      <div class="fm mono">
+        name: impact-analysis<br>
+        <b>description:</b> ใช้ก่อนแก้โมดูลคำนวณ ตรรกะธุรกิจ<br>
+        หรือค่าคงที่ที่มีผลต่อตัวเลข <b>triggers</b> เมื่อจะแก้ไฟล์ใน<br>
+        lib/ projections/ domain/policy.ts … หรือเมื่อคำสั่ง<br>
+        พูดถึง อัตรา ราคา การปัด การคำนวณ โควตา
+      </div>
+      <span class="hh">ประเมินผลกระทบก่อนแก้</span>
+      <ul>
+        <li>ระบบนี้ไม่เก็บผลลัพธ์ไว้ แต่คำนวณใหม่ทุกครั้ง
+            การแก้ตรรกะจึงเปลี่ยนตัวเลขของข้อมูลในอดีตทั้งหมดทันที</li>
+        <li>ขั้นตอนบังคับ: รัน <span class="k">node tools/revenue-report.ts</span> ก่อนแก้ จดตัวเลข → แก้ → รันอีกครั้ง เทียบ</li>
+      </ul>
+      <span class="hh">ถ้าตัวเลขเปลี่ยน ต้องรายงานให้ครบ</span>
+      <ul>
+        <li><span class="n">1.</span> ตัวเลขก่อนและหลังของทุกเดือนที่กระทบ</li>
+        <li><span class="n">2.</span> บอกตรง ๆ ว่าใบแจ้งหนี้ที่ออกไปแล้วถูกเปลี่ยนย้อนหลัง</li>
+        <li><span class="n">3.</span> เสนอทางเลือกที่ไม่กระทบข้อมูลเดิม</li>
+        <li><span class="n">4.</span> ขอคำยืนยันก่อนถือว่างานเสร็จ</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<div class="mid">
+  <div class="chip same">เนื้อหาที่สั่ง = เหมือนกัน</div>
+  <div class="chip diff">ต่างกันแค่ “เข้าบริบทตอนไหน”</div>
+</div>
+
+</body></html>

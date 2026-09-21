@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_fig.css">
+<style>
+  body { width: 1400px; padding: 10px; }
+  .row { display: grid; grid-template-columns: 330px 1fr 1fr; gap: 20px; }
+  .box { border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .bh { padding: 11px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+        font-size: 17px; font-weight: 700; color: var(--blue); }
+  .bb { padding: 13px 16px 14px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  td { padding: 4px 0; color: var(--ink2); vertical-align: top; }
+  td.r { text-align: right; color: var(--ink); font-weight: 700; white-space: nowrap; padding-left: 10px;
+         font-family: 'Cascadia Mono', Consolas, monospace; }
+  .dim { color: var(--mut); font-size: 14px; }
+
+  .tree { font-size: 14.2px; line-height: 1.7; color: var(--ink2); }
+  .tree .d { color: var(--blue); font-weight: 600; }
+  .tree .c { color: var(--faint); }
+  .tree .n { color: var(--mut); float: right; }
+
+  .doc { margin-bottom: 8px; padding: 8px 12px; background: var(--well); border-radius: 7px; }
+  .doc .t { font-size: 15.5px; color: var(--amber); font-weight: 700; }
+  .doc .d2 { font-size: 14px; color: var(--mut); margin-top: 1px; line-height: 1.4; }
+  .doc .d2 b { color: var(--ink2); }
+</style></head><body>
+
+<div class="row">
+
+  <div class="box">
+    <div class="bh">ระบบทำอะไร</div>
+    <div class="bb">
+      <table>
+        <tr><td>เครื่อง GPU</td><td class="r">4</td></tr>
+        <tr><td class="dim" colspan="2">A100 ×2 &nbsp;40 ฿/ชม. &nbsp;·&nbsp; V100 ×2 &nbsp;20 ฿/ชม.</td></tr>
+        <tr><td>บทบาทผู้ใช้</td><td class="r">4</td></tr>
+        <tr><td class="dim" colspan="2">นศ.ตรี-โท · ป.เอก · อาจารย์ · ผู้ดูแล</td></tr>
+        <tr><td>สถานะการจอง</td><td class="r">7</td></tr>
+        <tr><td class="dim" colspan="2">ขอจอง → อนุมัติ → ใช้งาน → จบ<br>(+ ปฏิเสธ ยกเลิก ไม่มา)</td></tr>
+        <tr><td>ข้อมูลตั้งต้น</td><td class="r">268</td></tr>
+        <tr><td class="dim" colspan="2">เหตุการณ์จริงย้อนหลัง 3 เดือน (พ.ค.–ก.ค. 2026)</td></tr>
+        <tr><td>เทสที่มีอยู่เดิม</td><td class="r">34</td></tr>
+        <tr><td class="dim" colspan="2">ผ่านหมดก่อนเริ่มทุก run</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="bh">โค้ดที่ agent ได้เห็น <span style="font-weight:400;color:var(--mut);font-size:14px">TypeScript ล้วน ไม่มี dependency</span></div>
+    <div class="bb">
+      <div class="tree mono">
+        <span class="d">src/domain/</span><br>
+        &nbsp;&nbsp;events.ts <span class="c">นิยามเหตุการณ์</span><span class="n">58</span><br>
+        &nbsp;&nbsp;policy.ts <span class="c">อัตรา โควตา เกณฑ์</span><span class="n">70</span><br>
+        &nbsp;&nbsp;booking.ts <span class="c">รับคำสั่ง ตรวจกฎ</span><span class="n">192</span><br>
+        <span class="d">src/projections/</span><br>
+        &nbsp;&nbsp;billing.ts <span class="c">ใบแจ้งหนี้</span><span class="n">107</span><br>
+        &nbsp;&nbsp;availability.ts<span class="n">33</span><br>
+        <span class="d">src/lib/</span><br>
+        &nbsp;&nbsp;duration.ts <span class="c">นับเวลา / ปัดเศษ</span><span class="n">35</span><br>
+        &nbsp;&nbsp;clock.ts<span class="n">15</span><br>
+        <span class="d">src/api/</span> &nbsp;router.ts · routes.ts<span class="n">240</span><br>
+        <span class="d">src/store/</span> &nbsp;eventStore.ts<span class="n">55</span><br>
+        <span class="d">tests/</span> &nbsp;domain · billing<span class="n">309</span><br>
+        <span class="d">tools/</span> &nbsp;revenue-report.ts<span class="n">19</span><br>
+        <span class="d">data/</span> &nbsp;events.jsonl<span class="n">268</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="bh">เอกสารที่ agent ต้องอ่านเอง</div>
+    <div class="bb">
+      <div class="doc"><div class="t mono">REQUIREMENTS.md</div>
+        <div class="d2">ข้อกำหนด <b>43 ข้อ</b> มี REQ-ID และเกณฑ์ยอมรับครบ · 7 หมวด — งานทุกชิ้นต้องสืบย้อนกลับมาที่นี่ได้</div></div>
+      <div class="doc"><div class="t mono">openapi.yaml</div>
+        <div class="d2">สัญญา API 283 บรรทัด ทุก endpoint ผูกกับ REQ-ID</div></div>
+      <div class="doc"><div class="t mono">ARCHITECTURE.md</div>
+        <div class="d2">ทำไมเลือก Event Sourcing และผลข้างเคียงของมัน</div></div>
+      <div class="doc"><div class="t mono">README.md</div>
+        <div class="d2">คำสั่งรันเทส รันเซิร์ฟเวอร์ และคำเตือนเรื่อง seed</div></div>
+      <div style="font-size:14.5px;color:var(--mut);margin-top:9px;line-height:1.45">
+        เอกสารพวกนี้<b style="color:var(--ink2)">มีข้อกำหนดที่ขัดกันเอง</b>และ<b style="color:var(--ink2)">มีช่องที่ไม่ได้ระบุ</b>ฝังไว้ตั้งใจ
+      </div>
+    </div>
+  </div>
+
+</div>
+</body></html>

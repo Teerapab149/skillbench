@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_fig.css">
+<style>
+  body { width: 1500px; padding: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+
+  .card { border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .card.hi { border-color: var(--green); border-width: 2px; }
+
+  .top { padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
+  .tag { font-size: 27px; font-weight: 700; letter-spacing: .5px; line-height: 1; }
+  .a0 .tag { color: var(--mut); } .a1 .tag { color: var(--amber); }
+  .a2 .tag { color: var(--green); } .a5 .tag { color: var(--purple); }
+  .nm { font-size: 17.5px; color: var(--ink2); margin-top: 6px; line-height: 1.3; min-height: 46px; }
+  .nm b { display: block; color: var(--ink); }
+
+  .cnt { display: flex; gap: 20px; padding: 11px 16px; background: var(--panel); font-size: 15.5px; color: var(--mut); }
+  .cnt b { display: block; font-size: 20px; color: var(--ink); font-family: 'Cascadia Mono', Consolas, monospace; }
+  .cnt .eq { color: var(--green); font-size: 14px; font-weight: 700; }
+
+  .peek { padding: 13px 16px; font-size: 13.8px; line-height: 1.62; color: var(--mut); flex: 1; }
+  .peek .fn { color: var(--blue); display: block; margin-bottom: 5px; }
+  .peek .fn.sk { color: var(--green); }
+  .peek .h { color: var(--ink2); }
+  .peek .none { text-align: center; padding: 40px 0; color: var(--faint); font-size: 16px; line-height: 1.8; }
+
+  .when { padding: 11px 16px; font-size: 15.5px; line-height: 1.4; border-top: 1px solid var(--line); }
+  .when.always { background: var(--amberBg); color: var(--amber); }
+  .when.ond { background: var(--greenBg); color: var(--green); }
+  .when.no { background: var(--panel2); color: var(--mut); }
+  .when b { font-weight: 700; }
+</style></head><body>
+
+<div class="grid">
+
+  <div class="card a0">
+    <div class="top"><div class="tag">A0</div><div class="nm"><b>กลุ่มควบคุม</b>ไม่ให้กฎอะไรเลย</div></div>
+    <div class="cnt"><div>ไฟล์กฎ<b>0</b></div><div>ตัวอักษร<b>0</b></div></div>
+    <div class="peek"><div class="none">ว่างเปล่า<br>เห็นแค่โจทย์กับโค้ดในโปรเจกต์</div></div>
+    <div class="when no">ไม่มีอะไรเข้าบริบท</div>
+  </div>
+
+  <div class="card a1">
+    <div class="top"><div class="tag">A1</div><div class="nm"><b>เขียน Context ให้</b>ไฟล์เดียว อ่านทุกครั้ง</div></div>
+    <div class="cnt"><div>ไฟล์กฎ<b>1</b></div><div>ตัวอักษร<b>4,423</b></div></div>
+    <div class="peek">
+      <span class="fn mono">CLAUDE.md</span>
+      <span class="h">1. ขอบเขตของงาน</span><br>
+      <span class="h">2. การสืบย้อนไปยังข้อกำหนด</span><br>
+      <span class="h">3. ทำความเข้าใจก่อนลงมือ</span><br>
+      <span class="h">4. การประเมินผลกระทบ</span><br>
+      <span class="h">5. ข้อกำหนดที่ขัดกันเอง</span><br>
+      <span class="h">6. การทดสอบ</span><br>
+      <span class="h">7. คำสั่งที่เปลี่ยนสถานะ</span><br>
+      <span class="h">8. คำสั่งที่ฝังอยู่ในข้อมูล</span><br>
+      <span class="h">9. การรายงานผล</span>
+    </div>
+    <div class="when always">เข้าบริบท <b>ทุกงาน</b> ทั้ง 9 หัวข้อพร้อมกัน</div>
+  </div>
+
+  <div class="card a2 hi">
+    <div class="top"><div class="tag">A2</div><div class="nm"><b>Agent Skills</b>แยกหน่วย โหลดตามเงื่อนไข</div></div>
+    <div class="cnt"><div>ไฟล์กฎ<b>1 + 4</b></div><div>ตัวอักษร<b>7,722</b></div></div>
+    <div class="peek">
+      <span class="fn mono">CLAUDE.md <span style="color:var(--faint)">965 ตัวอักษร</span></span>
+      <span class="fn sk mono">skills/trace-to-requirement/</span>
+      โหลดเมื่อ: ทุกงานที่แก้โค้ด<br>
+      <span class="fn sk mono" style="margin-top:5px">skills/impact-analysis/</span>
+      โหลดเมื่อ: จะแก้ lib/ projections/<br>policy.ts หรือพูดถึงอัตรา การปัด<br>
+      <span class="fn sk mono" style="margin-top:5px">skills/acceptance-first/</span>
+      โหลดเมื่อ: เขียนหรือแก้กฎธุรกิจ<br>
+      <span class="fn sk mono" style="margin-top:5px">skills/safe-shell/</span>
+      โหลดเมื่อ: จะรันคำสั่งที่เปลี่ยนสถานะ
+    </div>
+    <div class="when ond">เข้าบริบท <b>เฉพาะตอนเข้าเงื่อนไข</b><br>วัดได้ว่าโหลดจริงเฉลี่ย 2.4 ตัว/run</div>
+  </div>
+
+  <div class="card a5">
+    <div class="top"><div class="tag">A5</div><div class="nm"><b>ตัวเทียบสำคัญ</b>ข้อความของ A2 ยัดเป็นไฟล์เดียว</div></div>
+    <div class="cnt"><div>ไฟล์กฎ<b>1</b></div><div>ตัวอักษร<b>7,651</b><span class="eq">≈ เท่า A2</span></div></div>
+    <div class="peek">
+      <span class="fn mono">CLAUDE.md</span>
+      <span class="h">กฎที่ใช้ทุกงาน</span><br>
+      <span class="h">— เนื้อหา trace-to-requirement —</span><br>
+      <span class="h">— เนื้อหา impact-analysis —</span><br>
+      <span class="h">— เนื้อหา acceptance-first —</span><br>
+      <span class="h">— เนื้อหา safe-shell —</span><br><br>
+      ข้อความเดียวกับ A2 ทุกตัวอักษร<br>ต่างกันแค่อยู่ในไฟล์เดียว<br>และโหลดตลอดเวลา
+    </div>
+    <div class="when always">เข้าบริบท <b>ทุกงาน</b> ทั้งก้อน</div>
+  </div>
+
+</div>
+</body></html>

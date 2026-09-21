@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="th"><head><meta charset="utf-8">
+<link rel="stylesheet" href="_fig.css">
+<style>
+  body { width: 1400px; padding: 10px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr 330px; gap: 20px; }
+
+  .box { border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .bh { padding: 11px 18px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .bh .t { font-size: 19px; font-weight: 700; }
+  .l .bh .t { color: var(--amber); } .r .bh .t { color: var(--green); }
+  .bh .s { font-size: 14px; color: var(--mut); margin-top: 2px; }
+  .bb { padding: 14px 18px 15px; }
+
+  .br { display: grid; grid-template-columns: 178px 1fr 76px; align-items: center; height: 52px; }
+  .br .who { font-size: 15.5px; color: var(--mut); line-height: 1.22; }
+  .br .who b { display: block; font-size: 16.5px; color: var(--ink); }
+  .br .track { height: 24px; background: var(--well); border-radius: 4px; position: relative; }
+  .br .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+  .br .num { text-align: right; font-size: 18px; font-weight: 700; font-family: 'Cascadia Mono', Consolas, monospace; }
+
+  .l .fill { background: #c99a4e; } .l .num { color: var(--amber); }
+  .l .a0 .fill { background: var(--amber); }
+  .r .fill { background: var(--green); } .r .num { color: var(--green); }
+  .r .a0 .fill { background: #cf8e92; } .r .a0 .num { color: var(--red); }
+
+  .axl { display: grid; grid-template-columns: 178px 1fr 76px; font-size: 12.5px; color: var(--faint); }
+  .axl .in { position: relative; height: 16px; }
+  .axl .in span { position: absolute; transform: translateX(-50%); }
+
+  .side { display: flex; flex-direction: column; gap: 16px; }
+  .mult { border: 1.5px solid var(--line); border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th { font-size: 13px; color: var(--mut); font-weight: 600; text-align: right; padding: 10px 16px 7px; background: var(--panel); }
+  th:first-child { text-align: left; }
+  td { padding: 6px 16px; text-align: right; font-family: 'Cascadia Mono', Consolas, monospace; color: var(--ink2); }
+  td:first-child { text-align: left; font-family: inherit; font-weight: 700; }
+  tr.a0 td:first-child { color: var(--ink); } tr.a1 td:first-child { color: var(--amber); }
+  tr.a2 td:first-child { color: var(--green); } tr.a5 td:first-child { color: var(--purple); }
+  td.hi { color: var(--amber); font-weight: 700; }
+  tr:last-child td { padding-bottom: 12px; }
+
+  .warn { border: 1.5px solid #dda6a9; background: var(--redBg); border-radius: 12px; padding: 13px 17px; }
+  .warn .t { font-size: 14px; color: var(--red); font-weight: 700; }
+  .warn ul { list-style: none; margin-top: 8px; }
+  .warn li { font-size: 15.5px; color: var(--ink2); line-height: 1.38; padding-left: 15px; position: relative; margin-bottom: 5px; }
+  .warn li::before { content: '·'; position: absolute; left: 3px; color: #c07a80; }
+  .warn .fin { margin-top: 9px; font-size: 16.5px; color: var(--red); font-weight: 700; line-height: 1.35; }
+</style></head><body>
+
+<div class="cols">
+
+  <div class="box l">
+    <div class="bh"><div class="t">ทำงานสำเร็จไหม</div>
+      <div class="s">สัดส่วน run ที่ผ่านเทสยอมรับที่ agent มองไม่เห็น</div></div>
+    <div class="bb">
+      <div class="br a0"><div class="who"><b>A0 ไม่มีกฎเลย</b></div><div class="track"><div class="fill" style="width:75.0%"></div></div><div class="num">75.0%</div></div>
+      <div class="br"><div class="who"><b>A1 ไฟล์เดียว</b>โหลดตลอด</div><div class="track"><div class="fill" style="width:52.3%"></div></div><div class="num">52.3%</div></div>
+      <div class="br"><div class="who"><b>A2 skill</b>โหลดตามเงื่อนไข</div><div class="track"><div class="fill" style="width:63.6%"></div></div><div class="num">63.6%</div></div>
+      <div class="br"><div class="who"><b>A5 ข้อความของ A2</b>แต่โหลดตลอด</div><div class="track"><div class="fill" style="width:54.5%"></div></div><div class="num">54.5%</div></div>
+      <div class="axl"><div></div><div class="in"><span style="left:0">0</span><span style="left:50%">50%</span><span style="left:100%">100%</span></div><div></div></div>
+    </div>
+  </div>
+
+  <div class="box r">
+    <div class="bh"><div class="t">ตามกฎแค่ไหน เมื่อทำสำเร็จ</div>
+      <div class="s">สัดส่วนกฎที่เข้าเงื่อนไขแล้วทำตามได้ นับเฉพาะ run ที่สำเร็จ</div></div>
+    <div class="bb">
+      <div class="br a0"><div class="who"><b>A0 ไม่มีกฎเลย</b></div><div class="track"><div class="fill" style="width:89.5%"></div></div><div class="num">0.895</div></div>
+      <div class="br"><div class="who"><b>A1 ไฟล์เดียว</b>โหลดตลอด</div><div class="track"><div class="fill" style="width:96.7%"></div></div><div class="num">0.967</div></div>
+      <div class="br"><div class="who"><b>A2 skill</b>โหลดตามเงื่อนไข</div><div class="track"><div class="fill" style="width:96.7%"></div></div><div class="num">0.967</div></div>
+      <div class="br"><div class="who"><b>A5 ข้อความของ A2</b>แต่โหลดตลอด</div><div class="track"><div class="fill" style="width:96.7%"></div></div><div class="num">0.967</div></div>
+      <div class="axl"><div></div><div class="in"><span style="left:0">0</span><span style="left:50%">0.50</span><span style="left:100%">1.00</span></div><div></div></div>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="mult">
+      <table>
+        <tr><th>กลุ่ม</th><th>สำเร็จ</th><th>ตามกฎ</th><th>คูณกัน</th></tr>
+        <tr class="a0"><td>A0</td><td>0.750</td><td>0.895</td><td class="hi">0.671</td></tr>
+        <tr class="a1"><td>A1</td><td>0.523</td><td>0.967</td><td>0.505</td></tr>
+        <tr class="a2"><td>A2</td><td>0.636</td><td>0.967</td><td>0.615</td></tr>
+        <tr class="a5"><td>A5</td><td>0.545</td><td>0.967</td><td>0.527</td></tr>
+      </table>
+    </div>
+    <div class="warn">
+      <div class="t">ข้อจำกัดที่ต้องพูดคู่กันทุกครั้ง</div>
+      <ul>
+        <li>ยังไม่ได้ทดสอบทางสถิติ</li>
+        <li>ไม่ได้ประกาศไว้ล่วงหน้า จึงเพิ่มการทดสอบทีหลังไม่ได้</li>
+        <li>A0 ถูกประกาศไว้ว่าเป็นกลุ่มเชิงพรรณนา</li>
+      </ul>
+      <div class="fin">เป็นสมมติฐานที่ข้อมูลชี้ทาง ไม่ใช่ข้อสรุป</div>
+    </div>
+  </div>
+
+</div>
+</body></html>
