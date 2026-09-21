@@ -92,7 +92,7 @@ const mapHtml = `${head(1400)}
 <div class="maps">
   <div class="map r1">
     <div class="mh"><div class="t">รอบที่ 1 — 220 run · 5 กลุ่ม</div>
-      <div class="s">ให้สีตามตัวชี้วัดเดิม <span class="mono">CRIT</span> — ผ่านกฎวิกฤตครบทุกข้อจึงได้ 1 พลาดข้อเดียวได้ 0</div></div>
+      <div class="s">ให้สีตามวิธีให้คะแนนแบบเดิม <span class="mono">CRIT</span> — ผ่านกฎวิกฤตครบทุกข้อจึงได้ 1 พลาดข้อเดียวได้ 0</div></div>
     <div class="mb">
       ${grid(s1, ['A0', 'A1', 'A2', 'A3', 'A4'], 4, (r) => r.CRIT)}
       <div class="lg"><i style="background:#2a7a38"></i> ผ่านครบ
@@ -103,7 +103,7 @@ const mapHtml = `${head(1400)}
 
   <div class="map r2">
     <div class="mh"><div class="t">รอบที่ 2 — 176 run · 4 กลุ่ม</div>
-      <div class="s">ให้สีตามตัวชี้วัดใหม่ <span class="mono">RCRc</span> — สัดส่วนกฎที่ทำตามได้ โดยได้ 0 ถ้างานหลักไม่สำเร็จ</div></div>
+      <div class="s">ให้สีตามวิธีให้คะแนนแบบใหม่ <span class="mono">RCRc</span> — สัดส่วนกฎที่ทำตามได้ โดยได้ 0 ถ้างานหลักไม่สำเร็จ</div></div>
     <div class="mb">
       ${grid(s2, ['A0', 'A1', 'A2', 'A5'], 4, (r) => r.RCRc)}
       <div class="lg">0 <span class="grad"></span> 1

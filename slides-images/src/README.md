@@ -2,7 +2,7 @@
 
 ## ภาพประกอบชุดปัจจุบัน — `fig-*.html` → `../figures/`
 
-**พื้นหลังโปร่งใส · ไม่มีหัวเรื่อง ไม่มีแถบสรุป** เป็นภาพประกอบล้วนสำหรับแปะลงสไลด์
+**พื้นหลังทึบสีอ่อน · ไม่มีหัวเรื่อง ไม่มีแถบสรุป** เป็นภาพประกอบล้วนสำหรับแปะลงสไลด์
 รายละเอียดว่าภาพไหนใช้สไลด์ไหน อยู่ที่ [`../figures/README.md`](../figures/README.md)
 
 สร้างใหม่ทั้งชุดด้วย
@@ -21,7 +21,7 @@ bash slides-images/src/render-figures.sh
 
 | ไฟล์ | ใช้ต่อได้ |
 |---|---|
-| `01-revenue-before.png` · `02-the-change.png` · `03-retroactive-impact.png` | ✅ เรื่อง S08 · ตัวเลข 2140→1925 ยืนยันแล้ว เทสตก 3/34 · ตอนนี้มีเวอร์ชันโปร่งใสแล้วที่ `figures/fig-retro-impact.png` |
+| `01-revenue-before.png` · `02-the-change.png` · `03-retroactive-impact.png` | ✅ เรื่อง S08 · ตัวเลข 2140→1925 ยืนยันแล้ว เทสตก 3/34 · ตอนนี้มีเวอร์ชันพื้นอ่อนแล้วที่ `figures/fig-retro-impact.png` |
 | `12-event-sourcing.png` · `13-trap-families.png` | ✅ ตัวเลขยังตรง |
 | `04-five-arms.png` | ⚠️ เป็นของรอบที่ 1 (5 กลุ่ม) · รอบที่ 2 ใช้ `figures/fig-arms.png` แทน |
 | `14-collection-status.png` · `15-roadmap.png` | ⛔ ตัวเลขเก่า ห้ามใช้ |
