@@ -117,9 +117,16 @@ const inline = '<scr' + 'ipt>window.SB = ' + JSON.stringify(data).split('</').jo
 if (!tpl.includes('<!-- DATA -->')) throw new Error('ไม่พบจุดฝังข้อมูล <!-- DATA --> ใน explorer.html');
 const out = tpl.replace('<!-- DATA -->', inline);
 fs.writeFileSync(path.join(dir, 'index.html'), out);
+/* สำเนาสำหรับเผยแพร่ด้วย GitHub Pages — Settings > Pages > Deploy from a branch > main > /docs
+   ต้องสร้างจากตัวเดียวกัน ไม่งั้นเว็บที่อาจารย์เปิดจะไม่ตรงกับไฟล์ในโปรเจกต์ */
+const pub = path.join(R, 'docs', 'progress2');
+fs.mkdirSync(pub, { recursive: true });
+fs.writeFileSync(path.join(pub, 'index.html'), out);
+fs.writeFileSync(path.join(R, 'docs', '.nojekyll'), '');
+
 const stale = path.join(dir, 'data.js');
 if (fs.existsSync(stale)) fs.rmSync(stale);
-console.log('เขียน progress2/explorer/index.html · ไฟล์เดียวจบ · ' + (out.length / 1024 / 1024).toFixed(2) + ' MB'
+console.log('เขียน progress2/explorer/index.html + docs/progress2/index.html · ไฟล์เดียวจบ · ' + (out.length / 1024 / 1024).toFixed(2) + ' MB'
   + ' · run ' + (data.s1.runs.length + data.s2.runs.length)
   + ' · โจทย์ ' + Object.keys(scenarios).length
   + ' · ไฟล์กฎ ' + Object.values(data.arms).reduce((n, v) => n + v.files.length, 0));
