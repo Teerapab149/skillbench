@@ -29,3 +29,11 @@ do
     --hide-scrollbars \
     "file:///$B/src/$1.html" 2>&1 | tail -1
 done
+
+# แผ่นรวมภาพ — ต้องเรนเดอร์ท้ายสุด เพราะมันฝังไฟล์ png ที่เพิ่งสร้างไป
+"$CH" --headless --disable-gpu \
+  "--screenshot=$B/figures/00-contact-sheet.png" \
+  --window-size=1500,7075 \
+  --default-background-color=F2F4F7FF \
+  --hide-scrollbars \
+  "file:///$B/src/fig-contact-sheet.html" 2>&1 | tail -1
