@@ -54,22 +54,39 @@ const study = (dir) => {
   };
 };
 
-/* ---------- ข้อความกฎที่แต่ละกลุ่มได้รับจริง ---------- */
-const armFiles = (arm) => {
-  const out = [];
-  const base = path.join(R, 'arms', arm);
-  const md = path.join(base, 'CLAUDE.md');
-  if (fs.existsSync(md)) out.push({ name: 'CLAUDE.md', always: true, text: fs.readFileSync(md, 'utf8') });
-  const sk = path.join(base, 'skills');
-  if (fs.existsSync(sk)) {
-    for (const d of fs.readdirSync(sk)) {
-      const f = path.join(sk, d, 'SKILL.md');
-      if (fs.existsSync(f)) out.push({ name: 'skills/' + d + '/SKILL.md', always: false, text: fs.readFileSync(f, 'utf8') });
+/* ---------- ข้อความกฎที่แต่ละกลุ่มได้รับจริง ----------
+   อ่านจาก config/arms.json แทนการเดาจากชื่อโฟลเดอร์ เพราะบางกลุ่มยืมไฟล์ของกลุ่มอื่น
+   เช่น A4 ใช้ contextFiles และ skillsDir ของ A2 ทั้งชุด ต่างกันแค่มีข้อความล่อฝังใน workspace */
+const armSpecs = {};
+for (const cfg of ['config/arms.json', 'config/arms-study2.json']) {
+  if (!fs.existsSync(path.join(R, cfg))) continue;
+  const j = rj(cfg);
+  for (const a of (j.arms ?? [])) if (!armSpecs[a.id]) armSpecs[a.id] = a;
+}
+
+const armInfo = (id) => {
+  const a = armSpecs[id] ?? { id };
+  const files = [];
+  for (const f of (a.contextFiles ?? [])) if (fs.existsSync(path.join(R, f)))
+    files.push({ name: f, always: true, text: rd(f), borrowed: !f.includes('/' + id + '/') });
+  if (a.skillsEnabled && a.skillsDir && fs.existsSync(path.join(R, a.skillsDir))) {
+    for (const d of fs.readdirSync(path.join(R, a.skillsDir))) {
+      const f = a.skillsDir + '/' + d + '/SKILL.md';
+      if (fs.existsSync(path.join(R, f)))
+        files.push({ name: f, always: false, text: rd(f), borrowed: !f.includes('/' + id + '/') });
     }
   }
-  return out;
+  let inject = null;
+  const ip = 'arms/' + id + '/adversarial/inject.json';
+  if (a.injectAdversarial && fs.existsSync(path.join(R, ip))) {
+    const j = rj(ip);
+    inject = {
+      why: j._why ?? null, measure: j._measurement ?? null,
+      traps: (j.injections ?? []).map((x) => ({ file: x.file, why: x._trap ?? '', text: x.text })),
+    };
+  }
+  return { id, name: a.name ?? null, role: a.role ?? null, desc: a.desc ?? null, files, inject };
 };
-
 /* ---------- โจทย์ ---------- */
 const scenarios = {};
 for (const f of fs.readdirSync(path.join(R, 'scenarios')).filter((x) => x.endsWith('.json'))) {
@@ -88,7 +105,7 @@ const data = {
   s1: study('results'),
   s2: study('results-study2'),
   scenarios,
-  arms: Object.fromEntries(['A0', 'A1', 'A2', 'A3', 'A4', 'A5'].map((a) => [a, armFiles(a)])),
+  arms: Object.fromEntries(['A0', 'A1', 'A2', 'A3', 'A4', 'A5'].map((a) => [a, armInfo(a)])),
 };
 
 /* ฝังข้อมูลลงในหน้าเว็บเลย ให้เป็นไฟล์เดียวจบ
@@ -105,4 +122,4 @@ if (fs.existsSync(stale)) fs.rmSync(stale);
 console.log('เขียน progress2/explorer/index.html · ไฟล์เดียวจบ · ' + (out.length / 1024 / 1024).toFixed(2) + ' MB'
   + ' · run ' + (data.s1.runs.length + data.s2.runs.length)
   + ' · โจทย์ ' + Object.keys(scenarios).length
-  + ' · ไฟล์กฎ ' + Object.values(data.arms).reduce((n, v) => n + v.length, 0));
+  + ' · ไฟล์กฎ ' + Object.values(data.arms).reduce((n, v) => n + v.files.length, 0));
