@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #141519; }
+  body {
+    width: 1600px;
+    font-family: 'Leelawadee UI', 'Segoe UI', Tahoma, sans-serif;
+    color: #e8e9ec;
+    padding: 38px 46px 30px;
+  }
+  .mono { font-family: 'Cascadia Mono', Consolas, monospace; }
+
+  h1 { font-size: 35px; font-weight: 700; }
+  h1 .accent { color: #9ec7f0; }
+  .sub { color: #8b919c; font-size: 19px; margin-top: 7px; }
+
+  .wrap { display: grid; grid-template-columns: 1fr 450px; column-gap: 30px; margin-top: 22px; }
+
+  /* ---------- chart ---------- */
+  .chart { background: #1b1d22; border: 1px solid #2a2d34; border-radius: 12px; padding: 16px 22px 14px; }
+  .chart h2 { font-size: 18px; color: #9ec7f0; font-weight: 700; margin-bottom: 4px; }
+  .chart .ch2 { font-size: 14.5px; color: #7e8593; margin-bottom: 12px; }
+
+  .row { display: grid; grid-template-columns: 46px 1fr 74px 150px; align-items: center; height: 40px; }
+  .row .lbl { font-size: 16px; color: #c2c6cf; font-weight: 600; font-family: 'Cascadia Mono', Consolas, monospace; }
+  .row.tie .lbl { color: #6b717c; }
+
+  .track { position: relative; height: 24px; background: #16181d; border-radius: 4px; }
+  .zero { position: absolute; top: -3px; bottom: -3px; width: 2px; background: #3d424b; left: 20%; }
+  .bar { position: absolute; top: 4px; bottom: 4px; border-radius: 3px; }
+  .bar.pos { left: 20%; background: #7dd487; }
+  .bar.neg { background: #e8838d; }
+  .bar.nil { left: calc(20% - 3px); width: 6px; background: #4b515b; border-radius: 2px; }
+
+  .val { text-align: right; font-size: 15.5px; font-family: 'Cascadia Mono', Consolas, monospace; padding-right: 14px; }
+  .val.pos { color: #7dd487; } .val.neg { color: #e8838d; } .val.nil { color: #6b717c; }
+
+  .why { font-size: 14px; color: #6b717c; }
+  .why.c { color: #8a7ba8; }
+  .why.f { color: #a86b72; }
+
+  .axis { display: grid; grid-template-columns: 46px 1fr 74px 150px; margin-top: 4px; }
+  .axis .a { position: relative; height: 18px; font-size: 13px; color: #5f6570; }
+  .axis .a span { position: absolute; transform: translateX(-50%); }
+
+  /* ---------- right ---------- */
+  .side { display: flex; flex-direction: column; gap: 14px; }
+
+  .tally { background: #1b1d22; border: 1px solid #2a2d34; border-radius: 12px; padding: 15px 18px 14px; }
+  .tally h2 { font-size: 18px; color: #9ec7f0; font-weight: 700; margin-bottom: 10px; }
+  .tl { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; font-size: 17px; color: #c2c6cf; }
+  .tl b { font-size: 21px; font-family: 'Cascadia Mono', Consolas, monospace; }
+  .tl.g b { color: #7dd487; } .tl.r b { color: #e8838d; } .tl.d b { color: #6b717c; }
+  .tl.tot { border-top: 1px solid #2a2d34; margin-top: 7px; padding-top: 10px; color: #e8e9ec; font-weight: 700; }
+  .tl.tot b { color: #e8c07d; font-size: 25px; }
+
+  .calc { background: #101216; border: 1px solid #23262c; border-radius: 12px; padding: 16px 18px; }
+  .calc .eq { font-family: 'Cascadia Mono', Consolas, monospace; font-size: 19px; color: #c2c6cf; line-height: 1.85; }
+  .calc .eq .hl { color: #e8c07d; font-weight: 700; }
+  .calc .eq .bad { color: #f0a0a8; font-weight: 700; }
+  .calc .eq .dim { color: #6b717c; }
+  .calc .verdict {
+    margin-top: 12px; padding: 11px 13px; background: #3a1f24; border-radius: 8px;
+    font-size: 18px; color: #f5c8cc; line-height: 1.5; font-weight: 700;
+  }
+
+  .both { background: #1b1d22; border: 1px solid #2a2d34; border-radius: 12px; padding: 14px 18px; }
+  .both h2 { font-size: 17px; color: #9ec7f0; font-weight: 700; margin-bottom: 9px; }
+  table { width: 100%; border-collapse: collapse; font-size: 15.5px; }
+  th { text-align: right; font-size: 13.5px; color: #7e8593; font-weight: 600; padding-bottom: 6px; }
+  th:first-child { text-align: left; }
+  td { padding: 4px 0; color: #c2c6cf; text-align: right; font-family: 'Cascadia Mono', Consolas, monospace; }
+  td:first-child { text-align: left; font-family: inherit; color: #a5abb6; }
+  tr.key td { color: #e8c07d; font-weight: 700; }
+  tr.good td { color: #7dd487; }
+
+  .foot {
+    margin-top: 18px; background: #1b1d22; border-left: 3px solid #9ec7f0;
+    border-radius: 0 9px 9px 0; padding: 13px 18px;
+    font-size: 19px; line-height: 1.5; color: #d2d6dd;
+  }
+  .foot b { color: #fff; }
+</style>
+</head>
+<body>
+
+<h1>ทำไมยังสรุปไม่ได้ — <span class="accent">โจทย์ 6 จาก 11 ข้อ ไม่ให้ข้อมูลเลย</span></h1>
+<div class="sub">การทดสอบนับ “โจทย์” เป็นหน่วยข้อมูล ไม่ใช่ run · โจทย์ที่สองกลุ่มได้คะแนนเท่ากัน สลับเครื่องหมายแล้วค่าไม่เปลี่ยน จึงไม่มีน้ำหนักในการทดสอบ</div>
+
+<div class="wrap">
+
+  <div class="chart">
+    <h2>ผลต่างรายโจทย์ · Agent Skills (A2) ลบ ไฟล์เดียว (A1) · ตัวชี้วัด RCRc · รอบที่ 2</h2>
+    <div class="ch2">แต่ละแท่งคือค่าเฉลี่ยของโจทย์นั้นจาก 4 run ต่อกลุ่ม</div>
+
+    <div class="row"><div class="lbl">S01</div><div class="track"><div class="zero"></div><div class="bar neg" style="left:calc(20% - 3.58%);width:3.58%"></div></div><div class="val neg">−0.179</div><div class="why">ไฟล์เดียวชนะ</div></div>
+    <div class="row tie"><div class="lbl">S02</div><div class="track"><div class="zero"></div><div class="bar nil"></div></div><div class="val nil">0.000</div><div class="why c">เสมอ · ได้เต็มทั้งคู่</div></div>
+    <div class="row tie"><div class="lbl">S03</div><div class="track"><div class="zero"></div><div class="bar nil"></div></div><div class="val nil">0.000</div><div class="why c">เสมอ · ได้เต็มทั้งคู่</div></div>
+    <div class="row"><div class="lbl">S04</div><div class="track"><div class="zero"></div><div class="bar pos" style="width:60%"></div></div><div class="val pos">+0.750</div><div class="why">skill ชนะ</div></div>
+    <div class="row"><div class="lbl">S05</div><div class="track"><div class="zero"></div><div class="bar neg" style="left:calc(20% - 0.62%);width:0.62%"></div></div><div class="val neg">−0.031</div><div class="why">ไฟล์เดียวชนะ</div></div>
+    <div class="row tie"><div class="lbl">S06</div><div class="track"><div class="zero"></div><div class="bar nil"></div></div><div class="val nil">0.000</div><div class="why c">เสมอ · ได้เต็มทั้งคู่</div></div>
+    <div class="row tie"><div class="lbl">S07</div><div class="track"><div class="zero"></div><div class="bar nil"></div></div><div class="val nil">0.000</div><div class="why f">เสมอ · ได้ศูนย์ทั้งคู่</div></div>
+    <div class="row"><div class="lbl">S08</div><div class="track"><div class="zero"></div><div class="bar pos" style="width:35.5%"></div></div><div class="val pos">+0.444</div><div class="why">skill ชนะ</div></div>
+    <div class="row"><div class="lbl">S09</div><div class="track"><div class="zero"></div><div class="bar pos" style="width:17.8%"></div></div><div class="val pos">+0.222</div><div class="why">skill ชนะ</div></div>
+    <div class="row tie"><div class="lbl">S10</div><div class="track"><div class="zero"></div><div class="bar nil"></div></div><div class="val nil">0.000</div><div class="why f">เสมอ · ได้ศูนย์ทั้งคู่</div></div>
+    <div class="row tie"><div class="lbl">S11</div><div class="track"><div class="zero"></div><div class="bar nil"></div></div><div class="val nil">0.000</div><div class="why f">เสมอ · ได้ศูนย์ทั้งคู่</div></div>
+
+    <div class="axis">
+      <div></div>
+      <div class="a">
+        <span style="left:0%">−0.25</span>
+        <span style="left:20%">0</span>
+        <span style="left:40%">+0.25</span>
+        <span style="left:60%">+0.50</span>
+        <span style="left:80%">+0.75</span>
+      </div>
+      <div></div><div></div>
+    </div>
+  </div>
+
+  <div class="side">
+
+    <div class="tally">
+      <h2>นับหน่วยที่ให้ข้อมูล</h2>
+      <div class="tl g"><span>skill ชนะ</span><b>3</b></div>
+      <div class="tl r"><span>ไฟล์เดียวชนะ</span><b>2</b></div>
+      <div class="tl d"><span>เสมอ — ง่ายเกินไป ได้เต็มทั้งคู่</span><b>3</b></div>
+      <div class="tl d"><span>เสมอ — ยากเกินไป ได้ศูนย์ทั้งคู่</span><b>3</b></div>
+      <div class="tl tot"><span>โจทย์ที่ให้ข้อมูลจริง <span style="font-family:'Cascadia Mono',monospace">m</span></span><b>5 / 11</b></div>
+    </div>
+
+    <div class="calc">
+      <div class="eq">
+        p ต่ำสุดที่เป็นไปได้ = 2<sup>(1−m)</sup><br>
+        <span class="dim">=</span> 2<sup>(1−5)</sup> <span class="dim">=</span> 1/16 <span class="dim">=</span> <span class="hl">0.0625</span><br>
+        เกณฑ์ที่ต้องผ่าน <span class="dim">=</span> <span class="hl">0.05</span><br>
+        <span class="bad">0.0625 &gt; 0.05</span>
+      </div>
+      <div class="verdict">
+        นัยสำคัญเป็นไปไม่ได้ทางคณิตศาสตร์<br>
+        ตั้งแต่ก่อนเห็นข้อมูล — ต่อให้ผลจริงชัดแค่ไหน
+      </div>
+    </div>
+
+    <div class="both">
+      <h2>เทียบสองรอบ — การซ่อมตัวชี้วัดได้อะไร</h2>
+      <table>
+        <tr><th>&nbsp;</th><th>รอบ 1</th><th>รอบ 2</th></tr>
+        <tr class="key"><td>โจทย์ที่ให้ข้อมูล m</td><td>5</td><td>5</td></tr>
+        <tr class="key"><td>p ต่ำสุดที่เป็นไปได้</td><td>0.0625</td><td>0.0625</td></tr>
+        <tr class="good"><td>p ที่วัดได้จริง</td><td>0.500</td><td>0.250</td></tr>
+        <tr class="good"><td>ขอบล่างของ 95% CI</td><td>−6.8%</td><td>−2.1%</td></tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<div class="foot">
+  <b>เพดานไม่เคยขยับ</b> การซ่อมตัวชี้วัดทำให้ผล<b>คมขึ้น</b> แต่ไม่ได้เพิ่มจำนวนโจทย์ที่แยกแยะได้ &nbsp;→&nbsp;
+  <b>คอขวดคือจำนวนโจทย์ ไม่ใช่เครื่องมือวัด และไม่ใช่จำนวนรอบ — สองรอบยืนยันตรงกัน</b>
+</div>
+
+</body>
+</html>

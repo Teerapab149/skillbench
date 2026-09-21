@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #141519; }
+  body {
+    width: 1600px;
+    font-family: 'Leelawadee UI', 'Segoe UI', Tahoma, sans-serif;
+    color: #e8e9ec;
+    padding: 40px 46px 32px;
+  }
+  .mono { font-family: 'Cascadia Mono', Consolas, monospace; }
+
+  h1 { font-size: 35px; font-weight: 700; }
+  h1 .accent { color: #9ec7f0; }
+  .sub { color: #8b919c; font-size: 19px; margin-top: 7px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr 430px; column-gap: 24px; margin-top: 26px; }
+
+  .panel { background: #1b1d22; border: 1px solid #2a2d34; border-radius: 12px; padding: 17px 20px 16px; }
+  .panel h2 { font-size: 21px; font-weight: 700; }
+  .panel .h2b { font-size: 15px; color: #7e8593; margin: 3px 0 16px; line-height: 1.4; }
+  .p1 h2 { color: #e8c07d; }
+  .p2 h2 { color: #7dd487; }
+
+  .br { display: grid; grid-template-columns: 210px 1fr 74px; align-items: center; height: 54px; }
+  .br .who { font-size: 16.5px; color: #c2c6cf; line-height: 1.25; }
+  .br .who b { display: block; font-size: 17px; }
+  .br.a0 .who b { color: #e8e9ec; } .br.a1 .who b { color: #e8c07d; }
+  .br.a2 .who b { color: #7dd487; } .br.a5 .who b { color: #c6a2ea; }
+  .br .track { height: 26px; background: #16181d; border-radius: 4px; position: relative; }
+  .br .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+  .br .num { text-align: right; font-size: 19px; font-weight: 700; font-family: 'Cascadia Mono', Consolas, monospace; }
+
+  .p1 .fill { background: #b8873f; }
+  .p1 .num { color: #e8c07d; }
+  .p1 .br.a0 .fill { background: #e8c07d; }
+  .p2 .fill { background: #5aa465; }
+  .p2 .num { color: #7dd487; }
+  .p2 .br.a0 .fill { background: #8a5a60; }
+  .p2 .br.a0 .num { color: #e8838d; }
+
+  .axl { display: grid; grid-template-columns: 210px 1fr 74px; font-size: 13px; color: #5f6570; margin-top: 2px; }
+  .axl .in { position: relative; height: 16px; }
+  .axl .in span { position: absolute; transform: translateX(-50%); }
+
+  .side { display: flex; flex-direction: column; gap: 14px; }
+  .claim {
+    background: #1c2a1e; border: 1px solid #3c6342; border-radius: 12px;
+    padding: 16px 19px;
+  }
+  .claim .t { font-size: 15px; color: #7dd487; font-weight: 700; letter-spacing: .4px; }
+  .claim .b { font-size: 24px; color: #d8f0dc; font-weight: 700; line-height: 1.42; margin-top: 8px; }
+
+  .warn {
+    background: #3a1f24; border: 1px solid #7a3d46; border-radius: 12px; padding: 15px 19px;
+  }
+  .warn .t { font-size: 15px; color: #f0a0a8; font-weight: 700; letter-spacing: .4px; }
+  .warn ul { list-style: none; margin-top: 9px; }
+  .warn li { font-size: 16.5px; color: #eccdd0; line-height: 1.42; padding-left: 17px; position: relative; margin-bottom: 6px; }
+  .warn li::before { content: '·'; position: absolute; left: 4px; color: #b8707a; }
+  .warn .fin { margin-top: 10px; font-size: 18px; color: #fff; font-weight: 700; line-height: 1.4; }
+
+  .mult { background: #101216; border: 1px solid #23262c; border-radius: 12px; padding: 14px 18px; }
+  .mult .t { font-size: 15px; color: #8b919c; font-weight: 600; margin-bottom: 9px; }
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  th { font-size: 13px; color: #7e8593; font-weight: 600; text-align: right; padding-bottom: 6px; }
+  th:first-child { text-align: left; }
+  td { padding: 4px 0; text-align: right; font-family: 'Cascadia Mono', Consolas, monospace; color: #c2c6cf; }
+  td:first-child { text-align: left; font-family: inherit; }
+  tr.a0 td:first-child { color: #e8e9ec; } tr.a1 td:first-child { color: #e8c07d; }
+  tr.a2 td:first-child { color: #7dd487; } tr.a5 td:first-child { color: #c6a2ea; }
+  td.hi { color: #e8c07d; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>สิ่งที่น่าสนใจที่สุดที่เจอ — <span class="accent">กฎแลกมาด้วยอะไรบางอย่าง</span></h1>
+<div class="sub">แยกคะแนนรวมออกเป็นสองส่วน แล้วสองส่วนเดินคนละทาง · ข้อมูลรอบที่ 2 · 44 run ต่อกลุ่ม</div>
+
+<div class="cols">
+
+  <div class="panel p1">
+    <h2>ทำงานสำเร็จไหม</h2>
+    <div class="h2b">สัดส่วน run ที่ผ่านเทสยอมรับที่ agent มองไม่เห็น</div>
+
+    <div class="br a0"><div class="who"><b>A0 ไม่มีกฎเลย</b></div><div class="track"><div class="fill" style="width:75.0%"></div></div><div class="num">75.0%</div></div>
+    <div class="br a1"><div class="who"><b>A1 ไฟล์เดียว</b>โหลดตลอด</div><div class="track"><div class="fill" style="width:52.3%"></div></div><div class="num">52.3%</div></div>
+    <div class="br a2"><div class="who"><b>A2 skill</b>โหลดตามเงื่อนไข</div><div class="track"><div class="fill" style="width:63.6%"></div></div><div class="num">63.6%</div></div>
+    <div class="br a5"><div class="who"><b>A5 ข้อความของ A2</b>แต่โหลดตลอด</div><div class="track"><div class="fill" style="width:54.5%"></div></div><div class="num">54.5%</div></div>
+
+    <div class="axl"><div></div><div class="in"><span style="left:0">0</span><span style="left:50%">50%</span><span style="left:100%">100%</span></div><div></div></div>
+    <div style="margin-top:12px;font-size:17px;color:#e8c07d;line-height:1.45">
+      <b>กลุ่มที่ไม่มีกฎเลย ทำงานสำเร็จมากที่สุด</b>
+    </div>
+  </div>
+
+  <div class="panel p2">
+    <h2>ตามกฎแค่ไหน เมื่อทำสำเร็จ</h2>
+    <div class="h2b">สัดส่วนกฎที่เข้าเงื่อนไขแล้วทำตามได้ นับเฉพาะ run ที่งานสำเร็จ</div>
+
+    <div class="br a0"><div class="who"><b>A0 ไม่มีกฎเลย</b></div><div class="track"><div class="fill" style="width:89.5%"></div></div><div class="num">0.895</div></div>
+    <div class="br a1"><div class="who"><b>A1 ไฟล์เดียว</b>โหลดตลอด</div><div class="track"><div class="fill" style="width:96.7%"></div></div><div class="num">0.967</div></div>
+    <div class="br a2"><div class="who"><b>A2 skill</b>โหลดตามเงื่อนไข</div><div class="track"><div class="fill" style="width:96.7%"></div></div><div class="num">0.967</div></div>
+    <div class="br a5"><div class="who"><b>A5 ข้อความของ A2</b>แต่โหลดตลอด</div><div class="track"><div class="fill" style="width:96.7%"></div></div><div class="num">0.967</div></div>
+
+    <div class="axl"><div></div><div class="in"><span style="left:0">0</span><span style="left:50%">0.50</span><span style="left:100%">1.00</span></div><div></div></div>
+    <div style="margin-top:12px;font-size:17px;color:#7dd487;line-height:1.45">
+      <b>กลุ่มที่มีกฎ ตามกฎดีกว่า และดีเท่ากันหมดทั้งสามกลุ่ม</b>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="claim">
+      <div class="t">สิ่งที่ข้อมูลชี้</div>
+      <div class="b">ใส่กฎแล้วมันตามกฎดีขึ้นจริง<br>แต่ทำงานสำเร็จน้อยลง</div>
+    </div>
+
+    <div class="mult">
+      <div class="t">คะแนนรวม = สองส่วนคูณกัน</div>
+      <table>
+        <tr><th>กลุ่ม</th><th>สำเร็จ</th><th>ตามกฎ</th><th>รวม</th></tr>
+        <tr class="a0"><td>A0</td><td>0.750</td><td>0.895</td><td class="hi">0.671</td></tr>
+        <tr class="a1"><td>A1</td><td>0.523</td><td>0.967</td><td>0.505</td></tr>
+        <tr class="a2"><td>A2</td><td>0.636</td><td>0.967</td><td>0.615</td></tr>
+        <tr class="a5"><td>A5</td><td>0.545</td><td>0.967</td><td>0.527</td></tr>
+      </table>
+      <div style="margin-top:10px;font-size:15.5px;color:#8b919c;line-height:1.45">
+        นี่คือเหตุผลที่ <b style="color:#e8c07d">A0 ได้คะแนนรวมสูงสุด</b>
+        ทั้งที่ตามกฎแย่ที่สุด — <b style="color:#c2c6cf">ตัวเลขรวมตัวเดียวอ่านไม่ได้ ต้องดูคู่กันเสมอ</b>
+      </div>
+    </div>
+
+    <div class="warn">
+      <div class="t">ข้อจำกัดที่ต้องพูดคู่กันทุกครั้ง</div>
+      <ul>
+        <li>ยังไม่ได้ทดสอบทางสถิติ</li>
+        <li>ไม่ได้ประกาศไว้ล่วงหน้า จึงเพิ่มการทดสอบทีหลังไม่ได้</li>
+        <li>A0 ถูกประกาศไว้ว่าเป็นกลุ่มเชิงพรรณนา</li>
+      </ul>
+      <div class="fin">เป็นสมมติฐานที่ข้อมูลชี้ทาง ไม่ใช่ข้อสรุป</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

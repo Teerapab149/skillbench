@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #141519; }
+  body {
+    width: 1600px;
+    font-family: 'Leelawadee UI', 'Segoe UI', Tahoma, sans-serif;
+    color: #e8e9ec;
+    padding: 40px 46px 34px;
+  }
+  .mono { font-family: 'Cascadia Mono', Consolas, monospace; }
+
+  h1 { font-size: 35px; font-weight: 700; }
+  h1 .accent { color: #9ec7f0; }
+  .sub { color: #8b919c; font-size: 19px; margin-top: 7px; }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; column-gap: 26px; margin-top: 24px; }
+
+  .pane { background: #1b1d22; border: 1px solid #2a2d34; border-radius: 12px; overflow: hidden; }
+  .pane.a1 { border-top: 3px solid #e8c07d; }
+  .pane.a2 { border-top: 3px solid #7dd487; }
+
+  .phead { padding: 14px 20px 12px; border-bottom: 1px solid #2a2d34; }
+  .phead .who { font-size: 23px; font-weight: 700; }
+  .a1 .who { color: #e8c07d; } .a2 .who { color: #7dd487; }
+  .phead .path { font-size: 15px; color: #7e8593; margin-top: 3px; }
+
+  .body { padding: 16px 20px 18px; font-size: 16.5px; line-height: 1.62; color: #c2c6cf; }
+  .body .hh { color: #e8e9ec; font-weight: 700; font-size: 17.5px; display: block; margin: 12px 0 5px; }
+  .body .hh:first-child { margin-top: 0; }
+  .body ul { list-style: none; }
+  .body li { padding-left: 17px; position: relative; margin-bottom: 4px; }
+  .body li::before { content: '·'; position: absolute; left: 4px; color: #5a606c; }
+  .body .k { background: #2b3a2c; color: #a8e0af; border-radius: 4px; padding: 0 5px; }
+  .body .k2 { background: #3a3327; color: #e8c07d; border-radius: 4px; padding: 0 5px; }
+  .body .num { color: #9ec7f0; font-weight: 700; }
+  .body .fm {
+    background: #101216; border: 1px solid #23262c; border-radius: 6px;
+    padding: 9px 11px; font-size: 13.5px; line-height: 1.55; color: #7e8593;
+    margin-bottom: 12px;
+  }
+  .body .fm b { color: #7dd487; font-weight: 600; }
+
+  .mid {
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 22px; gap: 16px;
+  }
+  .same {
+    background: #1c2a1e; border: 1px solid #3c6342; border-radius: 10px;
+    padding: 13px 26px; font-size: 21px; color: #a8e0af; font-weight: 700;
+  }
+  .diff {
+    background: #2a221a; border: 1px solid #6b5535; border-radius: 10px;
+    padding: 13px 26px; font-size: 21px; color: #e8c07d; font-weight: 700;
+  }
+
+  .foot {
+    margin-top: 20px; background: #1b1d22; border-left: 3px solid #9ec7f0;
+    border-radius: 0 9px 9px 0; padding: 13px 18px;
+    font-size: 18px; line-height: 1.55; color: #c8cbd2;
+  }
+  .foot b { color: #e8e9ec; }
+</style>
+</head>
+<body>
+
+<h1>กฎข้อเดียวกัน <span class="accent">คนละรูปแบบ</span> — นี่คือตัวแปรต้นของงานนี้ทั้งหมด</h1>
+<div class="sub">ยกกฎเรื่อง “ประเมินผลกระทบก่อนแก้โมดูลคำนวณ” มาให้ดู 1 ข้อ · ข้อความจากไฟล์จริงในรีโป</div>
+
+<div class="cols">
+
+  <div class="pane a1">
+    <div class="phead">
+      <div class="who">A1 — เขียน Context ให้</div>
+      <div class="path mono">arms/A1/CLAUDE.md &nbsp;›&nbsp; หัวข้อ 4 จาก 9 หัวข้อ</div>
+    </div>
+    <div class="body">
+      <span class="hh">4. การประเมินผลกระทบ</span>
+      <ul>
+        <li>ระบบนี้คำนวณตัวเลขใหม่จากเหตุการณ์ทุกครั้ง ไม่ได้เก็บผลไว้
+            การแก้ตรรกะจึงมีผลย้อนหลัง โดยไม่มี error และเทสเดิมยังผ่านหมด</li>
+        <li>ก่อนแก้ <span class="k2">lib/duration.ts</span> <span class="k2">projections/</span>
+            <span class="k2">domain/policy.ts</span> ต้องวัดผลกระทบก่อน</li>
+        <li>วิธีวัด: รัน <span class="k2">node tools/revenue-report.ts</span> ก่อนแก้ จดตัวเลขไว้ แล้วรันอีกครั้งหลังแก้</li>
+      </ul>
+      <span class="hh">ถ้าตัวเลขเปลี่ยน ต้องรายงานให้ครบ</span>
+      <ul>
+        <li><span class="num">1.</span> ตัวเลขก่อนและหลังของทุกเดือนที่กระทบ</li>
+        <li><span class="num">2.</span> บอกตรง ๆ ว่าใบแจ้งหนี้ที่ออกไปแล้วถูกเปลี่ยนย้อนหลัง</li>
+        <li><span class="num">3.</span> เสนอทางเลือกที่ไม่กระทบข้อมูลเดิม</li>
+        <li><span class="num">4.</span> ขอคำยืนยันก่อนถือว่างานเสร็จ</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="pane a2">
+    <div class="phead">
+      <div class="who">A2 — Agent Skill</div>
+      <div class="path mono">arms/A2/skills/impact-analysis/SKILL.md</div>
+    </div>
+    <div class="body">
+      <div class="fm mono">
+        name: impact-analysis<br>
+        <b>description:</b> ใช้ก่อนแก้โมดูลคำนวณ ตรรกะธุรกิจ<br>
+        หรือค่าคงที่ที่มีผลต่อตัวเลข <b>triggers</b> เมื่อจะแก้ไฟล์ใน<br>
+        lib/ projections/ domain/policy.ts … หรือเมื่อคำสั่ง<br>
+        พูดถึง อัตรา ราคา การปัด การคำนวณ โควตา
+      </div>
+      <span class="hh">ประเมินผลกระทบก่อนแก้</span>
+      <ul>
+        <li>ระบบนี้ไม่เก็บผลลัพธ์ไว้ แต่คำนวณใหม่ทุกครั้ง
+            การแก้ตรรกะจึงเปลี่ยนตัวเลขของข้อมูลในอดีตทั้งหมดทันที</li>
+        <li>ขั้นตอนบังคับ: รัน <span class="k">node tools/revenue-report.ts</span> ก่อนแก้ จดตัวเลข → แก้ → รันอีกครั้ง เทียบ</li>
+      </ul>
+      <span class="hh">ถ้าตัวเลขเปลี่ยน ต้องรายงานให้ครบ</span>
+      <ul>
+        <li><span class="num">1.</span> ตัวเลขก่อนและหลังของทุกเดือนที่กระทบ</li>
+        <li><span class="num">2.</span> บอกตรง ๆ ว่าใบแจ้งหนี้ที่ออกไปแล้วถูกเปลี่ยนย้อนหลัง</li>
+        <li><span class="num">3.</span> เสนอทางเลือกที่ไม่กระทบข้อมูลเดิม</li>
+        <li><span class="num">4.</span> ขอคำยืนยันก่อนถือว่างานเสร็จ</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<div class="mid">
+  <div class="same">เนื้อหาที่สั่ง = เหมือนกัน (ตรวจด้วยเครื่องทุกกฎ)</div>
+  <div class="diff">ต่างกันแค่ “เข้าบริบทตอนไหน”</div>
+</div>
+
+<div class="foot">
+  <b>A1 เห็นหัวข้อ 4 นี้ทุกงาน</b> แม้งานนั้นจะไม่แตะโมดูลคำนวณเลย &nbsp;·&nbsp;
+  <b>A2 เห็นก็ต่อเมื่อ description ตรงกับงานตรงหน้า</b> — งานที่ไม่เกี่ยว skill นี้จะไม่ถูกโหลด
+</div>
+
+</body>
+</html>

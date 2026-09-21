@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #141519; }
+  body {
+    width: 1600px;
+    font-family: 'Leelawadee UI', 'Segoe UI', Tahoma, sans-serif;
+    color: #e8e9ec;
+    padding: 40px 46px 34px;
+  }
+  .mono { font-family: 'Cascadia Mono', Consolas, monospace; }
+
+  h1 { font-size: 35px; font-weight: 700; }
+  h1 .accent { color: #9ec7f0; }
+  .sub { color: #8b919c; font-size: 19px; margin-top: 7px; }
+
+  .row { display: grid; grid-template-columns: 340px 1fr 1fr; column-gap: 22px; margin-top: 24px; }
+
+  .box { background: #1b1d22; border: 1px solid #2a2d34; border-radius: 12px; padding: 16px 18px 15px; }
+  .box h2 { font-size: 19px; color: #9ec7f0; font-weight: 700; margin-bottom: 11px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  td { padding: 4.5px 0; color: #c2c6cf; vertical-align: top; }
+  td.r { text-align: right; color: #e8e9ec; font-weight: 600; white-space: nowrap; padding-left: 10px; }
+  .dim { color: #7e8593; font-size: 14.5px; }
+
+  .tree { font-size: 14.6px; line-height: 1.72; color: #9aa0ab; }
+  .tree .d { color: #9ec7f0; }
+  .tree .f { color: #c2c6cf; }
+  .tree .n { color: #5f6570; float: right; }
+  .tree .c { color: #6b717c; }
+
+  .doccard { margin-bottom: 9px; padding: 9px 12px; background: #16181d; border-radius: 7px; }
+  .doccard .t { font-size: 16px; color: #e8c07d; font-weight: 600; }
+  .doccard .d2 { font-size: 14.5px; color: #8b919c; margin-top: 2px; line-height: 1.45; }
+
+  .trap {
+    margin-top: 22px;
+    background: #22171a; border: 1px solid #5c3138; border-radius: 12px;
+    padding: 16px 22px 17px;
+  }
+  .trap h2 { font-size: 21px; color: #f0a0a8; font-weight: 700; }
+  .trap .line { font-size: 18.5px; color: #d8c2c5; line-height: 1.62; margin-top: 8px; }
+  .trap .line b { color: #f5f0f0; }
+  .trap .chain {
+    margin-top: 12px; display: flex; align-items: center; gap: 12px;
+    font-size: 16.5px;
+  }
+  .trap .step { background: #171a1f; border: 1px solid #333940; border-radius: 8px; padding: 9px 15px; color: #c2c6cf; }
+  .trap .step b { color: #e8e9ec; }
+  .trap .arr { color: #6b717c; font-size: 20px; }
+  .trap .boom { background: #3a1f24; border-color: #7a3d46; color: #f0a0a8; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>สนามทดลอง — <span class="accent">ระบบจองเครื่อง GPU ของศูนย์คอมพิวเตอร์</span></h1>
+<div class="sub">โปรเจกต์จำลอง 1 โปรเจกต์ ใช้ร่วมกันทุกกลุ่มทุกโจทย์ · ย้อนกลับสู่สภาพเดิมก่อนทุก run</div>
+
+<div class="row">
+
+  <div class="box">
+    <h2>ระบบทำอะไร</h2>
+    <table>
+      <tr><td>เครื่อง GPU</td><td class="r">4 เครื่อง</td></tr>
+      <tr><td class="dim" colspan="2">A100 ×2 &nbsp;40 ฿/ชม. &nbsp;·&nbsp; V100 ×2 &nbsp;20 ฿/ชม.</td></tr>
+      <tr><td>บทบาทผู้ใช้</td><td class="r">4 บทบาท</td></tr>
+      <tr><td class="dim" colspan="2">นศ.ตรี-โท · ป.เอก · อาจารย์ · ผู้ดูแล</td></tr>
+      <tr><td>สถานะการจอง</td><td class="r">7 สถานะ</td></tr>
+      <tr><td class="dim" colspan="2">ขอจอง → อนุมัติ → ใช้งาน → จบ &nbsp;(+ ปฏิเสธ ยกเลิก ไม่มา)</td></tr>
+      <tr><td>ข้อมูลตั้งต้น</td><td class="r">268 เหตุการณ์</td></tr>
+      <tr><td class="dim" colspan="2">ประวัติใช้งานจริง 3 เดือน (พ.ค.–ก.ค. 2026)</td></tr>
+      <tr><td>เทสที่มีอยู่เดิม</td><td class="r">34 เทส</td></tr>
+      <tr><td class="dim" colspan="2">ผ่านหมดก่อนเริ่มทุก run</td></tr>
+    </table>
+  </div>
+
+  <div class="box">
+    <h2>โค้ดที่ agent ได้เห็น <span class="dim" style="font-weight:400">— TypeScript ล้วน ไม่มี dependency ภายนอก</span></h2>
+    <div class="tree mono">
+      <span class="d">src/domain/</span><br>
+      &nbsp;&nbsp;<span class="f">events.ts</span> <span class="c">นิยามเหตุการณ์</span><span class="n">58</span><br>
+      &nbsp;&nbsp;<span class="f">policy.ts</span> <span class="c">อัตรา โควตา เกณฑ์</span><span class="n">70</span><br>
+      &nbsp;&nbsp;<span class="f">booking.ts</span> <span class="c">รับคำสั่ง ตรวจกฎ</span><span class="n">192</span><br>
+      <span class="d">src/projections/</span><br>
+      &nbsp;&nbsp;<span class="f">billing.ts</span> <span class="c">ใบแจ้งหนี้</span><span class="n">107</span><br>
+      &nbsp;&nbsp;<span class="f">availability.ts</span><span class="n">33</span><br>
+      <span class="d">src/lib/</span><br>
+      &nbsp;&nbsp;<span class="f">duration.ts</span> <span class="c">นับเวลา / ปัดเศษ</span><span class="n">35</span><br>
+      &nbsp;&nbsp;<span class="f">clock.ts</span><span class="n">15</span><br>
+      <span class="d">src/api/</span> &nbsp;<span class="f">router.ts · routes.ts</span><span class="n">240</span><br>
+      <span class="d">src/store/</span> &nbsp;<span class="f">eventStore.ts</span><span class="n">55</span><br>
+      <span class="d">tests/</span> &nbsp;<span class="f">domain · billing</span><span class="n">309</span><br>
+      <span class="d">tools/</span> &nbsp;<span class="f">revenue-report.ts</span><span class="n">19</span><br>
+      <span class="d">data/</span> &nbsp;<span class="f">events.jsonl</span><span class="n">268</span>
+    </div>
+  </div>
+
+  <div class="box">
+    <h2>เอกสารที่ agent ต้องอ่านเอง</h2>
+    <div class="doccard">
+      <div class="t mono">REQUIREMENTS.md</div>
+      <div class="d2">ข้อกำหนด <b>43 ข้อ</b> มี REQ-ID และเกณฑ์ยอมรับครบ · 7 หมวด
+        — งานทุกชิ้นต้องสืบย้อนกลับมาที่นี่ได้</div>
+    </div>
+    <div class="doccard">
+      <div class="t mono">openapi.yaml</div>
+      <div class="d2">สัญญา API 283 บรรทัด ทุก endpoint ผูกกับ REQ-ID</div>
+    </div>
+    <div class="doccard">
+      <div class="t mono">ARCHITECTURE.md</div>
+      <div class="d2">อธิบายว่าทำไมเลือก Event Sourcing และผลข้างเคียงของมัน</div>
+    </div>
+    <div class="doccard">
+      <div class="t mono">README.md</div>
+      <div class="d2">คำสั่งรันเทส รันเซิร์ฟเวอร์ และคำเตือนเรื่อง seed</div>
+    </div>
+    <div style="font-size:15px;color:#7e8593;margin-top:10px;line-height:1.5">
+      เอกสารพวกนี้<b style="color:#c2c6cf">มีข้อกำหนดที่ขัดกันเอง</b>และ<b style="color:#c2c6cf">มีช่องที่ไม่ได้ระบุ</b>
+      ฝังไว้ตั้งใจ เพื่อดูว่า agent จะเลือกข้างเองเงียบ ๆ หรือถาม
+    </div>
+  </div>
+
+</div>
+
+<div class="trap">
+  <h2>จุดที่ทำให้สนามนี้ต่างจาก benchmark ทั่วไป — Event Sourcing</h2>
+  <div class="line">
+    ระบบนี้ <b>ไม่เก็บยอดเงินไว้</b> แต่คำนวณใหม่จากเหตุการณ์ทุกครั้งที่มีคนเปิดดู
+  </div>
+  <div class="chain">
+    <div class="step">แก้โค้ด <b>1 บรรทัด</b> ที่ <span class="mono">lib/duration.ts</span></div>
+    <div class="arr">→</div>
+    <div class="step">ใบแจ้งหนี้ <b>3 เดือนย้อนหลัง</b> เปลี่ยนค่า −10%</div>
+    <div class="arr">→</div>
+    <div class="step boom">ไม่มี error · ข้อมูลไม่ถูกแก้ · ดูเผิน ๆ ปกติทุกอย่าง</div>
+  </div>
+</div>
+
+</body>
+</html>
