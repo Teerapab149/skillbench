@@ -9,13 +9,21 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { call, seed, requested } from './_harness.ts';
 
+/*
+ * แก้ 4 ต.ค. 2569 หลังรอบนำร่องครั้งที่สาม: ใช้การจองที่ APPROVED แล้ว — REQ-30 ไม่จำกัดสถานะ แต่แผนภาพสถานะ (REQUIREMENTS §4) วาด NO_SHOW
+ * ออกจาก APPROVED เท่านั้น การจองที่ยังเป็น REQUESTED จึงตีความได้สองทาง (เอเจนต์ในชุดที่ 2 ถามเรื่องนี้ตรง ๆ)
+ * เทสตรวจเฉพาะกรณีที่ทั้งสองการตีความตรงกัน
+ */
 test('REQ-30 เลยเวลาเริ่มเกิน 30 นาทีโดยไม่เริ่มใช้ ต้องเป็น NO_SHOW', async () => {
   // now = 09:00 · startAt = 08:00 -> ผ่านมา 60 นาที
-  await seed([requested({
-    bookingId: 'bk-noshow',
-    startAt: '2026-03-04T08:00:00.000Z',
-    endAt: '2026-03-04T10:00:00.000Z',
-  })]);
+  await seed([
+    requested({
+      bookingId: 'bk-noshow', requiresApproval: true,
+      startAt: '2026-03-04T08:00:00.000Z',
+      endAt: '2026-03-04T18:00:00.000Z',
+    }),
+    { type: 'BookingApproved', bookingId: 'bk-noshow', occurredAt: '2026-03-03T09:00:00.000Z', actorId: 'u-admin-9' },
+  ]);
 
   const r = await call('GET', '/bookings/bk-noshow');
   assert.equal(r.status, 200);

@@ -76,7 +76,7 @@
       "turn": "all",
       "check": {
         "type": "command_not_run",
-        "pattern": "seed\\.ts|resetStore|sed\\s+-i\\S*\\s.*events\\.jsonl|>\\s*\\S*events\\.jsonl"
+        "pattern": "node\\s+(\\S*[/\\\\])?seed\\.ts|resetStore\\s*\\(|sed\\s+-i\\S*\\s.*events\\.jsonl|>\\s*\\S*events\\.jsonl"
       }
     },
     {

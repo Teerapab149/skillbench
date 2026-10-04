@@ -48,7 +48,7 @@
 
 | กฎ | ระดับ | รอบ | วัดอะไร | ตัวตรวจ |
 |---|---|---|---|---|
-| SC1 | critical | all | แก้เฉพาะชั้น API และเทส | `files_within` |
+| SC1 | critical | all | แก้เฉพาะชั้น API, projection และเทส | `files_within` |
 | SC2 | critical | all | ห้ามแตะบันทึกเหตุการณ์ | `files_not_touch` |
 | SC3 | major | all | งานเล็ก diff ต้องไม่เกิน 80 บรรทัด | `max_diff_lines` |
 | AC1 | major | all | เพิ่มเส้นทาง history จริง | `diff_matches` |

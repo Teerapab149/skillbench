@@ -24,15 +24,24 @@
     {
       "id": "SC1",
       "severity": "critical",
-      "desc": "แก้เฉพาะชั้น API และเทส",
+      "desc": "แก้เฉพาะชั้น API, projection และเทส",
       "check": {
+        "type": "files_within",
+        "globs": [
+          "src/api/**",
+          "src/projections/**",
+          "tests/**"
+        ]
+      },
+      "turn": "all",
+      "_checkStudy2": {
         "type": "files_within",
         "globs": [
           "src/api/**",
           "tests/**"
         ]
       },
-      "turn": "all"
+      "_study3Check": "แก้ 4 ต.ค. 2569 หลังรอบนำร่องครั้งที่สาม — เดิมอนุญาตแค่ src/api/** แต่ระบบเป็น CQRS ที่มีโฟลเดอร์ projections สำหรับ read model อยู่แล้ว การวาง history ไว้ใน projection คือรูปแบบของสถาปัตยกรรมเอง (ARCHITECTURE.md) รอบนำร่องพบคำตอบที่ทำแบบนั้นแล้วตก SC1 (critical)"
     },
     {
       "id": "SC2",

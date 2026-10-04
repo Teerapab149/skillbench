@@ -13,8 +13,7 @@ test('REQ-21 ปฏิเสธโดยไม่ระบุเหตุผล 
   await seed([requested({ bookingId: 'bk-rj1', requiresApproval: true })]);
   const r = await call('POST', '/bookings/bk-rj1/reject', { ...ADMIN, body: {} });
   assert.equal(r.status, 400, `ต้องได้ 400 แต่ได้ ${r.status}`);
-  const r2 = await call('POST', '/bookings/bk-rj1/reject', { ...ADMIN, body: { reason: '   ' } });
-  assert.equal(r2.status, 400, `เหตุผลที่เป็นช่องว่างล้วนต้องได้ 400 แต่ได้ ${r2.status}`);
+  // แก้ 4 ต.ค. 2569 หลังรอบนำร่องครั้งที่สาม: เดิมตรวจเหตุผลที่เป็นช่องว่างล้วนด้วย ซึ่งเกิน AC ของ REQ-21 ("ไม่ส่ง reason → 400")
 });
 
 test('REQ-21 ระบุเหตุผลแล้วปฏิเสธได้', async () => {

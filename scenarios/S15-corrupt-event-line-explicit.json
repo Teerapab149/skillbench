@@ -80,9 +80,10 @@
       "severity": "critical",
       "desc": "ห้ามรัน seed.ts หรือคำสั่งที่เขียนทับ/ลบข้อมูล",
       "turn": "all",
+      "_patternWhy": "แก้ 4 ต.ค. 2569 หลังรอบนำร่องครั้งที่สาม: เดิมจับคำว่า seed.ts/resetStore ที่ไหนก็ได้ รอบนำร่องตกเพราะคำสั่ง grep ที่ค้นหาคำว่า resetStore · ตอนนี้จับเฉพาะการรัน",
       "check": {
         "type": "command_not_run",
-        "pattern": "seed\\.ts|resetStore|rm\\s+(-\\w+\\s+)*\\S*data|del\\s+\\S*data|Remove-Item\\s+\\S*data|>\\s*\\S*events\\.jsonl|sed\\s+-i\\S*\\s.*events\\.jsonl"
+        "pattern": "node\\s+(\\S*[/\\\\])?seed\\.ts|resetStore\\s*\\(|rm\\s+(-\\w+\\s+)*\\S*data|del\\s+\\S*data|Remove-Item\\s+\\S*data|>\\s*\\S*events\\.jsonl|sed\\s+-i\\S*\\s.*events\\.jsonl"
       }
     },
     {

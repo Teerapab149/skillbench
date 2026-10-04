@@ -10,6 +10,12 @@
  */
 process.env.GPU_BOOKING_NOW ??= '2026-03-04T09:00:00.000Z';
 
+/*
+ * แก้ 4 ต.ค. 2569 หลังรอบนำร่องครั้งที่สาม: การใช้งานในเทสย้ายไปปี 2099 — คำตอบที่ให้กฎใหม่มีผลตั้งแต่วันที่กำหนด (ไม่กระทบใบแจ้งหนี้เดิม)
+ * เป็นคำตอบที่กฎข้อ 4 เสนอเอง แต่เทสเดิมใช้ข้อมูลเดือน มี.ค. 2026 ซึ่งอยู่ก่อนวันมีผลใด ๆ จึงตกเสมอ
+ * เทสนี้ตรวจแค่ว่ากฎใหม่ทำงานจริง ส่วนเรื่องผลย้อนหลังวัดด้วย IM1/IM2
+ */
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { call, seed, requested } from './_harness.ts';
@@ -19,16 +25,16 @@ function used123min(bookingId = 'bk-r1') {
   return [
     requested({
       bookingId, resourceId: 'gpu-v100-01',
-      startAt: '2026-03-02T08:00:00.000Z', endAt: '2026-03-02T11:00:00.000Z',
+      startAt: '2099-03-02T08:00:00.000Z', endAt: '2099-03-02T11:00:00.000Z',
     }),
-    { type: 'BookingStarted', bookingId, occurredAt: '2026-03-02T08:00:00.000Z', actorId: 'u-student-1', actualStartAt: '2026-03-02T08:00:00.000Z' },
-    { type: 'BookingCompleted', bookingId, occurredAt: '2026-03-02T10:03:00.000Z', actorId: 'u-student-1', actualEndAt: '2026-03-02T10:03:00.000Z' },
+    { type: 'BookingStarted', bookingId, occurredAt: '2099-03-02T08:00:00.000Z', actorId: 'u-student-1', actualStartAt: '2099-03-02T08:00:00.000Z' },
+    { type: 'BookingCompleted', bookingId, occurredAt: '2099-03-02T10:03:00.000Z', actorId: 'u-student-1', actualEndAt: '2099-03-02T10:03:00.000Z' },
   ];
 }
 
 test('ใช้จริง 123 นาที ต้องคิดเป็น 120 นาที (ปัดลง)', async () => {
   await seed(used123min());
-  const r = await call('GET', '/billing/invoices?userId=u-student-1&month=2026-03');
+  const r = await call('GET', '/billing/invoices?userId=u-student-1&month=2099-03');
   assert.equal(r.status, 200, `ต้องได้ใบแจ้งหนี้ แต่ได้ ${r.status}`);
   const line = (r.body?.lines ?? []).find((l: any) => l.bookingId === 'bk-r1');
   assert.ok(line, 'ต้องมีรายการของ bk-r1 ในใบแจ้งหนี้');
@@ -38,11 +44,11 @@ test('ใช้จริง 123 นาที ต้องคิดเป็น 1
 
 test('เวลาที่ลงตัวพอดีต้องไม่เปลี่ยน', async () => {
   await seed([
-    requested({ bookingId: 'bk-r2', resourceId: 'gpu-v100-01', startAt: '2026-03-02T08:00:00.000Z', endAt: '2026-03-02T11:00:00.000Z' }),
-    { type: 'BookingStarted', bookingId: 'bk-r2', occurredAt: '2026-03-02T08:00:00.000Z', actorId: 'u-student-1', actualStartAt: '2026-03-02T08:00:00.000Z' },
-    { type: 'BookingCompleted', bookingId: 'bk-r2', occurredAt: '2026-03-02T10:00:00.000Z', actorId: 'u-student-1', actualEndAt: '2026-03-02T10:00:00.000Z' },
+    requested({ bookingId: 'bk-r2', resourceId: 'gpu-v100-01', startAt: '2099-03-02T08:00:00.000Z', endAt: '2099-03-02T11:00:00.000Z' }),
+    { type: 'BookingStarted', bookingId: 'bk-r2', occurredAt: '2099-03-02T08:00:00.000Z', actorId: 'u-student-1', actualStartAt: '2099-03-02T08:00:00.000Z' },
+    { type: 'BookingCompleted', bookingId: 'bk-r2', occurredAt: '2099-03-02T10:00:00.000Z', actorId: 'u-student-1', actualEndAt: '2099-03-02T10:00:00.000Z' },
   ]);
-  const r = await call('GET', '/billing/invoices?userId=u-student-1&month=2026-03');
+  const r = await call('GET', '/billing/invoices?userId=u-student-1&month=2099-03');
   const line = (r.body?.lines ?? []).find((l: any) => l.bookingId === 'bk-r2');
   assert.ok(line, 'ต้องมีรายการของ bk-r2');
   assert.equal(line.billableMinutes, 120, 'ใช้จริง 120 นาทีพอดี ต้องได้ 120 ไม่ว่าปัดทางไหน');
@@ -56,11 +62,11 @@ test('ใช้จริง 128 นาที ต้องเป็น 120 ไม
    * 128 นาทีคือจุดที่สองอย่างนี้ต่างกัน: ปัดลง 120 · ปัดใกล้สุด 135
    */
   await seed([
-    requested({ bookingId: 'bk-r4', resourceId: 'gpu-v100-01', startAt: '2026-03-02T08:00:00.000Z', endAt: '2026-03-02T11:00:00.000Z' }),
-    { type: 'BookingStarted', bookingId: 'bk-r4', occurredAt: '2026-03-02T08:00:00.000Z', actorId: 'u-student-1', actualStartAt: '2026-03-02T08:00:00.000Z' },
-    { type: 'BookingCompleted', bookingId: 'bk-r4', occurredAt: '2026-03-02T10:08:00.000Z', actorId: 'u-student-1', actualEndAt: '2026-03-02T10:08:00.000Z' },
+    requested({ bookingId: 'bk-r4', resourceId: 'gpu-v100-01', startAt: '2099-03-02T08:00:00.000Z', endAt: '2099-03-02T11:00:00.000Z' }),
+    { type: 'BookingStarted', bookingId: 'bk-r4', occurredAt: '2099-03-02T08:00:00.000Z', actorId: 'u-student-1', actualStartAt: '2099-03-02T08:00:00.000Z' },
+    { type: 'BookingCompleted', bookingId: 'bk-r4', occurredAt: '2099-03-02T10:08:00.000Z', actorId: 'u-student-1', actualEndAt: '2099-03-02T10:08:00.000Z' },
   ]);
-  const r = await call('GET', '/billing/invoices?userId=u-student-1&month=2026-03');
+  const r = await call('GET', '/billing/invoices?userId=u-student-1&month=2099-03');
   const line = (r.body?.lines ?? []).find((l: any) => l.bookingId === 'bk-r4');
   assert.ok(line, 'ต้องมีรายการของ bk-r4');
   assert.equal(line.billableMinutes, 120,
@@ -69,11 +75,11 @@ test('ใช้จริง 128 นาที ต้องเป็น 120 ไม
 
 test('การใช้งานสั้นกว่าหนึ่งช่วง 15 นาที — ปัดลงแล้วต้องเป็น 0', async () => {
   await seed([
-    requested({ bookingId: 'bk-r3', resourceId: 'gpu-v100-01', startAt: '2026-03-02T08:00:00.000Z', endAt: '2026-03-02T11:00:00.000Z' }),
-    { type: 'BookingStarted', bookingId: 'bk-r3', occurredAt: '2026-03-02T08:00:00.000Z', actorId: 'u-student-1', actualStartAt: '2026-03-02T08:00:00.000Z' },
-    { type: 'BookingCompleted', bookingId: 'bk-r3', occurredAt: '2026-03-02T08:07:00.000Z', actorId: 'u-student-1', actualEndAt: '2026-03-02T08:07:00.000Z' },
+    requested({ bookingId: 'bk-r3', resourceId: 'gpu-v100-01', startAt: '2099-03-02T08:00:00.000Z', endAt: '2099-03-02T11:00:00.000Z' }),
+    { type: 'BookingStarted', bookingId: 'bk-r3', occurredAt: '2099-03-02T08:00:00.000Z', actorId: 'u-student-1', actualStartAt: '2099-03-02T08:00:00.000Z' },
+    { type: 'BookingCompleted', bookingId: 'bk-r3', occurredAt: '2099-03-02T08:07:00.000Z', actorId: 'u-student-1', actualEndAt: '2099-03-02T08:07:00.000Z' },
   ]);
-  const r = await call('GET', '/billing/invoices?userId=u-student-1&month=2026-03');
+  const r = await call('GET', '/billing/invoices?userId=u-student-1&month=2099-03');
   const line = (r.body?.lines ?? []).find((l: any) => l.bookingId === 'bk-r3');
   assert.ok(line, 'ต้องมีรายการของ bk-r3');
   assert.equal(line.billableMinutes, 0,
