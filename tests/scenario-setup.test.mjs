@@ -42,6 +42,9 @@ test('setupPatches ถูก commit ก่อน startCommit — diff ของ�
     assert.equal(git(dir, ['rev-parse', 'HEAD']).trim(), r.startCommit);
     assert.equal(git(dir, ['diff', '--name-only', r.startCommit]).trim(), '');
     assert.ok(r.setupCommit);
+    // C6: ประวัติต้องไม่เผยว่ามีการปะกับดักเพิ่ม — commit เดียว ข้อความเดียวกับ baseline
+    assert.equal(git(dir, ['rev-list', '--count', 'HEAD']).trim(), '1');
+    assert.equal(git(dir, ['log', '-1', '--format=%s']).trim(), 'base');
   } finally {
     release();
     fs.rmSync(patchFile, { force: true });

@@ -167,6 +167,29 @@ export function applySetupPatches(cwd, patches) {
   }
 }
 
+/**
+ * commit สภาพเริ่มต้นของโจทย์ให้หน้าตาเหมือน baseline ทุกอย่าง — ผู้รีวิว (C6) ชี้ว่า
+ * commit ชื่อ scenario-setup ที่ HEAD~1 ทำให้ `git log -p` เปิดเผยกับดักที่เพิ่งปะลงไป
+ * (TODO หรือหมายเหตุในโค้ด) เอเจนต์ที่ดูประวัติจะรู้ว่ามันเป็นของปลอมที่ใส่มาเมื่อครู่
+ *
+ * ทำเป็น root commit ที่ผู้เขียน วันที่ และข้อความเดียวกับ baseline เป๊ะ
+ * ประวัติจึงมี commit เดียวเหมือนโจทย์ที่ไม่มี setup — tag baseline ไม่ถูกแตะ
+ * resetToBaseline() จึงพากลับไปจุดเดิมได้ตามปกติ
+ */
+function disguiseAsBaseline(cwd) {
+  const meta = gitStrict(cwd, ['log', '-1', '--format=%an%x00%ae%x00%aI%x00%cn%x00%ce%x00%cI%x00%B', BASELINE_TAG]).split('\0');
+  const [an, ae, ad, cn, ce, cd] = meta;
+  const msg = meta.slice(6).join('\0').trim();
+  gitStrict(cwd, ['add', '-A']);
+  const tree = gitStrict(cwd, ['write-tree']).trim();
+  const commit = execFileSync('git', ['commit-tree', tree, '-m', msg], {
+    cwd, encoding: 'utf8',
+    env: { ...process.env, GIT_AUTHOR_NAME: an, GIT_AUTHOR_EMAIL: ae, GIT_AUTHOR_DATE: ad,
+           GIT_COMMITTER_NAME: cn, GIT_COMMITTER_EMAIL: ce, GIT_COMMITTER_DATE: cd },
+  }).trim();
+  gitStrict(cwd, ['reset', '-q', '--hard', commit]);
+}
+
 export function installArm({ workspace, arm, scenario = null }) {
   const cwd = path.resolve(workspace);
   resetToBaseline(cwd);
@@ -174,9 +197,7 @@ export function installArm({ workspace, arm, scenario = null }) {
   const setup = loadSetupPatches(scenario);
   if (setup.length) {
     applySetupPatches(cwd, setup);
-    gitStrict(cwd, ['add', '-A']);
-    gitStrict(cwd, ['-c', 'user.email=bench@local', '-c', 'user.name=skillbench',
-                    'commit', '-qm', `scenario-setup:${scenario.id}`]);
+    disguiseAsBaseline(cwd);
   }
   const injectionTargets = [];
   const injectionProbes = [];

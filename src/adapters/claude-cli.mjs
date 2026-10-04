@@ -12,6 +12,7 @@
 import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { installArm, uninstallArm } from '../install-arm.mjs';
 import { acquireFixtureLock } from '../fixture-lock.mjs';
@@ -141,6 +142,51 @@ export function captureWorkspaceChanges(cwd, anchor) {
 }
 
 /**
+ * ภาพของ workspace หลังรอบแรก (Study 3, ผู้รีวิว C1) — เก็บไว้ก่อนส่งรอบตอบกลับ
+ *
+ * ถ้าวัดแต่สภาพหลังรอบสอง จะไม่มีทางรู้ว่ารอบตอบกลับ "ช่วย" แต่ละกลุ่มไปเท่าไร
+ * และเทียบกับชุดที่ 2 (รอบเดียว) ไม่ได้เลย · สมมติฐาน "กฎแลกความสำเร็จ" ในบทที่ 7
+ * ต้องการตัวเลขนี้ตรง ๆ
+ *
+ * ต้องไม่รบกวนสิ่งที่เอเจนต์เห็นในรอบสอง:
+ *   - diff อ่านผ่าน index ชั่วคราว (GIT_INDEX_FILE) index จริงของเอเจนต์ไม่ถูกแตะ
+ *   - เทส, probe และเทสยอมรับรันในสำเนาของ workspace นอกโฟลเดอร์ทดลอง
+ *     เพราะเทสยอมรับเขียนทับ data/events.jsonl และต้องคัดลอกเฉลยเข้าไป
+ */
+export function snapshotWorkspace(cwd, anchor, scenario) {
+  const tmpIndex = path.join(os.tmpdir(), `sb-idx-${process.pid}-${Date.now()}`);
+  const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'sb-turn1-'));
+  try {
+    const env = { ...process.env, GIT_INDEX_FILE: tmpIndex };
+    const g = (args) => execFileSync('git', args, { cwd, encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024 });
+    g(['read-tree', 'HEAD']);
+    g(['add', '-A']);
+    const filesChanged = g(['diff', '--cached', '--name-status', anchor]).split('\n').map((l) => l.trim())
+      .filter(Boolean).map((l) => l.split('\t').pop().trim());
+    const diff = g(['diff', '--cached', anchor]);
+    const commitsSoFar = git(cwd, ['rev-list', '--pretty=oneline', `${anchor}..HEAD`]).trim();
+
+    fs.cpSync(cwd, copy, { recursive: true, filter: (p) => path.basename(p) !== '.git' });
+    let testsPassed = null;
+    if (scenario.verifyCommand) {
+      // เงื่อนไขเดียวกับการรันเทสหลังรอบสุดท้ายทุกอย่าง
+      try { execFileSync(scenario.verifyCommand, { cwd: copy, shell: true, stdio: 'ignore' }); testsPassed = true; }
+      catch { testsPassed = false; }
+    }
+    const probes = runProbes(copy, scenario.probes);
+    const acceptance = runAcceptance(copy, scenario);
+    return { filesChanged, diff, testsPassed, probes, acceptance,
+             agentCommits: commitsSoFar ? commitsSoFar.split('\n').filter(Boolean) : [], error: null };
+  } catch (e) {
+    return { filesChanged: [], diff: '', testsPassed: null, probes: {}, acceptance: { ran: false, passed: false },
+             agentCommits: [], error: `ถ่ายภาพหลังรอบแรกไม่สำเร็จ: ${String(e.message ?? e).slice(0, 300)}` };
+  } finally {
+    fs.rmSync(copy, { recursive: true, force: true });
+    fs.rmSync(tmpIndex, { force: true });
+  }
+}
+
+/**
  * รันเทสยอมรับของ scenario กับ workspace ที่เอเจนต์ทำเสร็จแล้ว
  *
  * ไฟล์เทสอยู่ที่ scenarios/acceptance/<scenarioId>.test.ts ซึ่งอยู่นอก workspace
@@ -227,6 +273,20 @@ export function followUpArgs(args, followUp, sessionId) {
   const mt = out.indexOf('--max-turns');
   if (mt !== -1 && followUp.maxTurns) out[mt + 1] = String(followUp.maxTurns);
   return out;
+}
+
+/** นับ tool call และคำสั่ง Bash ของรอบหนึ่ง — นิยามเดียวกับตัวแกะ stream ด้านล่าง */
+function countToolUse(events) {
+  let toolCalls = 0, commands = 0;
+  for (const ev of events) {
+    if (ev.type !== 'assistant' || !ev.message?.content) continue;
+    for (const b of ev.message.content) {
+      if (b.type !== 'tool_use') continue;
+      toolCalls++;
+      if (b.name === 'Bash' && b.input?.command) commands++;
+    }
+  }
+  return { toolCalls, commands };
 }
 
 /** spawn CLI หนึ่งรอบ แล้วคืน event ดิบ — รอบตอบกลับใช้เส้นทางเดียวกันทุกอย่าง */
@@ -437,16 +497,19 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
     ?? turn1.events.find((e) => e.type === 'system' && e.subtype === 'init')?.session_id ?? null;
   const turn1Infra = turnInfraError(turn1, timeoutMs);
   const turn1Exhausted = /error_max_turns/i.test(String(t1Result?.subtype ?? ''));
-  let turn2 = null, followUpSkipped = null;
+  let turn2 = null, followUpSkipped = null, firstTurn = null;
   if (followUp) {
     if (turn1Infra) followUpSkipped = 'turn1-infra-error';
     else if (turn1Exhausted) followUpSkipped = 'turn1-budget-exhausted';
     else if (!t1Session) followUpSkipped = 'no-session-id';
     else {
+      firstTurn = snapshotWorkspace(cwd, install.startCommit, scenario);
       turn2 = await spawnClaude(claudeBin, followUpArgs(args, followUp, t1Session), cwd, childEnv, timeoutMs);
     }
   }
   const events = turn2 ? [...turn1.events, ...turn2.events] : turn1.events;
+  // จุดแบ่งรอบใน toolCalls/commands — ให้ firstTurnView() ตัดเฉพาะของรอบแรกได้
+  const turn1Counts = countToolUse(turn1.events);
 
   // --- แกะ tool call ออกจาก stream ---
   const toolCalls = [], commands = [], skillInvocations = [];
@@ -591,6 +654,7 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
     toolCalls, commands, filesChanged, diff, finalMessage,
     // คำตอบรายรอบ — กฎ FL* ให้คะแนนจากรอบแรก (ดู gradeRun) · null เมื่อไม่ได้ใช้รอบตอบกลับ
     firstMessage: followUp ? (t1Result?.result ?? '') : null,
+    firstTurn: firstTurn ? { ...firstTurn, toolCallCount: turn1Counts.toolCalls, commandCount: turn1Counts.commands } : null,
     messages: followUp ? resultEvs.map((e) => e.result ?? '') : null,
     loadedSkills, skillInvocations: skillInvocationNames, testsPassed, acceptance,
     // หลักฐานว่า run นี้ได้รับ context ของ arm จริง — ตรวจย้อนหลังได้โดยไม่ต้องเชื่อว่าโค้ดทำงานถูก

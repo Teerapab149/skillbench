@@ -40,8 +40,35 @@ const git = (args) => execFileSync('git', args, { cwd: FIXTURE, encoding: 'utf8'
 const clean = () => { try { git(['reset', '-q']); git(['checkout', '--', '.']); git(['clean', '-fd']); } catch { /* ปล่อย */ } };
 
 /** กฎที่ตัดสินได้จากไฟล์และ diff ล้วน — ไม่ต้องมีข้อความตอบ คำสั่ง หรือ probe */
-const STRUCTURAL = new Set(['files_within', 'files_not_touch', 'max_files_changed',
+const STRUCTURAL = new Set(['files_within', 'files_not_touch', 'max_files_changed', 'max_diff_lines',
   'diff_not_matches', 'no_unrequested_feature']);
+
+/**
+ * กฎที่คำตอบที่ถูกทุกแบบต้องผ่าน: กฎเชิงโครงสร้างที่เป็น critical ทุกข้อ + SC/GP เชิงโครงสร้างทุกข้อ
+ * (ผู้รีวิว C5) — เดิมตรวจแค่ SC/GP กับเฉลยตัวเดียว จึงไม่เห็นกรณีอย่าง S06 AC1/AC3 ที่ยิงใส่
+ * บรรทัด "+  LECTURER: 16" ซึ่งโผล่ได้เมื่อคำตอบที่ถูกเขียนบล็อก MAX_HOURS_PER_WEEK ใหม่
+ * ไม่รวม diff_matches/files_include เพราะเป็นข้อเรียกร้องเชิงบวกที่เฉลยไม่จำเป็นต้องทำ (เช่น เพิ่มเทส)
+ */
+const mustPass = (r) => STRUCTURAL.has(r.check?.type) && ((r.severity ?? 'major') === 'critical' || /^(SC|GP)/.test(r.id));
+const VAR = join(SRC, 'variants');
+
+/** ปะคำตอบหนึ่งแบบลงสภาพเริ่มต้น แล้วคืนรายการกฎที่มันตก */
+async function structuralFailures(scenario, patchPath, label) {
+  clean();
+  applyScenarioSetup(ROOT, FIXTURE, scenario.id);
+  git(['add', '-A']);
+  const mod = await import(pathToFileURL(patchPath).href);
+  const { error } = applyPatches(FIXTURE, mod.patches);
+  if (error) return [`${label}: ปะไม่ได้ — ${error}`];
+  git(['add', '-A', '-N']);
+  const filesChanged = git(['diff', '--name-only']).split('\n').map((x) => x.trim()).filter(Boolean)
+    .filter((f) => !f.startsWith(`${DEST_NAME}/`));
+  const diff = git(['diff']);
+  const rules = scenario.rules.filter(mustPass);
+  const graded = gradeRun({ runId: scenario.id, armId: 'reference', repIndex: 0, toolCalls: [], commands: [],
+    filesChanged, diff, finalMessage: '' }, { ...scenario, rules });
+  return graded.rules.filter((x) => !x.passed).map((r) => `${label} ตกกฎ ${r.id} — ${r.desc}`);
+}
 
 const refs = existsSync(REF)
   ? readdirSync(REF).filter((f) => f.endsWith('.patch.mjs')).map((f) => f.replace(/\.patch\.mjs$/, '')).sort()
@@ -72,26 +99,22 @@ for (const id of refs) {
     }
   }
 
-  // 2. เฉลยต้องผ่านกฎขอบเขตเชิงโครงสร้าง
-  const mod = await import(pathToFileURL(join(REF, `${id}.patch.mjs`)).href);
-  const { error } = applyPatches(FIXTURE, mod.patches);
-  if (error) problems.push(`ปะเฉลยไม่ได้: ${error}`);
-  else {
-    git(['add', '-A', '-N']);
-    const filesChanged = git(['diff', '--name-only']).split('\n').map((s) => s.trim()).filter(Boolean)
-      .filter((f) => !f.startsWith(`${DEST_NAME}/`));
-    const diff = git(['diff']);
-    const rules = scenario.rules.filter((r) => /^(SC|GP)/.test(r.id) && STRUCTURAL.has(r.check?.type));
-    const graded = gradeRun({ runId: id, armId: 'reference', repIndex: 0, toolCalls: [], commands: [],
-      filesChanged, diff, finalMessage: '' }, { ...scenario, rules });
-    for (const r of graded.rules.filter((x) => !x.passed)) problems.push(`เฉลยตกกฎ ${r.id} — ${r.desc}`);
+  // 2. คำตอบที่ถูกทุกแบบ (เฉลย + alt.*) ต้องผ่านกฎเชิงโครงสร้างที่ critical และ SC/GP
+  problems.push(...await structuralFailures(scenario, join(REF, `${id}.patch.mjs`), 'เฉลย'));
+  const alts = existsSync(VAR) ? readdirSync(VAR).filter((f) => f.startsWith(`${id}.alt.`) && f.endsWith('.mjs')) : [];
+  let checkedAlts = 0;
+  for (const f of alts) {
+    const mod = await import(pathToFileURL(join(VAR, f)).href);
+    if (mod.ruleCompliant === false) continue;   // ถูกเชิงหน้าที่แต่ผิดกฎขอบเขตโดยเจตนา
+    checkedAlts++;
+    problems.push(...await structuralFailures(scenario, join(VAR, f), f.replace(/\.mjs$/, '')));
   }
 
   if (problems.length) {
     failed++;
     console.log(`  ❌ ${id}`);
     for (const p of problems) console.log(`       ${p}`);
-  } else console.log(`  ✅ ${id}  เฉลยอยู่ในขอบเขต · event ที่เทสใช้มีอยู่จริง`);
+  } else console.log(`  ✅ ${id}  เฉลยและคำตอบถูกแบบอื่น ${checkedAlts} แบบผ่านกฎเชิงโครงสร้าง · event ที่เทสใช้มีอยู่จริง`);
 }
 
 clean();

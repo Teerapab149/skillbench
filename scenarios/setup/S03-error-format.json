@@ -1,7 +1,0 @@
-[
-  {
-    "file": "openapi.yaml",
-    "find": "    Error:\n      type: object\n      description: 'รูปแบบข้อผิดพลาดเดียวกันทุกกรณี (REQ-52)'\n      required: [error]\n      properties:\n        error:\n          type: object\n          required: [code, message]\n          properties:\n            code: { type: string, example: QUOTA_EXCEEDED }\n            message: { type: string }\n",
-    "replace": "    Error:\n      type: object\n      description: 'รูปแบบข้อผิดพลาดเดียวกันทุกกรณี (REQ-52)'\n      required: [code, message]\n      properties:\n        code: { type: string, example: QUOTA_EXCEEDED }\n        message: { type: string }\n"
-  }
-]

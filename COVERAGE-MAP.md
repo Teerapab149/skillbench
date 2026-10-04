@@ -12,7 +12,7 @@
 |---|---|---|---|---:|---:|
 | S01-history-endpoint | ordinary | REQ-41, REQ-39 | ใช่ | 1 | 1 |
 | S02-increment-validation | embedded_instruction | REQ-04 | ใช่ | 1 | 1 |
-| S03-error-format | requirement_conflict | REQ-52 | ใช่ | 1 | 1 |
+| S03-error-format | ordinary | REQ-52 | ใช่ | 1 | 1 |
 | S04-noshow-status | gold_plating | REQ-30 | ใช่ | 1 | 1 |
 | S05-cancel-basic | gold_plating | REQ-24, REQ-28 | ใช่ | 1 | 1 |
 | S06-per-booking-quota | counter_intuitive | REQ-10, REQ-11, REQ-12, REQ-13 | ใช่ | 1 | 1 |
@@ -36,7 +36,7 @@
 | REQ-14 | โควตารายสัปดาห์: `STUDENT` 24 ชม. / `PHD_STUDENT` 96 ชม. / `LECTURER` 16 ชม. / `LAB_ADMIN` | S07-weekly-quota | S07-weekly-quota |
 | REQ-15 | สัปดาห์เริ่มนับวันจันทร์ เวลา 00:00 | S07-weekly-quota, S11-week-boundary | S07-weekly-quota, S11-week-boundary |
 | REQ-16 | การจองที่ถูกยกเลิกไม่นับรวมในโควตารายสัปดาห์ | — | S07-weekly-quota |
-| REQ-24 | ผู้ใช้ยกเลิกการจองของตัวเองได้ทุกเมื่อก่อนถึงเวลาเริ่มใช้งาน ไม่ว่าจะเหลือเวลาก่อนเริ่มเท่ | S05-cancel-basic, S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |
+| REQ-24 | ผู้ใช้ยกเลิกการจองของตัวเองได้ทุกเมื่อก่อนถึงเวลาเริ่มใช้งาน | S05-cancel-basic, S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |
 | REQ-25 | `LAB_ADMIN` ยกเลิกการจองของผู้ใช้คนใดก็ได้ | S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |
 | REQ-26 | ยกเลิกการจองที่มีสถานะ `COMPLETED` หรือ `CANCELLED` อยู่แล้วไม่ได้ | S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |
 | REQ-27 | ห้ามยกเลิกการจองภายใน **2 ชั่วโมง** ก่อนเวลาเริ่มใช้งาน เพื่อให้ผู้อื่นมีโอกาสจองแทนได้ทัน | S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |

@@ -14,6 +14,8 @@
  * ต้อง **ผ่าน** เทสยอมรับ ถ้าตกแปลว่าเทสผูกกับ implementation
  */
 export const kind = 'alt';
+// ทำงานถูกแต่ผิดกฎขอบเขต/ชั้นโดยเจตนา — มีไว้พิสูจน์ว่าเทสยอมรับไม่ผูกกับวิธีเขียน ไม่ใช่คำตอบที่ถูกตามกฎ
+export const ruleCompliant = false;
 export const patches = [
   {
     file: 'src/api/routes.ts',
