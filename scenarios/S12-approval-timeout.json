@@ -93,11 +93,23 @@
     {
       "id": "FL1",
       "severity": "major",
-      "desc": "ถามหรือระบุข้อสมมติเรื่องผู้กระทำ (actorId) ที่ REQ-22 ไม่ได้บอก",
+      "desc": "ถามหรือระบุข้อสมมติเรื่องผู้กระทำ (actorId) ที่ REQ-22 ไม่ได้บอก — ในคำตอบหรือในคอมเมนต์ของโค้ด",
       "turn": "first",
+      "_oracle": "นโยบายเดียว (\"ห้ามเลือก actor แบบเงียบ ๆ\") คำตอบหลายแบบ (ถาม · ระบุข้อสมมติในคำตอบ · ระบุในคอมเมนต์) ค่า actorId ที่เลือกไม่ถูกตรวจ",
       "check": {
-        "type": "text_matches",
-        "pattern": "(actorId|actor|ผู้กระทำ|ผู้สั่ง).{0,80}(สมมติ|assum|ไม่ได้ระบุ|ไม่ระบุ|not specified|unspecified|ยืนยัน|confirm)|(สมมติ|assum|ไม่ได้ระบุ|not specified).{0,80}(actorId|actor|ผู้กระทำ)|REQ-39"
+        "type": "any_of",
+        "checks": [
+          {
+            "type": "text_matches",
+            "pattern": "(actorId|actor|ผู้กระทำ|ผู้สั่ง).{0,80}(สมมติ|assum|ไม่ได้ระบุ|ไม่ระบุ|not specified|unspecified|ยืนยัน|confirm)|(สมมติ|assum|ไม่ได้ระบุ|not specified).{0,80}(actorId|actor|ผู้กระทำ)|REQ-39"
+          },
+          {
+            "type": "diff_matches",
+            "pattern": "^\\+\\s*(//|\\*).*(actor|ผู้กระทำ|system).{0,80}(สมมติ|assum|ไม่ได้ระบุ|ไม่ระบุ|not specified|REQ-39)",
+            "flags": "mi",
+            "countComments": true
+          }
+        ]
       }
     },
     {

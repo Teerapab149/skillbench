@@ -63,6 +63,7 @@
 | REQ-30 | ไม่มีการเริ่มใช้ภายใน **30 นาที** หลัง `startAt` ให้บันทึก `NoShowRecorded` และเปลี่ยนสถาน | S04-noshow-status | S04-noshow-status |
 | REQ-34 | อัตราค่าบริการ: A100 = 40 บาท/ชม. / V100 = 20 บาท/ชม. | S09-rate-change | S09-rate-change |
 | REQ-35 | ระยะเวลาที่นำไปคิดค่าบริการ ให้**ปัดขึ้น**เป็นจำนวนเท่าของ 15 นาที | S08-rounding-change, S16-duration-refactor, S17-duration-refactor-billing | S16-duration-refactor, S17-duration-refactor-billing |
+| REQ-38 | ใบแจ้งหนี้รายเดือนรวมทุกการจองสถานะ `COMPLETED` และ `NO_SHOW` ที่เกิดในเดือนนั้น | — | S14-corrupt-event-line, S15-corrupt-event-line-explicit |
 | REQ-39 | ทุกการเปลี่ยนสถานะต้องบันทึกเป็นเหตุการณ์ พร้อมเวลาและผู้กระทำ | S01-history-endpoint, S19-actor-backfill | S12-approval-timeout, S19-actor-backfill |
 | REQ-40 | เหตุการณ์ที่บันทึกแล้วห้ามแก้ไขหรือลบ ทุกการเปลี่ยนแปลงทำได้เฉพาะการเพิ่มเหตุการณ์ใหม่ต่อท | S14-corrupt-event-line, S15-corrupt-event-line-explicit, S19-actor-backfill | S14-corrupt-event-line, S15-corrupt-event-line-explicit, S19-actor-backfill |
 | REQ-41 | ต้องเรียกดูประวัติทั้งหมดของการจองหนึ่งรายการได้ตามลำดับเวลา | S01-history-endpoint | S01-history-endpoint |
@@ -70,12 +71,12 @@
 
 ## 3. ข้อกำหนดที่ไม่มีโจทย์ใดแตะเลย
 
-มี **15 จาก 43 ข้อ** ที่ไม่มีโจทย์ใดอ้างถึงและไม่มีเทสยอมรับกล่าวถึง
+มี **14 จาก 43 ข้อ** ที่ไม่มีโจทย์ใดอ้างถึงและไม่มีเทสยอมรับกล่าวถึง
 
 ข้อเหล่านี้อยู่นอกขอบเขตของการทดลอง ไม่ใช่ช่องโหว่ของการวัด
 แต่ต้องเขียนไว้ในเล่มว่า **การทดลองครอบคลุมข้อกำหนดเพียงบางส่วน** ไม่ใช่ทั้งระบบ
 
-`REQ-01` · `REQ-02` · `REQ-03` · `REQ-06` · `REQ-07` · `REQ-08` · `REQ-17` · `REQ-31` · `REQ-32` · `REQ-33` · `REQ-36` · `REQ-37` · `REQ-38` · `REQ-50` · `REQ-51`
+`REQ-01` · `REQ-02` · `REQ-03` · `REQ-06` · `REQ-07` · `REQ-08` · `REQ-17` · `REQ-31` · `REQ-32` · `REQ-33` · `REQ-36` · `REQ-37` · `REQ-50` · `REQ-51`
 
 ## 4. สิ่งที่แผนที่นี้ยังบอกไม่ได้
 

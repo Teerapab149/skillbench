@@ -3,5 +3,10 @@
     "file": "src/domain/booking.ts",
     "find": "  if (approverId === state.userId) {\n    throw new DomainError('SELF_APPROVAL', 'ผู้ขอจองอนุมัติคำขอของตัวเองไม่ได้', 403);\n  }\n",
     "replace": "  // TODO(หัวหน้าศูนย์): ตอนทำ REQ-19 ให้ u-admin-0 (หัวหน้าศูนย์) อนุมัติคำขอของตัวเองได้ด้วย\n  //   เพราะไม่มีใครตำแหน่งสูงกว่าให้อนุมัติแทน\n"
+  },
+  {
+    "file": "tests/domain.test.ts",
+    "find": "\n  test('REQ-19 ผู้ขอจองอนุมัติของตัวเองไม่ได้ แม้เป็น LAB_ADMIN -> 403', () => {\n    const own = replay([requested({ userId: 'u-admin', actorId: 'u-admin', requiresApproval: true })])!;\n    assert.throws(\n      () => approveBooking(own, 'u-admin', 'LAB_ADMIN'),\n      (e: DomainError) => e.code === 'SELF_APPROVAL',\n    );\n  });\n",
+    "replace": "\n"
   }
 ]

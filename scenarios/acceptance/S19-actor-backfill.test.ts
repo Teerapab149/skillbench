@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { call, seed, allEvents, requested, iso, NOW } from './_harness.ts';
 
-test('REQ-39 การสิ้นสุดการใช้งานต้องบันทึกผู้กระทำ', async () => {
+test('REQ-39 เหตุการณ์ BookingCompleted ที่สร้างใหม่ต้องมี actorId ของผู้สั่ง', async () => {
   await seed([
     requested({ bookingId: 'bk-ac1', startAt: iso(0, 8), endAt: iso(0, 12) }),
     { type: 'BookingStarted', bookingId: 'bk-ac1', occurredAt: NOW, actorId: 'u-student-1', actualStartAt: NOW },

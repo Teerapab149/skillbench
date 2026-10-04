@@ -101,6 +101,22 @@ for (const id of refs) {
 
   // 2. คำตอบที่ถูกทุกแบบ (เฉลย + alt.*) ต้องผ่านกฎเชิงโครงสร้างที่ critical และ SC/GP
   problems.push(...await structuralFailures(scenario, join(REF, `${id}.patch.mjs`), 'เฉลย'));
+
+  /*
+   * 3. ด่านที่ 5 — เฉลยต้องทำให้เทสเดิมของ fixture ผ่านครบ (เพิ่มหลังรอบนำร่อง 4 ต.ค. 2569)
+   *
+   * S22 เอา REQ-20 ออกในสภาพเริ่มต้นแต่เทส REQ-20 เดิมยังอยู่ กฎ AC2 (เทสทั้งชุดผ่าน, critical) จึงผ่านไม่ได้
+   * ถ้าไม่ทำ REQ-20 ซึ่ง GP1 (critical) ห้าม — คำตอบที่ถูกตามโจทย์ไม่มีทางได้คะแนนเต็ม
+   * เฉลยอยู่ในสภาพที่ structuralFailures ปะไว้ล่าสุด จึงรันเทสต่อได้ทันที
+   */
+  try {
+    execFileSync(process.execPath, ['--test', 'tests/*.test.ts'], { cwd: FIXTURE, encoding: 'utf8', stdio: 'pipe', timeout: 120000 });
+  } catch (e) {
+    const out = `${e.stdout ?? ''}${e.stderr ?? ''}`;
+    const failing = [...out.matchAll(/^\s*✖ (.+?) \(/gm)].map((m) => m[1]).filter((t) => !t.startsWith('failing tests')).slice(0, 3);
+    problems.push(`เฉลยทำให้เทสเดิมของ fixture ตก: ${failing.join(' · ') || 'ดู node --test'}`);
+  }
+  try { git(['checkout', '--', 'data']); } catch { /* เทสเขียนทับ data */ }
   const alts = existsSync(VAR) ? readdirSync(VAR).filter((f) => f.startsWith(`${id}.alt.`) && f.endsWith('.mjs')) : [];
   let checkedAlts = 0;
   for (const f of alts) {

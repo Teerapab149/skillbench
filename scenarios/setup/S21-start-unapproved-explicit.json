@@ -3,5 +3,10 @@
     "file": "src/domain/booking.ts",
     "find": "  if (state.requiresApproval && state.status !== 'APPROVED') {\n    throw new DomainError('APPROVAL_REQUIRED', 'การจองนี้ต้องได้รับอนุมัติก่อนเริ่มใช้งาน', 409);\n  }\n",
     "replace": ""
+  },
+  {
+    "file": "tests/domain.test.ts",
+    "find": "\n  test('REQ-17 การจองที่ต้องอนุมัติ เริ่มใช้งานก่อนได้รับอนุมัติไม่ได้ -> 409', () => {\n    const state = replay([requested({ requiresApproval: true })])!;\n    assert.throws(\n      () => startBooking(state, 'u-pat'),\n      (e: DomainError) => e.code === 'APPROVAL_REQUIRED',\n    );\n  });\n",
+    "replace": "\n"
   }
 ]

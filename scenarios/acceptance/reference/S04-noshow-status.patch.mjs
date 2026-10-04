@@ -28,4 +28,9 @@ export const patches = [
   return s;
 }`,
   },
+
+  // ---- ด่านที่ 5 (4 ต.ค. 2569): งานนี้เปลี่ยนพฤติกรรมโดยตั้งใจ เทสเดิมที่ทดสอบพฤติกรรมเก่าต้องถูกปรับตามข้อกำหนดใหม่
+  //      เอเจนต์แก้ tests/** ได้ (SC1) · เฉลยต้องพิสูจน์ว่างานนี้ทำให้เทสทั้งชุดผ่านได้ภายในขอบเขตของโจทย์
+  {"file":"tests/domain.test.ts","find":"    process.env.GPU_BOOKING_NOW = '2026-08-05T12:00:00.000Z';\n    const evts = [requested()];\n    const started = replay(evts)!;\n    evts.push(...startBooking(started, 'u-pat'));\n","replace":"    process.env.GPU_BOOKING_NOW = '2026-08-05T09:10:00.000Z';   // เริ่มภายในช่วงผ่อนผัน 30 นาที (REQ-30)\n    const evts = [requested()];\n    const started = replay(evts)!;\n    evts.push(...startBooking(started, 'u-pat'));\n    process.env.GPU_BOOKING_NOW = '2026-08-05T12:00:00.000Z';\n"},
+  {"file":"tests/billing.test.ts","find":"        type: 'BookingRequested', bookingId: 'b8', occurredAt: '2026-05-10T08:00:00.000Z', actorId: 'u-pat',\n        userId: 'u-pat', userRole: 'STUDENT', resourceId: 'gpu-a100-01',\n        startAt: '2026-05-10T09:00:00.000Z', endAt: '2026-05-10T10:00:00.000Z', requiresApproval: false,\n      },\n    ];\n    assert.equal(buildInvoice(events, 'u-pat', '2026-05').totalBaht, 0);","replace":"        type: 'BookingRequested', bookingId: 'b8', occurredAt: '2099-05-10T08:00:00.000Z', actorId: 'u-pat',\n        userId: 'u-pat', userRole: 'STUDENT', resourceId: 'gpu-a100-01',\n        startAt: '2099-05-10T09:00:00.000Z', endAt: '2099-05-10T10:00:00.000Z', requiresApproval: false,\n      },\n    ];\n    // ยังไม่ถึงเวลาเริ่ม — ถ้าเลยเวลามาแล้วจะเป็น NO_SHOW และถูกคิดเงินตาม REQ-36\n    assert.equal(buildInvoice(events, 'u-pat', '2099-05').totalBaht, 0);"},
 ];

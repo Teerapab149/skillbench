@@ -8,5 +8,15 @@
     "file": "src/domain/booking.ts",
     "find": "  if (state.status !== 'REQUESTED') {\n    throw new DomainError('INVALID_STATE', `อนุมัติไม่ได้เมื่อสถานะเป็น ${state.status}`, 409);\n  }\n",
     "replace": ""
+  },
+  {
+    "file": "tests/domain.test.ts",
+    "find": "\n  test('REQ-20 อนุมัติได้เฉพาะสถานะ REQUESTED -> 409', () => {\n    const rejected = replay([requested(), { type: 'BookingRejected', bookingId: 'bk-1', occurredAt: 'x', actorId: 'u-admin', reason: 'ไม่ว่าง' } as DomainEvent])!;\n    assert.throws(\n      () => approveBooking(rejected, 'u-admin', 'LAB_ADMIN'),\n      (e: DomainError) => e.httpStatus === 409,\n    );\n  });\n",
+    "replace": "\n"
+  },
+  {
+    "file": "tests/domain.test.ts",
+    "find": "\n  test('REQ-21 ปฏิเสธโดยไม่ระบุเหตุผล -> 400', () => {\n    assert.throws(\n      () => rejectBooking(state, 'u-admin', 'LAB_ADMIN', '  '),\n      (e: DomainError) => e.httpStatus === 400,\n    );\n  });\n",
+    "replace": "\n"
   }
 ]
