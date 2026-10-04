@@ -69,12 +69,13 @@ test('gradeRun เก็บ ground truth แบบหลาย label ลง arti
   assert.equal(Object.hasOwn(graded, 'expectedSkill'), false);
 });
 
-test('ทั้ง 11 scenario ใช้ multi-label ที่ตรึงไว้และไม่เหลือ expectedSkill ค่าเดียว', () => {
-  const files = fs.readdirSync(path.join(ROOT, 'scenarios'))
+test('ชุดที่ 2: ทั้ง 11 scenario ใช้ multi-label ที่ตรึงไว้และไม่เหลือ expectedSkill ค่าเดียว', () => {
+  // ชุดโจทย์ที่ใช้ตอนเก็บชุดที่ 2 — scenarios/ ปัจจุบันเป็นของชุดที่ 3 แล้ว
+  const files = fs.readdirSync(path.join(ROOT, 'evidence', 'study2-scenarios'))
     .filter((name) => /^S\d+.*\.json$/.test(name))
     .sort();
   const scenarios = files.map((name) => JSON.parse(
-    fs.readFileSync(path.join(ROOT, 'scenarios', name), 'utf8')));
+    fs.readFileSync(path.join(ROOT, 'evidence', 'study2-scenarios', name), 'utf8')));
 
   assert.equal(scenarios.length, 11);
   for (const scenario of scenarios) {
@@ -110,11 +111,16 @@ test('ทั้ง 11 scenario ใช้ multi-label ที่ตรึงไว
  */
 const armsConfig = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms.json'), 'utf8'));
 
-test('ground truth ชุดหลักใน config ต้องตรงกับ expectedSkills ในไฟล์ scenario จริง', () => {
-  const declared = armsConfig.triggerF1?.primary?.impactAnalysisScenarios;
+/** แต่ละชุดการทดลองตรวจ ground truth ใน config ของตัวเองกับชุดโจทย์ของตัวเอง */
+const STUDIES = [
+  { name: 'ชุดที่ 2', config: JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms-study2.json'), 'utf8')), dir: path.join(ROOT, 'evidence', 'study2-scenarios') },
+  { name: 'ชุดที่ 3', config: JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'arms-study3.json'), 'utf8')), dir: path.join(ROOT, 'scenarios') },
+];
+
+for (const { name, config, dir } of STUDIES) test(`${name}: ground truth ชุดหลักใน config ต้องตรงกับ expectedSkills ในไฟล์ scenario จริง`, () => {
+  const declared = config.triggerF1?.primary?.impactAnalysisScenarios;
   assert.ok(Array.isArray(declared), 'config ต้องประกาศ ground truth ชุดหลักไว้');
 
-  const dir = path.join(ROOT, 'scenarios');
   const actual = fs.readdirSync(dir)
     .filter((f) => f.endsWith('.json'))
     .map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')))
@@ -136,9 +142,8 @@ test('ground truth ชุด sensitivity ต้องแคบกว่าชุ
   }
 });
 
-test('โจทย์ที่ชุด sensitivity นับ ต้องเป็นโจทย์ที่มีกฎผลกระทบเชิงรุกจริง', () => {
-  const sens = armsConfig.triggerF1.sensitivity.impactAnalysisScenarios;
-  const dir = path.join(ROOT, 'scenarios');
+for (const { name, config, dir } of STUDIES) test(`${name}: โจทย์ที่ชุด sensitivity นับ ต้องเป็นโจทย์ที่มีกฎผลกระทบเชิงรุกจริง`, () => {
+  const sens = config.triggerF1.sensitivity.impactAnalysisScenarios;
   for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".json"))) {
     const sc = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
     const im = (sc.rules ?? []).filter((r) => r.id.startsWith('IM'));

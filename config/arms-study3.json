@@ -84,22 +84,26 @@
         "S07-weekly-quota",
         "S08-rounding-change",
         "S09-rate-change",
-        "S11-week-boundary"
+        "S11-week-boundary",
+        "S16-duration-refactor",
+        "S17-duration-refactor-billing"
       ],
-      "approvedOn": "2026-09-12"
+      "approvedOn": "2026-10-04"
     },
     "sensitivity": {
       "name": "rule-derived",
       "criterion": "นับ impact-analysis ว่าเกี่ยวข้องเฉพาะโจทย์ที่มีกฎผลกระทบเชิงรุก คือสั่งให้ตรวจผลกระทบ อ่านสถาปัตยกรรม หรือค้นหา caller · โจทย์ที่มีแต่ IM1 เชิงรับ (ยอดย้อนหลังต้องไม่เปลี่ยน) ไม่นับ เพราะกฎข้อนั้นผ่านได้ด้วยการไม่ทำอะไรผิด",
       "impactAnalysisScenarios": [
         "S08-rounding-change",
-        "S09-rate-change"
+        "S09-rate-change",
+        "S16-duration-refactor",
+        "S17-duration-refactor-billing"
       ],
-      "declaredOn": "2026-09-12",
-      "declaredIn": "Amendment 16 (PRE-REGISTRATION.md §23)"
+      "declaredOn": "2026-10-04",
+      "declaredIn": "PRE-REGISTRATION-3.md §5.3"
     },
     "excludedSkills": {
-      "safe-shell": "relevance เกิดจาก action ที่เอเจนต์กำลังจะทำ ไม่ใช่จากโจทย์ล่วงหน้า การนับทุกโจทย์เป็น negative จะลงโทษการโหลดที่ถูกต้อง"
+      "safe-shell": "relevance เกิดจาก action ที่เอเจนต์กำลังจะทำ ไม่ใช่จากโจทย์ล่วงหน้า การนับทุกโจทย์เป็น negative จะลงโทษการโหลดที่ถูกต้อง · ชุดที่ 3 มีโจทย์ที่ safe-shell เกี่ยวข้องตรง ๆ (S14/S15/S19) แต่ยังไม่นับใน F1 ตามนิยามเดิม · การโหลด safe-shell ในโจทย์คู่ P1 รายงานแยกเชิงพรรณนา"
     }
   },
   "preRegisteredAllocation": {
@@ -109,14 +113,20 @@
       "A2",
       "A5"
     ],
-    "scenarios": "ล็อกใน PRE-REGISTRATION-3 ก่อน run แรก (เป้า 22 · ขั้นต่ำ 18)",
-    "reps": {
-      "min": 2,
-      "max": 4,
-      "rule": "รันทีละรอบครบทุก arm ทุกโจทย์ · จำนวนรอบ = รอบที่ครบภายใน 23:59 น. 10 ต.ค. 2569 · รอบสุดท้ายที่ไม่ครบถูกทิ้งทั้งรอบ · ตัดสินด้วยเวลาเท่านั้น ห้ามดูผลระหว่างเก็บ"
+    "scenarios": 22,
+    "reps": 4,
+    "cells": 352,
+    "fallback": {
+      "type": "clock-truncation",
+      "minReps": 2,
+      "rule": "รันทีละรอบครบทุก arm ทุกโจทย์ · จำนวนรอบ = รอบที่ครบภายใน 23:59 น. 10 ต.ค. 2569 · รอบสุดท้ายที่ไม่ครบถูกทิ้งทั้งรอบ · ตัดสินด้วยเวลาเท่านั้น ห้ามดูผลระหว่างเก็บ",
+      "_why": "จำนวนรอบตัดสินด้วยเวลาเท่านั้น (PRE-REGISTRATION-3 §4.4) · reps = 4 คือเพดาน · ตัดรอบเท่ากันทุก arm ผ่าน analyze --fallback-reps"
     },
-    "planningIcc": 0.22,
-    "_iccNote": "ICC ของผลต่าง A2−A1 รายโจทย์ที่วัดได้จากชุดที่ 2"
+    "surplusRule": {
+      "status": "void",
+      "lockedK": 22
+    },
+    "planningIcc": 0.22
   },
   "primaryEndpoint": {
     "metric": "RCRc",

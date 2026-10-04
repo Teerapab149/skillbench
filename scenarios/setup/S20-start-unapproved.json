@@ -1,0 +1,7 @@
+[
+  {
+    "file": "src/domain/booking.ts",
+    "find": "  if (state.requiresApproval && state.status !== 'APPROVED') {\n    throw new DomainError('APPROVAL_REQUIRED', 'การจองนี้ต้องได้รับอนุมัติก่อนเริ่มใช้งาน', 409);\n  }\n",
+    "replace": ""
+  }
+]

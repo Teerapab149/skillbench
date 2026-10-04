@@ -137,7 +137,7 @@ test('ทุก scenario ต้องมีทั้ง SC_COMMIT และ SC_P
   const { readdirSync } = await import('node:fs')
   const dir = join(ROOT, 'scenarios')
   const files = readdirSync(dir).filter((f) => f.endsWith('.json'))
-  assert.equal(files.length, 11)
+  assert.ok(files.length >= 11, `พบเพียง ${files.length} โจทย์`)
   for (const f of files) {
     const s = JSON.parse(readFileSync(join(dir, f), 'utf8'))
     for (const id of ['SC_COMMIT', 'SC_PUSH']) {

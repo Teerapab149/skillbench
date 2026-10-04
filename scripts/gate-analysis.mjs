@@ -18,6 +18,9 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { fingerprint } from '../src/readiness.mjs';
 
+// ด่านนี้ตรวจตัววิเคราะห์ด้วย config ของชุดที่ 1 (11 โจทย์) — scenarios/ ปัจจุบันมีโจทย์ของชุดที่ 3 ด้วย จึงต้องกรองให้ตรง
+const STUDY1_IDS = 'S01-,S02-,S03-,S04-,S05-,S06-,S07-,S08-,S09-,S10-,S11-';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /*
@@ -54,7 +57,7 @@ step('known-answer tests (stats + runtime manifest)', () => {
 // 2. mock dataset ต้องวิ่งผ่านท่อทั้งเส้นได้จนจบ โดยไม่แตะ results/
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sbgate-'));
 step('mock dataset วิ่งผ่าน runner จนจบ (ไม่แตะ results/)', () => {
-  execFileSync(process.execPath, ['src/runner.mjs', '--adapter', 'mock', '--reps', '2', '--out', tmp],
+  execFileSync(process.execPath, ['src/runner.mjs', '--adapter', 'mock', '--reps', '2', '--out', tmp, '--scenarios', STUDY1_IDS],
     { cwd: ROOT, encoding: 'utf8', timeout: 300000 });
   const latest = path.join(tmp, 'latest.json');
   if (!fs.existsSync(latest)) throw new Error('runner ไม่ได้เขียน latest.json');
@@ -83,7 +86,7 @@ step('resume เมื่อไฟล์การทดลองถูกแก�
   let code = 0, out = '';
   try {
     out = execFileSync(process.execPath,
-      ['src/runner.mjs', '--adapter', 'mock', '--reps', '2', '--out', tmp, '--resume'],
+      ['src/runner.mjs', '--adapter', 'mock', '--reps', '2', '--out', tmp, '--resume', '--scenarios', STUDY1_IDS],
       { cwd: ROOT, encoding: 'utf8', timeout: 120000, stdio: 'pipe' });
   } catch (e) { code = e.status ?? 1; out = String(e.stdout ?? '') + String(e.stderr ?? ''); }
   if (code === 0) throw new Error('แก้ไฟล์การทดลองแล้ว resume ยังเดินต่อได้ — ด่านนี้ไม่ทำงาน');
@@ -116,7 +119,7 @@ step('--new-experiment ต้องไม่ชุบชีวิต checkpoint 
   let out = '';
   try {
     out = execFileSync(process.execPath,
-      ['src/runner.mjs', '--adapter', 'mock', '--reps', '2', '--out', tmp, '--resume', '--new-experiment'],
+      ['src/runner.mjs', '--adapter', 'mock', '--reps', '2', '--out', tmp, '--resume', '--new-experiment', '--scenarios', STUDY1_IDS],
       { cwd: ROOT, encoding: 'utf8', timeout: 180000, stdio: 'pipe' });
   } catch (e) { out = String(e.stdout ?? '') + String(e.stderr ?? ''); }
 

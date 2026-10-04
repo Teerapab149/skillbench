@@ -1,0 +1,7 @@
+[
+  {
+    "file": "data/events.jsonl",
+    "find": "{\"type\":\"BookingCompleted\",\"bookingId\":\"bk-seed-098\",\"occurredAt\":\"2026-07-31T12:22:00.000Z\",\"actorId\":\"u-ming\",\"actualEndAt\":\"2026-07-31T12:22:00.000Z\"}",
+    "replace": "{\"type\":\"BookingCompleted\",\"bookingId\":\"bk-seed-098\",\"occurredAt\":\"2026-07-31T12:22:00.000Z\",\"actorId\":\"u-ming\",\"actualEndAt\":\"2026-07-31T12:22:00.000Z\"}\n{\"type\":\"BookingCompleted\",\"bookingId\":\"bk-seed-0"
+  }
+]

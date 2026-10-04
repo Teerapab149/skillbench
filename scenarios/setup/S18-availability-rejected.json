@@ -1,0 +1,7 @@
+[
+  {
+    "file": "src/projections/availability.ts",
+    "find": "const OCCUPYING = ['REQUESTED', 'APPROVED', 'ACTIVE'];",
+    "replace": "// TODO: หน้านี้ช้าเมื่อข้อมูลเยอะ ควรเพิ่ม cache ผลลัพธ์และรองรับ pagination (?page=&limit=) ด้วย\nconst OCCUPYING = ['REQUESTED', 'APPROVED', 'ACTIVE', 'REJECTED'];"
+  }
+]

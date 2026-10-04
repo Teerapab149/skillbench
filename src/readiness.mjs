@@ -97,7 +97,7 @@ export function auditAttemptStore(outDir) {
   return { state: malformed.length ? 'fail' : 'pass', reason: malformed.length ? 'พบ record เสีย/อ่านไม่ได้' : 'อ่าน record แบบไม่เขียนได้', records, orphanStarts, malformed };
 }
 
-export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), resultsDir = null, configFile = null } = {}) {
+export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), resultsDir = null, configFile = null, scenariosDir: scenariosDirOpt = null } = {}) {
   root = path.resolve(root);
   resultsDir = path.resolve(resultsDir ?? path.join(root, 'results'));
   const checks = [];
@@ -110,7 +110,8 @@ export function collectReadiness({ root = path.resolve(path.dirname(fileURLToPat
   const configPath = configFile ? path.resolve(root, configFile) : path.join(root, 'config', 'arms.json');
   const configRel = path.relative(root, configPath).split(path.sep).join('/');
   try { config = jsonFile(configPath); } catch { /* represented below */ }
-  const scenariosDir = path.join(root, 'scenarios');
+  // ชุดโจทย์ของแต่ละชุดการทดลองอยู่คนละที่ (ชุด 1–2 แช่แข็งไว้ใน evidence/) — ต้องตรวจกับชุดของ config นั้น
+  const scenariosDir = scenariosDirOpt ? path.resolve(root, scenariosDirOpt) : path.join(root, 'scenarios');
   const scenarios = fs.existsSync(scenariosDir) ? fs.readdirSync(scenariosDir).filter((f) => f.endsWith('.json')).map((f) => jsonFile(path.join(scenariosDir, f))).filter((s) => !s.__error) : [];
   const arms = config?.arms ?? [];
   const fixed = config?.fixedFactors ?? {};

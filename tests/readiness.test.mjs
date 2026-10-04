@@ -86,7 +86,8 @@ test('manifest ที่แช่แข็งไว้กับนิยาม�
 // Amendment 14: the declared allocation lives in config/arms.json only. Preflight must
 // read it there and check it against what is actually on disk, not restate a literal.
 test('preflight checks the declared allocation against the arms and scenarios on disk', () => {
-  const report = collectReadiness({ root: ROOT });
+  // config/arms.json คือชุดที่ 1 — ตรวจกับชุดโจทย์ที่แช่แข็งไว้ของชุดนั้น ไม่ใช่ scenarios/ ปัจจุบัน (ชุดที่ 3)
+  const report = collectReadiness({ root: ROOT, scenariosDir: 'evidence/study1-scenarios' });
   const check = report.checks.find((c) => c.name === 'allocation-declared');
   assert.ok(check, "allocation-declared check must exist");
   assert.equal(check.state, 'pass');
@@ -94,6 +95,13 @@ test('preflight checks the declared allocation against the arms and scenarios on
   assert.equal(check.evidence.prereg.fallback.type, 'uniform-rep-truncation');
   assert.equal(check.evidence.prereg.surplusRule.status, 'void');
   assert.equal(report.allocation.repetitions, check.evidence.prereg.reps);
+});
+
+test('ชุดที่ 3: การจัดสรรที่ประกาศตรงกับโจทย์บนดิสก์', () => {
+  const report = collectReadiness({ root: ROOT, configFile: 'config/arms-study3.json' });
+  const check = report.checks.find((c) => c.name === 'allocation-declared');
+  assert.equal(check.state, 'pass', check.detail);
+  assert.equal(check.evidence.prereg.cells, 352);
 });
 
 test('a declared allocation that disagrees with the real arm count fails the check', () => {

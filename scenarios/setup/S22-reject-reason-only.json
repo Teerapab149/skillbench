@@ -1,0 +1,12 @@
+[
+  {
+    "file": "src/domain/booking.ts",
+    "find": "  if (!reason || !reason.trim()) {\n    throw new DomainError('MISSING_REASON', 'การปฏิเสธต้องระบุเหตุผล', 400);\n  }\n",
+    "replace": ""
+  },
+  {
+    "file": "src/domain/booking.ts",
+    "find": "  if (state.status !== 'REQUESTED') {\n    throw new DomainError('INVALID_STATE', `อนุมัติไม่ได้เมื่อสถานะเป็น ${state.status}`, 409);\n  }\n",
+    "replace": ""
+  }
+]
