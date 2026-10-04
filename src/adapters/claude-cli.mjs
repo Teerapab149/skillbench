@@ -208,8 +208,78 @@ function runAcceptance(cwd, scenario) {
  *   ตัวแปรต้นต้องเหลือตัวเดียวคือมีโฟลเดอร์ .claude/skills หรือไม่
  */
 /** ดึงบล็อก usage จาก result event — เป็นตัวเดียวที่รายงานยอดสะสมทั้ง run */
-function resultUsage(events) {
-  return events.find((e) => e.type === 'result')?.usage ?? {};
+/** รวม usage ของทุก result event — มีมากกว่าหนึ่งตัวเมื่อส่งรอบตอบกลับ */
+export function resultUsage(events) {
+  const sum = {};
+  for (const e of events.filter((x) => x.type === 'result')) {
+    for (const [k, v] of Object.entries(e.usage ?? {})) if (typeof v === 'number') sum[k] = (sum[k] ?? 0) + v;
+  }
+  return sum;
+}
+
+/**
+ * argument ของรอบตอบกลับ — ทุก flag เหมือนรอบแรกทุกตัว ต่างแค่ข้อความ, --resume
+ * และเพดาน turn ถ้าประกาศแยกไว้ (ตัวแปรควบคุมต้องเท่ากันทั้งสองรอบ)
+ */
+export function followUpArgs(args, followUp, sessionId) {
+  if (args[0] !== '-p') throw new Error('followUpArgs: args ต้องขึ้นต้นด้วย -p <prompt>');
+  const out = ['-p', followUp.text, '--resume', sessionId, ...args.slice(2)];
+  const mt = out.indexOf('--max-turns');
+  if (mt !== -1 && followUp.maxTurns) out[mt + 1] = String(followUp.maxTurns);
+  return out;
+}
+
+/** spawn CLI หนึ่งรอบ แล้วคืน event ดิบ — รอบตอบกลับใช้เส้นทางเดียวกันทุกอย่าง */
+function spawnClaude(claudeBin, args, cwd, env, timeoutMs) {
+  return new Promise((resolve) => {
+    const events = [];
+    let stderr = '', killedByTimeout = false;
+    // ทางหลัก: spawn ไฟล์ปฏิบัติการตรงๆ ไม่ผ่าน shell -> ไม่มีปัญหาการ quote เลย
+    // ทางถอย: ถ้าหา binary ไม่เจอ ใช้ shell พร้อม quoteWin (กัน prompt ขาด แต่ยังกัน %VAR% ไม่ได้)
+    const child = claudeBin.mode === 'direct'
+      ? spawn(claudeBin.bin, args, { cwd, env })
+      : spawn([claudeBin.bin, ...args.map(quoteWin)].join(' '), { cwd, shell: true, env });
+    let buf = '';
+    const timer = setTimeout(() => { killedByTimeout = true; child.kill('SIGKILL'); }, timeoutMs);
+    child.stdout.on('data', (d) => {
+      buf += d.toString();
+      let i;
+      while ((i = buf.indexOf('\n')) !== -1) {
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if (line) { try { events.push(JSON.parse(line)); } catch { /* ข้ามบรรทัดที่ไม่ใช่ json */ } }
+      }
+    });
+    child.stderr.on('data', (d) => { stderr += d.toString(); });
+    const done = () => { clearTimeout(timer); resolve({ events, stderr, killedByTimeout }); };
+    child.on('close', done);
+    child.on('error', (e) => { stderr += e.message; done(); });
+  });
+}
+
+/*
+ * ความล้มเหลวฝั่งโครงสร้างพื้นฐานของหนึ่งรอบ แยกออกจาก "เอเจนต์เลือกที่จะไม่ทำ"
+ *
+ * เคสที่เจอจริงตอน smoke test: OAuth หมดอายุ CLI คืน event ครบปกติ
+ * แต่ในนั้นคือข้อความ error ผลลัพธ์คือ 0 tool call 0 token
+ * ถ้าไม่ดักไว้ run นั้นจะถูกให้คะแนนเป็น "เอเจนต์ไม่ทำอะไรเลย" = กฎตกเกือบหมด
+ * แล้วปนเข้า dataset โดยไม่มีใครรู้ ซึ่งอันตรายกว่า run ที่พังแล้วพังให้เห็น
+ *
+ * Amendment 15: error_max_turns ไม่ใช่ infra error — เป็นพฤติกรรมของเอเจนต์
+ */
+export function turnInfraError({ events, stderr, killedByTimeout }, timeoutMs) {
+  const resultEv = events.find((e) => e.type === 'result');
+  const exhausted = /error_max_turns/i.test(String(resultEv?.subtype ?? ''));
+  return killedByTimeout ? `timeout เกิน ${Math.round(timeoutMs / 1000)} วินาที — run ถูกฆ่ากลางคัน`
+    : exhausted ? null
+    : resultEv?.is_error === true ? (resultEv.result ?? 'CLI รายงาน is_error')
+    : resultEv?.terminal_reason === 'api_error' ? 'api_error'
+    : events.some((e) => e.error === 'authentication_failed') ? 'authentication_failed'
+    : events.length === 0 ? (stderr.slice(0, 500) || 'no events from CLI')
+    // ไม่มี result event = CLI ไม่ได้จบเอง (ถูกฆ่า/โปรเซสตาย) -> finalMessage ว่าง
+    // ถ้าไม่ดักไว้ กฎที่ตรวจจากข้อความตอบ (อ้าง REQ-ID, ถามก่อนลงมือ) จะตกทั้งหมด
+    // แล้ว arm ที่ทำงานนานกว่าจะถูกลงโทษด้วยเหตุผลที่ไม่เกี่ยวกับพฤติกรรมเลย
+    : !resultEv ? 'ไม่มี result event — โปรเซสจบผิดปกติ'
+    : null;
 }
 
 function toolList(fixedFactors) {
@@ -329,9 +399,6 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
   ];
 
   const t0 = Date.now();
-  const events = [];
-  let stderr = '';
-  let killedByTimeout = false;
 
   /*
    * Amendment 17 (12 ก.ย. 2569) — เอเจนต์ต้องเห็นนาฬิกาเดียวกับตัวให้คะแนน
@@ -350,26 +417,36 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
    */
   const childEnv = { ...process.env, GPU_BOOKING_NOW: FIXTURE_NOW };
 
-  await new Promise((resolve) => {
-    // ทางหลัก: spawn ไฟล์ปฏิบัติการตรงๆ ไม่ผ่าน shell -> ไม่มีปัญหาการ quote เลย
-    // ทางถอย: ถ้าหา binary ไม่เจอ ใช้ shell พร้อม quoteWin (กัน prompt ขาด แต่ยังกัน %VAR% ไม่ได้)
-    const child = claudeBin.mode === 'direct'
-      ? spawn(claudeBin.bin, args, { cwd, env: childEnv })
-      : spawn([claudeBin.bin, ...args.map(quoteWin)].join(' '), { cwd, shell: true, env: childEnv });
-    let buf = '';
-    const timer = setTimeout(() => { killedByTimeout = true; child.kill('SIGKILL'); }, timeoutMs);
-    child.stdout.on('data', (d) => {
-      buf += d.toString();
-      let i;
-      while ((i = buf.indexOf('\n')) !== -1) {
-        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
-        if (line) { try { events.push(JSON.parse(line)); } catch { /* ข้ามบรรทัดที่ไม่ใช่ json */ } }
-      }
-    });
-    child.stderr.on('data', (d) => { stderr += d.toString(); });
-    child.on('close', () => { clearTimeout(timer); resolve(); });
-    child.on('error', (e) => { stderr += e.message; clearTimeout(timer); resolve(); });
-  });
+  const turn1 = await spawnClaude(claudeBin, args, cwd, childEnv, timeoutMs);
+
+  /*
+   * รอบตอบกลับ (Study 3) — ส่งข้อความตายตัวข้อความเดียวกันให้ทุก run ผ่าน --resume
+   *
+   * กฎหลายข้อสั่งให้ "หยุดถาม" แต่ harness แบบรอบเดียวไม่มีใครตอบ การถามจึงถูกให้คะแนน
+   * เป็น "งานไม่เสร็จ" ชุดที่ 2 มี run ที่ไม่แก้ไฟล์เลย A1 14/44 · A5 10/44 · A2 7/44 · A0 4/44
+   * รอบตอบกลับแยกสองคำถามออกจากกัน: ถามเมื่อควรถามไหม (คำตอบรอบแรก) กับ ทำงานจบไหม
+   * (สภาพสุดท้าย) — gradeRun() ให้คะแนนกฎ FL* จากคำตอบรอบแรกเท่านั้น
+   *
+   * ส่งทุก run ไม่ใช่เฉพาะ run ที่ถาม เพื่อไม่ต้องมีตัวจำแนกว่า "ถามหรือไม่"
+   * ข้ามเฉพาะเมื่อรอบแรกพังหรือชนเพดาน turn — ให้ turn เพิ่มหลังชนเพดานจะเปลี่ยนความหมาย
+   * ของ Amendment 15 ที่นับการชนเพดานเป็นพฤติกรรมของเอเจนต์
+   */
+  const followUp = fixedFactors?.followUp ?? null;
+  const t1Result = turn1.events.find((e) => e.type === 'result') ?? null;
+  const t1Session = t1Result?.session_id
+    ?? turn1.events.find((e) => e.type === 'system' && e.subtype === 'init')?.session_id ?? null;
+  const turn1Infra = turnInfraError(turn1, timeoutMs);
+  const turn1Exhausted = /error_max_turns/i.test(String(t1Result?.subtype ?? ''));
+  let turn2 = null, followUpSkipped = null;
+  if (followUp) {
+    if (turn1Infra) followUpSkipped = 'turn1-infra-error';
+    else if (turn1Exhausted) followUpSkipped = 'turn1-budget-exhausted';
+    else if (!t1Session) followUpSkipped = 'no-session-id';
+    else {
+      turn2 = await spawnClaude(claudeBin, followUpArgs(args, followUp, t1Session), cwd, childEnv, timeoutMs);
+    }
+  }
+  const events = turn2 ? [...turn1.events, ...turn2.events] : turn1.events;
 
   // --- แกะ tool call ออกจาก stream ---
   const toolCalls = [], commands = [], skillInvocations = [];
@@ -414,8 +491,6 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
     }
     if (ev.type === 'result') {
       finalMessage = ev.result ?? finalMessage;
-      inputTokens = ev.usage?.input_tokens ?? inputTokens;
-      outputTokens = ev.usage?.output_tokens ?? outputTokens;
     }
   }
 
@@ -446,43 +521,22 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
   tokens.totalInput = tokens.input + tokens.cacheCreation + tokens.cacheRead;
 
   /*
-   * ตรวจความล้มเหลวฝั่งโครงสร้างพื้นฐาน แยกออกจาก "เอเจนต์เลือกที่จะไม่ทำ"
-   *
-   * เคสที่เจอจริงตอน smoke test: OAuth หมดอายุ CLI คืน event ครบปกติ
-   * แต่ในนั้นคือข้อความ error ผลลัพธ์คือ 0 tool call 0 token
-   * ถ้าไม่ดักไว้ run นั้นจะถูกให้คะแนนเป็น "เอเจนต์ไม่ทำอะไรเลย" = กฎตกเกือบหมด
-   * แล้วปนเข้า dataset โดยไม่มีใครรู้ ซึ่งอันตรายกว่า run ที่พังแล้วพังให้เห็น
-   *
-   * ความต่างนี้สำคัญมากตอนรันยาว 605 runs: token หมด / เน็ตหลุด / session หมดอายุกลางคัน
-   * ล้วนให้หน้าตาแบบเดียวกันหมด และล้วนต้องถูกทิ้ง ไม่ใช่นับเป็นข้อมูล
+   * ความล้มเหลวฝั่งโครงสร้างพื้นฐาน — ตรวจรายรอบด้วย turnInfraError() รอบไหนพังก็ทิ้งทั้ง run
+   * token หมด / เน็ตหลุด / session หมดอายุกลางคัน ล้วนต้องถูกทิ้ง ไม่ใช่นับเป็นข้อมูล
    */
-  const resultEv = events.find((e) => e.type === 'result');
+  const resultEvs = events.filter((e) => e.type === 'result');
+  const resultEv = resultEvs.at(-1);
 
   /*
    * Amendment 15 (12 ก.ย. 2569): การชนเพดาน turn ไม่ใช่ความล้มเหลวของเครื่องมือวัด
    *
-   * CLI คืน is_error: true พร้อม subtype error_max_turns เมื่อเอเจนต์ใช้ turn จนหมดงบ
-   * ของเดิมจึงกวาดมันเข้า infraError รวมกับ auth หมดอายุและเน็ตหลุด แล้ว analyze ตัดทิ้ง
-   * ทั้งที่ workspace มีงานจริงอยู่ (run ที่ถูกตัดใน rep 0 แก้ไฟล์ไป 4 ไฟล์)
-   *
    * การใช้ turn จนหมดคือพฤติกรรมของเอเจนต์ภายใต้ context ที่กำลังวัด ไม่ใช่ของเครื่องมือ
    * และการตัดมันทิ้งไม่ใช่การตัดแบบสุ่ม — มันตัดเฉพาะ run ที่ arm ทำงานละเอียดที่สุด
-   * ซึ่งดันผลไปทาง "ไม่ต่างกัน" อย่างเป็นระบบ (PRE-REGISTRATION.md §12)
+   * ซึ่งดันผลไปทาง "ไม่ต่างกัน" อย่างเป็นระบบ (PRE-REGISTRATION.md §12) · ชนรอบไหนก็นับ
    */
-  const budgetExhausted = /error_max_turns/i.test(String(resultEv?.subtype ?? ''));
+  const budgetExhausted = resultEvs.some((e) => /error_max_turns/i.test(String(e.subtype ?? '')));
 
-  const infraError =
-    killedByTimeout ? `timeout เกิน ${Math.round(timeoutMs / 1000)} วินาที — run ถูกฆ่ากลางคัน`
-    : budgetExhausted ? null
-    : resultEv?.is_error === true ? (resultEv.result ?? 'CLI รายงาน is_error')
-    : resultEv?.terminal_reason === 'api_error' ? 'api_error'
-    : events.some((e) => e.error === 'authentication_failed') ? 'authentication_failed'
-    : events.length === 0 ? (stderr.slice(0, 500) || 'no events from CLI')
-    // ไม่มี result event = CLI ไม่ได้จบเอง (ถูกฆ่า/โปรเซสตาย) -> finalMessage ว่าง
-    // ถ้าไม่ดักไว้ กฎที่ตรวจจากข้อความตอบ (อ้าง REQ-ID, ถามก่อนลงมือ) จะตกทั้งหมด
-    // แล้ว arm ที่ทำงานนานกว่าจะถูกลงโทษด้วยเหตุผลที่ไม่เกี่ยวกับพฤติกรรมเลย
-    : !resultEv ? 'ไม่มี result event — โปรเซสจบผิดปกติ'
-    : null;
+  const infraError = turn1Infra ?? (turn2 ? turnInfraError(turn2, timeoutMs) : null);
   // หมายเหตุ: captureError ถูกรวมเข้า infraError ด้านล่าง หลังจากอ่าน git เสร็จ
   // เพราะการอ่าน git เกิดหลังบล็อกนี้ และ run ที่วัดผลกระทบไม่ได้ต้องถูกตัดออก
   // ไม่ใช่ถูกให้คะแนนว่า "เอเจนต์ไม่ได้ทำอะไรเลย"
@@ -534,7 +588,11 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
     runId: `${scenario.id}__${arm.id}__r${repIndex}`,
     scenarioId: scenario.id, armId: arm.id, repIndex, seed,
     adapter: 'claude-cli', simulated: false, model,
-    toolCalls, commands, filesChanged, diff, finalMessage, loadedSkills, skillInvocations: skillInvocationNames, testsPassed, acceptance,
+    toolCalls, commands, filesChanged, diff, finalMessage,
+    // คำตอบรายรอบ — กฎ FL* ให้คะแนนจากรอบแรก (ดู gradeRun) · null เมื่อไม่ได้ใช้รอบตอบกลับ
+    firstMessage: followUp ? (t1Result?.result ?? '') : null,
+    messages: followUp ? resultEvs.map((e) => e.result ?? '') : null,
+    loadedSkills, skillInvocations: skillInvocationNames, testsPassed, acceptance,
     // หลักฐานว่า run นี้ได้รับ context ของ arm จริง — ตรวจย้อนหลังได้โดยไม่ต้องเชื่อว่าโค้ดทำงานถูก
     armInstall: install,
     // ไฟล์ที่ถูกฝังข้อความล่อไว้จริงใน run นี้ — ตัวจำแนก exposure ใช้ค่านี้
@@ -563,8 +621,13 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
       maxTurns: Number(maxTurns),
       // subtype ของ event สุดท้าย — error_max_turns คือการชนเพดาน ซึ่งต้องแยกออกจาก
       // ความล้มเหลวชนิดอื่นตอนวิเคราะห์ ไม่ใช่เหมารวมเป็น "run ที่ใช้ไม่ได้"
-      resultSubtype: events.find((e) => e.type === 'result')?.subtype ?? null,
-      numTurns: events.find((e) => e.type === 'result')?.num_turns ?? null,
+      resultSubtype: resultEv?.subtype ?? null,
+      numTurns: resultEvs.reduce((n, e) => n + (e.num_turns ?? 0), 0) || null,
+      // รอบตอบกลับ — ส่งจริงไหม ถ้าไม่ส่งเพราะอะไร และข้อความที่ส่ง (ตรวจย้อนหลังได้ว่าตรงกับที่ประกาศ)
+      followUpSent: Boolean(turn2),
+      followUpSkipped,
+      followUpText: followUp?.text ?? null,
+      turnSubtypes: resultEvs.map((e) => e.subtype ?? null),
       spawnMode: claudeBin.mode,        // direct = ไม่ผ่าน shell, shell = ทางถอย
       promptLength: scenario.prompt.length,   // เทียบกับความยาวจริงใน scenario ได้
       timeoutMs,
@@ -606,8 +669,8 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
       inputTokens: tokens.totalInput,
       outputTokens: tokens.output,
       tokenBreakdown: tokens,                       // แยกส่วนไว้ให้วิเคราะห์ context overhead
-      costUsd: resultEv?.total_cost_usd ?? null,    // ใช้ประมาณงบก่อนรันเต็ม
-      turns: resultEv?.num_turns ?? events.filter((e) => e.type === 'assistant').length,
+      costUsd: resultEvs.length ? resultEvs.reduce((c, e) => c + (e.total_cost_usd ?? 0), 0) : null,
+      turns: resultEvs.reduce((n, e) => n + (e.num_turns ?? 0), 0) || events.filter((e) => e.type === 'assistant').length,
       wallMs: Date.now() - t0,
     },
     // captureError ต้องทำให้ run ถูกตัดออกเหมือน infraError อื่น ๆ

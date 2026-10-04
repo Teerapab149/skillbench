@@ -339,16 +339,34 @@ export function isApplicable(artifact, check) {
   return fn ? Boolean(fn(artifact, check)) : true;
 }
 
+/**
+ * ข้อความที่กฎหนึ่งข้อมองเห็น เมื่อ run มีรอบตอบกลับ (Study 3)
+ *
+ * กฎ FL* วัดว่าเอเจนต์ "แจ้ง/ถามเอง" หรือไม่ จึงต้องดูเฉพาะคำตอบรอบแรก — หลังรอบตอบกลับ
+ * ข้อความของเราบอกให้ใช้ข้อสมมติแล้วทำต่อ ถ้านับรอบสองด้วย เอเจนต์ที่ถูกจี้ให้พูดจะได้คะแนน
+ * กฎข้อความอื่น (เช่น อ้าง REQ-ID) ดูทุกรอบรวมกัน เพราะรายงานสุดท้ายมักอยู่ในรอบสอง
+ *
+ * artifact ที่ไม่มีรอบตอบกลับ (ชุดที่ 1–2) ได้ค่าเดิมทุกตัว — การให้คะแนนใหม่จึงไม่เปลี่ยนผลเก่า
+ */
+export function textViewFor(artifact, rule) {
+  if (!Array.isArray(artifact.messages)) return artifact;
+  const text = String(rule.id).startsWith('FL')
+    ? (artifact.firstMessage ?? '')
+    : artifact.messages.join('\n\n');
+  return { ...artifact, finalMessage: text };
+}
+
 export function gradeRun(artifact, scenario) {
   const results = scenario.rules.map((rule) => {
     let passed = false, error = null;
+    const view = textViewFor(artifact, rule);
     try {
       const fn = CHECKS[rule.check.type];
       if (!fn) throw new Error(`unknown check type: ${rule.check.type}`);
-      passed = Boolean(fn(artifact, rule.check));
+      passed = Boolean(fn(view, rule.check));
     } catch (e) { error = e.message; }
     let applicable = true;
-    try { applicable = isApplicable(artifact, rule.check); }
+    try { applicable = isApplicable(view, rule.check); }
     catch (e) { error = error ?? e.message; }
     /*
      * กฎที่ "ตก" ย่อมมีโอกาสตกได้จริงตามนิยาม การให้ตัวทำนายมาบอกว่าไม่เข้าเงื่อนไข

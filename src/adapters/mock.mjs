@@ -72,7 +72,9 @@ function dilutionProfile(arm) {
   };
 }
 
-export async function runMock({ scenario, arm, repIndex, seed }) {
+const MOCK_FOLLOWUP_REPLY = 'เสร็จแล้วครับ';
+
+export async function runMock({ scenario, arm, repIndex, seed, fixedFactors }) {
   const t0 = Date.now();
   const p = PROFILES[arm.id] ?? (arm.role === 'dilution' || arm.role === 'reference' ? dilutionProfile(arm) : PROFILES.A0);
   const rnd = makeRng(seed);
@@ -201,13 +203,17 @@ export async function runMock({ scenario, arm, repIndex, seed }) {
   const before = { revenue: '2026-05=2140 2026-06=2220 2026-07=1285' };
   const after = { revenue: touchedRetro ? '2026-05=1925 2026-06=1975 2026-07=1150' : before.revenue };
 
+  const report = say.join(String.fromCharCode(10, 10));
   const outTok = 350 + Math.round(churn * 20 + toolCalls.length * 45);
   return {
     runId: `${scenario.id}__${arm.id}__r${repIndex}`,
     scenarioId: scenario.id, armId: arm.id, repIndex, seed,
     adapter: 'mock', simulated: true,
     toolCalls, commands, filesChanged, diff,
-    finalMessage: say.join('\n\n'),
+    finalMessage: fixedFactors?.followUp ? MOCK_FOLLOWUP_REPLY : say.join('\n\n'),
+    // รอบตอบกลับ — โครงเดียวกับ claude-cli: รอบแรกคือรายงานจริง รอบสองคือคำยืนยันสั้น ๆ
+    firstMessage: fixedFactors?.followUp ? report : null,
+    messages: fixedFactors?.followUp ? [report, MOCK_FOLLOWUP_REPLY] : null,
     loadedSkills, testsPassed, acceptance,
     probes: { before, after },
     usage: {
