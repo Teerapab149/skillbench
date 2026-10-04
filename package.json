@@ -44,7 +44,10 @@
     "results:all:study2": "npm run analyze:study2 && npm run results:doc:study2 && node scripts/check-numbers.mjs",
     "arms:review": "node scripts/make-arms-review.mjs",
     "check:arms-review": "node scripts/make-arms-review.mjs --check",
-    "toc": "node scripts/make-toc.mjs"
+    "toc": "node scripts/make-toc.mjs",
+    "main:study3": "node scripts/supervise-collection.mjs --config config/arms-study3.json --out results-study3 --reps 4 --label study3",
+    "analyze:study3": "node src/analyze.mjs --config config/arms-study3.json --in results-study3/latest.json --out results-study3",
+    "preflight:study3": "node scripts/preflight.mjs --config config/arms-study3.json"
   },
   "engines": {
     "node": ">=18"
