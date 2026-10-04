@@ -10,6 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   wilson, cohensH, mcnemarExact, clusterBootstrapDiff, passHatK, exactSignFlipTest, leaveOneScenarioOut, tostFromCI,
+  decidePrimary, signFlipCI, signFlipP,
   meanPairwiseJaccard, normalizedEntropy, fmtPct, fmtP, effectiveN, iccOneWay,
 } from './stats.mjs';
 import { triggerMetrics } from './graders.mjs';
@@ -652,7 +653,7 @@ const hasPrimary = armIds.includes(PRIMARY.armA) && armIds.includes(PRIMARY.armB
 p(`### 6.1 PRIMARY — \`${PRIMARY.metric}\` · ${PRIMARY.armA} เทียบ ${PRIMARY.armB} · exact paired sign-flip ที่ระดับ scenario`);
 p('');
 p('> **ตารางนี้มีแถวเดียวโดยเจตนา** — pre-registration ประกาศ primary endpoint ไว้ตัวเดียว');
-p('> หน่วยข้อมูลคือ **scenario** ไม่ใช่ run · ผลต่างคือค่าเฉลี่ยรายโจทย์ · ช่วง pairwise effect จาก scenario-cluster bootstrap (k จำกัดที่ 11)');
+p(`> หน่วยข้อมูลคือ **scenario** ไม่ใช่ run · ผลต่างคือค่าเฉลี่ยรายโจทย์ · ช่วง pairwise effect จาก scenario-cluster bootstrap (k = ${scenIds.length})`);
 p(`> ประกาศไว้ใน \`${path.relative(ROOT, CONFIG_FILE).split(String.fromCharCode(92)).join('/')}\` (primaryEndpoint) และเอกสารประกาศแผนของชุดนั้น`);
 p('');
 if (!hasPrimary) {
@@ -665,10 +666,31 @@ if (!hasPrimary) {
     rateA: r.pA, rateB: r.pB, diff: r.boot.diff, ciLo: r.boot.lo, ciHi: r.boot.hi,
     wins: r.wins, losses: r.losses, ties: r.ties, k: r.signFlip.k, p: r.signFlip.p,
   };
-  p('| เปรียบเทียบ | metric | A2 | A1 | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | **p (sign-flip)** |');
+  /*
+   * ตารางตัดสินของชุดที่ 3 (ผู้รีวิว C7) — p และ CI มาจาก sign-flip ตัวเดียวกัน
+   * ทำเฉพาะเมื่อ config ประกาศ decision ไว้ ชุดที่ 1–2 จึงได้รายงานเดิมทุกตัว
+   */
+  const DEC = ENDPOINTS.primaryEndpoint?.decision;
+  if (DEC) {
+    const dec = decidePrimary(r.perScenDiff.map((x) => x.d), { margin: DEC.margin, alpha: DEC.alpha ?? 0.05 });
+    NUMBERS.primary.decision = { verdict: dec.verdict, p: dec.p, margin: dec.margin,
+      ci95: [dec.ci95.lo, dec.ci95.hi], ci90: [dec.ci90.lo, dec.ci90.hi], k: dec.k };
+  }
+  p(`| เปรียบเทียบ | metric | ${PRIMARY.armA} | ${PRIMARY.armB} | ผลต่างเฉลี่ยรายโจทย์ [95% CI] | ชนะ/แพ้/เสมอ | k | **p (sign-flip)** |`);
   p('|---|---|---|---|---|---|---:|---|');
-  p(`| **A2 vs A1** | **CRIT** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
+  p(`| **${PRIMARY.armA} vs ${PRIMARY.armB}** | **${PRIMARY.metric}** | ${fmtPct(r.pA)} | ${fmtPct(r.pB)} | ${fmtPct(r.boot.diff)} [${fmtPct(r.boot.lo)}, ${fmtPct(r.boot.hi)}] | ${r.wins}/${r.losses}/${r.ties} | ${r.signFlip.k} | **${fmtP(r.signFlip.p)}** |`);
   p('');
+  if (NUMBERS.primary.decision) {
+    const d = NUMBERS.primary.decision;
+    const label = { A_better: `${PRIMARY.armA} ดีกว่า`, B_better: `${PRIMARY.armB} ดีกว่า`, equivalent: 'เทียบเท่า',
+                    different_but_trivial: 'ต่างอย่างมีนัยสำคัญแต่เล็กกว่าเกณฑ์ที่มีความหมาย', inconclusive: 'สรุปไม่ได้' }[d.verdict];
+    p(`**ตารางตัดสินที่ประกาศไว้ (sign-flip ตัวเดียวทั้ง p และ CI):** ${label}`);
+    p('');
+    p(`| p (two-sided) | CI 95% (กลับด้าน sign-flip) | CI 90% | เกณฑ์เทียบเท่า |`);
+    p('|---:|---|---|---|');
+    p(`| ${fmtP(d.p)} | [${fmtPct(d.ci95[0])}, ${fmtPct(d.ci95[1])}] | [${fmtPct(d.ci90[0])}, ${fmtPct(d.ci90[1])}] | ±${fmtPct(d.margin)} |`);
+    p('');
+  }
   if (r.unmatched.length) {
     p(`> ⚠️ โจทย์ที่มีข้อมูลเพียงฝั่งเดียวจึงถูกตัดออกจาก scenario-level effect: ${r.unmatched.join(', ')}`);
     p('');
@@ -1207,6 +1229,69 @@ if (excluded.length) {
   p('> ถ้าการตัดทิ้งกองอยู่ที่ arm ใด arm หนึ่งผิดสัดส่วน อย่าเพิ่งเชื่อผลของ arm นั้น');
   p('> ให้รันซ่อมเฉพาะ cell ที่หายไปก่อน แล้ววิเคราะห์ใหม่');
   p('');
+}
+
+/*
+ * ชุดที่ 3 — ผลรองที่ประกาศไว้ใน PRE-REGISTRATION-3 (ทำเฉพาะเมื่อ run มีรอบตอบกลับ)
+ *
+ *   1. one-shot RCRc (RCRc1) A2 เทียบ A1 — ผลแบบรอบเดียวที่เทียบกับชุดที่ 2 ได้
+ *   2. อัตราที่รอบตอบกลับ "ช่วย" ราย arm = ทำไม่เสร็จหลังรอบแรก แต่เสร็จหลังรอบสอง (เชิงพรรณนา)
+ *   3. ผลรองหลัก A2 เทียบ A5 ด้วยตารางตัดสินเดียวกัน — ทดสอบที่ alpha เฉพาะเมื่อผลหลักต่างอย่างมีนัยสำคัญ
+ *      (fixed-sequence) แต่รายงานค่าประมาณและ CI เสมอ
+ */
+if (graded.some((g) => g.RCRc1 !== undefined) && hasPrimary) {
+  const DEC = ENDPOINTS.primaryEndpoint?.decision ?? { margin: 0.125 };
+  const s3 = {};
+  const one = pairedCompare(PRIMARY.armA, PRIMARY.armB, 'RCRc1');
+  const oneD = one.perScenDiff.map((x) => x.d);
+  s3.oneShot = { metric: 'RCRc1', armA: PRIMARY.armA, armB: PRIMARY.armB, rateA: one.pA, rateB: one.pB,
+    diff: oneD.length ? oneD.reduce((a, b) => a + b, 0) / oneD.length : null, p: signFlipP(oneD),
+    ci95: (() => { const c = signFlipCI(oneD, 0.95); return [c.lo, c.hi]; })(),
+    wins: one.wins, losses: one.losses, ties: one.ties, k: oneD.length };
+  s3.rescue = Object.fromEntries(armIds.map((a) => {
+    const rows = by(a).filter((r) => r.taskDone1 !== undefined && r.taskDone1 !== null && r.taskDone !== null && r.taskDone !== undefined);
+    const notDone1 = rows.filter((r) => r.taskDone1 === false);
+    const rescued = notDone1.filter((r) => r.taskDone === true).length;
+    const broke = rows.filter((r) => r.taskDone1 === true && r.taskDone === false).length;
+    return [a, { n: rows.length, done1: rows.filter((r) => r.taskDone1).length, done2: rows.filter((r) => r.taskDone).length,
+                 notDone1: notDone1.length, rescued, rescueRate: notDone1.length ? rescued / notDone1.length : null, broke }];
+  }));
+  const KS = ENDPOINTS.keySecondary;
+  if (KS?.armA && armIds.includes(KS.armA) && armIds.includes(KS.armB)) {
+    const ks = pairedCompare(KS.armA, KS.armB, KS.metric ?? PRIMARY.metric);
+    const dec = decidePrimary(ks.perScenDiff.map((x) => x.d), { margin: DEC.margin, alpha: DEC.alpha ?? 0.05 });
+    const gateOpen = ['A_better', 'B_better', 'different_but_trivial'].includes(NUMBERS.primary?.decision?.verdict);
+    s3.keySecondary = { armA: KS.armA, armB: KS.armB, metric: KS.metric ?? PRIMARY.metric, rateA: ks.pA, rateB: ks.pB,
+      verdict: gateOpen ? dec.verdict : 'not_tested', estimateVerdict: dec.verdict, p: dec.p,
+      ci95: [dec.ci95.lo, dec.ci95.hi], ci90: [dec.ci90.lo, dec.ci90.hi], wins: ks.wins, losses: ks.losses, ties: ks.ties, gateOpen };
+  }
+  NUMBERS.study3 = s3;
+
+  p('## ชุดที่ 3 — ผลรองที่ประกาศไว้ล่วงหน้า');
+  p('');
+  p('### one-shot RCRc — ผลแบบรอบเดียว (ภาพ ณ จบรอบแรก)');
+  p('');
+  p(`| ${PRIMARY.armA} | ${PRIMARY.armB} | ผลต่างเฉลี่ยรายโจทย์ | CI 95% (sign-flip) | ชนะ/แพ้/เสมอ | k | p |`);
+  p('|---:|---:|---:|---|---|---:|---:|');
+  p(`| ${fmtPct(s3.oneShot.rateA)} | ${fmtPct(s3.oneShot.rateB)} | ${fmtPct(s3.oneShot.diff)} | [${fmtPct(s3.oneShot.ci95[0])}, ${fmtPct(s3.oneShot.ci95[1])}] | ${s3.oneShot.wins}/${s3.oneShot.losses}/${s3.oneShot.ties} | ${s3.oneShot.k} | ${fmtP(s3.oneShot.p)} |`);
+  p('');
+  p('### รอบตอบกลับช่วยแต่ละกลุ่มไปเท่าไร (เชิงพรรณนา)');
+  p('');
+  p('| arm | run | เสร็จหลังรอบแรก | เสร็จหลังรอบสอง | ไม่เสร็จรอบแรก → เสร็จรอบสอง | เสร็จรอบแรก → พังรอบสอง |');
+  p('|---|---:|---:|---:|---:|---:|');
+  for (const [a, x] of Object.entries(s3.rescue)) p(`| ${a} | ${x.n} | ${x.done1} | ${x.done2} | ${x.rescued}/${x.notDone1} | ${x.broke} |`);
+  p('');
+  if (s3.keySecondary) {
+    const k = s3.keySecondary;
+    p(`### ผลรองหลัก — ${k.armA} เทียบ ${k.armB} (${k.metric})`);
+    p('');
+    p(`> fixed-sequence: ทดสอบที่ alpha เฉพาะเมื่อผลหลักต่างอย่างมีนัยสำคัญ · ผลหลักรอบนี้ ${k.gateOpen ? 'ผ่าน จึงทดสอบ' : 'ไม่ผ่าน จึงรายงานเป็นค่าประมาณเท่านั้น'}`);
+    p('');
+    p(`| ${k.armA} | ${k.armB} | p | CI 95% | CI 90% | ชนะ/แพ้/เสมอ | ผลตามตาราง |`);
+    p('|---:|---:|---:|---|---|---|---|');
+    p(`| ${fmtPct(k.rateA)} | ${fmtPct(k.rateB)} | ${fmtP(k.p)} | [${fmtPct(k.ci95[0])}, ${fmtPct(k.ci95[1])}] | [${fmtPct(k.ci90[0])}, ${fmtPct(k.ci90[1])}] | ${k.wins}/${k.losses}/${k.ties} | ${k.verdict} |`);
+    p('');
+  }
 }
 
 fs.mkdirSync(OUT_DIR, { recursive: true });

@@ -214,6 +214,9 @@ export async function runMock({ scenario, arm, repIndex, seed, fixedFactors }) {
     // รอบตอบกลับ — โครงเดียวกับ claude-cli: รอบแรกคือรายงานจริง รอบสองคือคำยืนยันสั้น ๆ
     firstMessage: fixedFactors?.followUp ? report : null,
     messages: fixedFactors?.followUp ? [report, MOCK_FOLLOWUP_REPLY] : null,
+    // ภาพหลังรอบแรก — mock ไม่มีรอบสองจริง จึงเท่ากับสภาพสุดท้าย (ให้ทางวิเคราะห์ของชุดที่ 3 ได้ทำงาน)
+    firstTurn: fixedFactors?.followUp ? { filesChanged, diff, testsPassed, acceptance, probes: after, agentCommits: [],
+      toolCallCount: toolCalls.length, commandCount: commands.length, error: null } : null,
     loadedSkills, testsPassed, acceptance,
     probes: { before, after },
     usage: {

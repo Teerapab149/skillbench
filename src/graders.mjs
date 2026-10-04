@@ -389,7 +389,25 @@ export function textViewFor(artifact, rule) {
   return { ...artifact, finalMessage: artifact.messages.join('\n\n') };
 }
 
+/**
+ * ให้คะแนน run · เมื่อ run มีภาพหลังรอบแรก (Study 3) จะให้คะแนนซ้ำอีกชุดจากภาพนั้น
+ * ได้ RCRc1 / taskDone1 / RCRa1 = ผลแบบรอบเดียว ซึ่งเป็นผลรองหลักที่เทียบกับชุดที่ 2 ได้
+ * และใช้วัดว่ารอบตอบกลับ "ช่วย" แต่ละกลุ่มไปเท่าไร (ผู้รีวิว C1)
+ */
 export function gradeRun(artifact, scenario) {
+  const g = gradeRunCore(artifact, scenario);
+  if (artifact.firstTurn && Array.isArray(artifact.messages)) {
+    const one = gradeRunCore(firstTurnView(artifact), scenario);
+    g.RCRc1 = one.RCRc;
+    g.taskDone1 = one.taskDone;
+    g.RCRa1 = one.RCRa;
+    g.CRIT1 = one.CRIT;
+    g.filesChanged1 = (artifact.firstTurn.filesChanged ?? []).length;
+  }
+  return g;
+}
+
+function gradeRunCore(artifact, scenario) {
   const results = scenario.rules.map((rule) => {
     let passed = false, error = null;
     const view = textViewFor(artifact, rule);

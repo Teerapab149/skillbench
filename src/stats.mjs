@@ -139,6 +139,88 @@ export function exactSignFlipTest(diffs) {
   return { p: atLeastAsExtreme / total, k, observed, permutations: total };
 }
 
+/**
+ * ค่า p ของ exact sign-flip แบบ meet-in-the-middle — ผลเท่ากับ exactSignFlipTest ทุกตัว
+ * แต่ใช้ได้ถึง k ราว 40 (ชุดที่ 3 มี 22 โจทย์ และการกลับด้านเป็น CI ต้องเรียกซ้ำหลายสิบครั้ง)
+ *
+ * แบ่งโจทย์เป็นสองครึ่ง แจกแจงผลรวมของทุกแบบการพลิกในแต่ละครึ่ง แล้วนับคู่ที่ |s1 + s2| ≥ |ผลรวมจริง|
+ * ด้วยการเรียงและสองตัวชี้ — O(2^(k/2) log 2^(k/2)) แทน O(2^k · k)
+ */
+export function signFlipP(diffs) {
+  const d = diffs.filter((x) => Number.isFinite(x));
+  const k = d.length;
+  if (k === 0) return NaN;
+  const sums = (xs) => {
+    let out = [0];
+    for (const x of xs) out = out.flatMap((v) => [v + x, v - x]);
+    return out;
+  };
+  const half = Math.floor(k / 2);
+  const A = sums(d.slice(0, half));
+  const B = sums(d.slice(half)).sort((a, b) => a - b);
+  const T = Math.abs(d.reduce((a, b) => a + b, 0)) - 1e-9;
+  if (T <= 0) return 1;   // ผลรวมจริงเป็นศูนย์ — ทุกแบบการพลิกสุดขั้วอย่างน้อยเท่ากัน
+  // นับ b ใน B ที่ a + b >= T หรือ a + b <= -T
+  const lowerBound = (v) => { let lo = 0, hi = B.length; while (lo < hi) { const m = (lo + hi) >> 1; if (B[m] < v) lo = m + 1; else hi = m; } return lo; };
+  const upperBound = (v) => { let lo = 0, hi = B.length; while (lo < hi) { const m = (lo + hi) >> 1; if (B[m] <= v) lo = m + 1; else hi = m; } return lo; };
+  let count = 0;
+  for (const a of A) {
+    count += B.length - lowerBound(T - a);   // a + b >= T
+    count += upperBound(-T - a);              // a + b <= -T
+  }
+  return Math.min(1, count / (A.length * B.length));
+}
+
+/**
+ * ช่วงความเชื่อมั่นจากการกลับด้าน sign-flip test เดียวกับที่ใช้คำนวณ p (ผู้รีวิว C7)
+ *
+ * CI = { δ : ทดสอบ H0: ผลต่าง = δ ด้วย sign-flip บน (d_i − δ) แล้วไม่ปฏิเสธที่ระดับ 1 − conf }
+ * ใช้เครื่องมืออนุมานตัวเดียวทั้ง p และ CI — เดิม p มาจาก sign-flip แต่ CI มาจาก cluster bootstrap
+ * ซึ่งขัดกันเองได้ (เช่น p ไม่ถึงแต่ CI ไม่คร่อมศูนย์) และ bootstrap บน ~20 cluster มักแคบเกินจริง
+ *
+ * หาขอบด้วยการแบ่งครึ่งจากค่าเฉลี่ยออกไปแต่ละด้าน · p(δ) ไม่ได้เรียบเสมอไป จึงเป็นช่วงที่ "ไม่ปฏิเสธ" ต่อเนื่อง
+ * จากค่าเฉลี่ย ซึ่งเป็นนิยามที่ใช้กันทั่วไปสำหรับ permutation CI
+ */
+export function signFlipCI(diffs, conf = 0.95) {
+  const d = diffs.filter((x) => Number.isFinite(x));
+  if (!d.length) return { lo: NaN, hi: NaN, conf };
+  const alpha = 1 - conf;
+  const mean = d.reduce((a, b) => a + b, 0) / d.length;
+  const accept = (delta) => signFlipP(d.map((x) => x - delta)) > alpha;
+  const span = Math.max(...d) - Math.min(...d) + 1;
+  const edge = (dir) => {
+    let inside = mean, outside = mean + dir * span;
+    if (accept(outside)) return outside;   // ไม่มีทางเกิดเมื่อ k ≥ 2 แต่กันไว้
+    for (let i = 0; i < 60; i++) {
+      const mid = (inside + outside) / 2;
+      if (accept(mid)) inside = mid; else outside = mid;
+    }
+    return inside;
+  };
+  return { lo: edge(-1), hi: edge(+1), conf, mean };
+}
+
+/**
+ * ตารางตัดสินผลหลักของชุดที่ 3 — ประกาศไว้ใน PRE-REGISTRATION-3
+ *
+ *   1. p < alpha (two-sided)            → "ต่าง" (ทิศตามเครื่องหมาย) · ถ้า CI 90% อยู่ในกรอบ ±margin ด้วย
+ *                                          ให้รายงานว่า "ต่างอย่างมีนัยสำคัญแต่เล็กกว่าเกณฑ์ที่มีความหมาย"
+ *   2. ไม่เข้าข้อ 1 และ CI 90% อยู่ในกรอบ → "เทียบเท่า" (TOST ที่ 0.05 ต่อด้าน)
+ *   3. ไม่เข้าทั้งสองข้อ                   → "สรุปไม่ได้"
+ * ข้อ 1 มาก่อนข้อ 2 เสมอ ทั้งคู่ใช้ sign-flip ตัวเดียวกัน จึงไม่มีกรณีที่เครื่องมือสองตัวขัดกัน
+ */
+export function decidePrimary(diffs, { margin, alpha = 0.05 } = {}) {
+  if (!Number.isFinite(margin)) throw new Error('decidePrimary: ต้องประกาศ margin');
+  const p = signFlipP(diffs);
+  const ci95 = signFlipCI(diffs, 1 - alpha);
+  const ci90 = signFlipCI(diffs, 1 - 2 * alpha);
+  const inside = ci90.lo > -margin && ci90.hi < margin;
+  let verdict;
+  if (p < alpha) verdict = inside ? 'different_but_trivial' : (ci95.mean > 0 ? 'A_better' : 'B_better');
+  else verdict = inside ? 'equivalent' : 'inconclusive';
+  return { verdict, p, ci95, ci90, margin, k: diffs.filter((x) => Number.isFinite(x)).length };
+}
+
 /** Exploratory leave-one-scenario-out influence values; never an inferential test. */
 export function leaveOneScenarioOut(diffs) {
   const rows = (diffs ?? []).filter((x) => Number.isFinite(x?.d) && x.id != null);
