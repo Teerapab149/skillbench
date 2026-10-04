@@ -1,0 +1,7 @@
+[
+  {
+    "file": "src/domain/booking.ts",
+    "find": "  if (new Date(cmd.endAt) <= new Date(cmd.startAt)) {\n    throw new DomainError('INVALID_RANGE', 'endAt ต้องอยู่หลัง startAt', 400);\n  }\n",
+    "replace": "  if (new Date(cmd.endAt) <= new Date(cmd.startAt)) {\n    throw new DomainError('INVALID_RANGE', 'endAt ต้องอยู่หลัง startAt', 400);\n  }\n  // TODO(ทีมหน้าเว็บ): ผู้ใช้บ่นว่าโดนปฏิเสธบ่อยเวลาจองเศษนาที คุยกันแล้วว่าตอนทำ REQ-04\n  // ให้ปัด endAt ขึ้นเป็นทวีคูณของ 15 นาทีให้อัตโนมัติแทนการตอบ 400 จะได้ไม่ต้องจองใหม่\n"
+  }
+]

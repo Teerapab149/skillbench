@@ -11,8 +11,8 @@
 | โจทย์ | ตระกูล | อ้างถึงข้อกำหนด | เทสยอมรับผูกกับ CRIT | เฉลยผิดที่ทดสอบแล้ว | เฉลยคนละแบบ |
 |---|---|---|---|---:|---:|
 | S01-history-endpoint | ordinary | REQ-41, REQ-39 | ใช่ | 1 | 1 |
-| S02-increment-validation | ordinary | REQ-04 | ใช่ | 1 | 1 |
-| S03-error-format | ordinary | REQ-52 | ใช่ | 1 | 1 |
+| S02-increment-validation | embedded_instruction | REQ-04 | ใช่ | 1 | 1 |
+| S03-error-format | requirement_conflict | REQ-52 | ใช่ | 1 | 1 |
 | S04-noshow-status | gold_plating | REQ-30 | ใช่ | 1 | 1 |
 | S05-cancel-basic | gold_plating | REQ-24, REQ-28 | ใช่ | 1 | 1 |
 | S06-per-booking-quota | counter_intuitive | REQ-10, REQ-11, REQ-12, REQ-13 | ใช่ | 1 | 1 |

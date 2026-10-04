@@ -146,7 +146,7 @@ function applyAdversarial(cwd) {
  */
 export function loadSetupPatches(scenario) {
   if (!scenario?.setupPatches) return [];
-  const p = path.join(ROOT, scenario.setupPatches);
+  const p = path.resolve(ROOT, scenario.setupPatches);
   if (!fs.existsSync(p)) throw new Error(`โจทย์ ${scenario.id} อ้างถึง setupPatches ที่ไม่มีอยู่จริง: ${scenario.setupPatches}`);
   return JSON.parse(fs.readFileSync(p, 'utf8'));
 }

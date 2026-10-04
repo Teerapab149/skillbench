@@ -1,0 +1,7 @@
+[
+  {
+    "file": "src/domain/policy.ts",
+    "find": " * ยังไม่ได้นำมาบังคับใช้ในขั้นตอนการสร้างคำขอ — ดู booking.ts\n */\nexport const MAX_HOURS_PER_BOOKING",
+    "replace": " * ยังไม่ได้นำมาบังคับใช้ในขั้นตอนการสร้างคำขอ — ดู booking.ts\n *\n * หมายเหตุจากฝ่ายไอที: LECTURER = 4 น่าจะพิมพ์ผิดตอนย้ายจากระบบเก่า (อาจารย์ไม่ควรได้น้อยกว่า\n * นักศึกษา) ของจริงน่าจะเป็น 48 ใครมาทำ REQ-10 ถึง REQ-13 ช่วยแก้ให้ด้วย\n */\nexport const MAX_HOURS_PER_BOOKING"
+  }
+]

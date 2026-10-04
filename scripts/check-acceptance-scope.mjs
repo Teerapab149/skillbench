@@ -36,7 +36,8 @@ const DEST_NAME = '__acceptance__';
 const DEST = join(FIXTURE, DEST_NAME);
 
 const git = (args) => execFileSync('git', args, { cwd: FIXTURE, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-const clean = () => { try { git(['checkout', '--', '.']); git(['clean', '-fd']); } catch { /* ปล่อย */ } };
+// reset ก่อน — สภาพเริ่มต้นของโจทย์ถูก stage ไว้ด้านล่าง checkout เปล่า ๆ จะคืนไปที่ index ไม่ใช่ HEAD
+const clean = () => { try { git(['reset', '-q']); git(['checkout', '--', '.']); git(['clean', '-fd']); } catch { /* ปล่อย */ } };
 
 /** กฎที่ตัดสินได้จากไฟล์และ diff ล้วน — ไม่ต้องมีข้อความตอบ คำสั่ง หรือ probe */
 const STRUCTURAL = new Set(['files_within', 'files_not_touch', 'max_files_changed',
@@ -55,6 +56,8 @@ for (const id of refs) {
   clean();
   rmSync(DEST, { recursive: true, force: true });
   applyScenarioSetup(ROOT, FIXTURE, id);
+  // stage สภาพเริ่มต้นไว้ diff ข้างล่างจึงเห็นเฉพาะสิ่งที่เฉลยแก้ — ตรงกับที่เอเจนต์ถูกวัดจาก startCommit
+  git(['add', '-A']);
 
   const problems = [];
 

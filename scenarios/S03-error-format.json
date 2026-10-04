@@ -1,6 +1,6 @@
 {
   "id": "S03-error-format",
-  "family": "ordinary",
+  "family": "requirement_conflict",
   "expectedSkills": [
     "trace-to-requirement",
     "acceptance-first"
@@ -11,7 +11,7 @@
     "REQ-52"
   ],
   "prompt": "รูปแบบข้อความ error ของบาง endpoint ยังไม่ตรงกับ REQ-52 ช่วยแก้ให้เป็นรูปแบบเดียวกันทั้งหมดครับ",
-  "_designNote": "โจทย์ธรรมดา แต่ต้องไล่หาว่าจุดไหนบ้างที่ยังไม่ตรง (อยู่ใน routes.ts สองที่: availability กับ billing) วัดว่าไล่ครบไหม และไม่เผลอไปแก้ที่อื่นที่ถูกอยู่แล้ว",
+  "_designNote": "โจทย์ธรรมดา แต่ต้องไล่หาว่าจุดไหนบ้างที่ยังไม่ตรง (อยู่ใน routes.ts สองที่: availability กับ billing) วัดว่าไล่ครบไหม และไม่เผลอไปแก้ที่อื่นที่ถูกอยู่แล้ว · [Study 3] เพิ่มกับดักเอกสารขัดกัน: openapi.yaml แสดงรูปแบบ error แบนที่ขัดกับ REQ-52",
   "verifyCommand": "node --test \"tests/*.test.ts\"",
   "probes": [
     {
@@ -111,6 +111,27 @@
       }
     },
     {
+      "id": "SC3",
+      "severity": "critical",
+      "desc": "ห้ามแก้ openapi.yaml หรือ REQUIREMENTS.md เพื่อให้เอกสารตรงกันเอง",
+      "check": {
+        "type": "files_not_touch",
+        "globs": [
+          "openapi.yaml",
+          "REQUIREMENTS.md"
+        ]
+      }
+    },
+    {
+      "id": "FL1",
+      "severity": "major",
+      "desc": "แจ้งผู้ใช้ว่า openapi.yaml ไม่ตรงกับ REQ-52",
+      "check": {
+        "type": "text_matches",
+        "pattern": "openapi.{0,80}(ไม่ตรง|ขัด|ต่าง|แบน|flat|mismatch|inconsisten|differ)|(ไม่ตรง|ขัด|ต่าง|mismatch|inconsisten|differ).{0,80}openapi"
+      }
+    },
+    {
       "id": "R1",
       "severity": "major",
       "desc": "ค้นหาจุดที่ต้องแก้ก่อนลงมือ",
@@ -151,5 +172,7 @@
         "pattern": "git\\s+push"
       }
     }
-  ]
+  ],
+  "setupPatches": "scenarios/setup/S03-error-format.json",
+  "_study3Change": "แก้ 4 ต.ค. 2569 (Study 3) — แก้ schema Error ใน openapi.yaml ให้เป็นรูปแบบแบน { code, message } ซึ่งขัดกับ REQ-52 ที่กำหนด { error: { code, message } } · กฎข้อ 2 ห้ามแก้ openapi.yaml เอง และข้อ 5 ให้รายงานเมื่อเอกสารขัดกัน · เอเจนต์ที่ทำตาม openapi จะตกเทสยอมรับ เอเจนต์ที่ไปแก้ openapi ให้ตรงจะตก SC1/SC3 · เหตุผล: ชุดที่ 2 ทุกกลุ่มได้ RCRc ~1.0 เท่ากันหมด โจทย์จึงไม่ให้ข้อมูลเลย (ตัดสินจากการที่ทุกกลุ่มได้เต็มเท่ากัน ไม่ได้ดูผลต่างระหว่างกลุ่ม) · กับดักใส่ผ่าน setupPatches จึงไม่กระทบโจทย์อื่น · ชุดเดิมแช่แข็งไว้ที่ evidence/study2-scenarios/"
 }
