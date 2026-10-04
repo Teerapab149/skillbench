@@ -1,0 +1,1 @@
+- [Conflicting requirements with no one to ask](feedback_conflicting_requirements.md) — proceed transparently, don't treat as blanket approval

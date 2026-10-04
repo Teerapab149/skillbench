@@ -1265,6 +1265,11 @@ if (graded.some((g) => g.RCRc1 !== undefined) && hasPrimary) {
       verdict: gateOpen ? dec.verdict : 'not_tested', estimateVerdict: dec.verdict, p: dec.p,
       ci95: [dec.ci95.lo, dec.ci95.hi], ci90: [dec.ci90.lo, dec.ci90.hi], wins: ks.wins, losses: ks.losses, ties: ks.ties, gateOpen };
   }
+  // run ที่เอเจนต์เขียน auto-memory (ถูกกักเก็บแล้ว ไม่ปนข้าม run) — เชิงพรรณนา ราย arm
+  s3.memoryWrites = Object.fromEntries(armIds.map((a) => {
+    const rows = by(a);
+    return [a, { n: rows.length, wrote: rows.filter((r) => r.memoryWrittenByAgent).length }];
+  }));
   NUMBERS.study3 = s3;
 
   p('## ชุดที่ 3 — ผลรองที่ประกาศไว้ล่วงหน้า');
@@ -1280,6 +1285,12 @@ if (graded.some((g) => g.RCRc1 !== undefined) && hasPrimary) {
   p('| arm | run | เสร็จหลังรอบแรก | เสร็จหลังรอบสอง | ไม่เสร็จรอบแรก → เสร็จรอบสอง | เสร็จรอบแรก → พังรอบสอง |');
   p('|---|---:|---:|---:|---:|---:|');
   for (const [a, x] of Object.entries(s3.rescue)) p(`| ${a} | ${x.n} | ${x.done1} | ${x.done2} | ${x.rescued}/${x.notDone1} | ${x.broke} |`);
+  p('');
+  p('### run ที่เอเจนต์เขียน auto-memory (กักเก็บแล้ว · เชิงพรรณนา)');
+  p('');
+  p('| arm | run | เขียน memory |');
+  p('|---|---:|---:|');
+  for (const [a, x] of Object.entries(s3.memoryWrites)) p(`| ${a} | ${x.n} | ${x.wrote} |`);
   p('');
   if (s3.keySecondary) {
     const k = s3.keySecondary;

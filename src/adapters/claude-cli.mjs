@@ -275,6 +275,19 @@ export function followUpArgs(args, followUp, sessionId) {
   return out;
 }
 
+/** ย้ายไฟล์ auto-memory ทั้งหมดไปเก็บเป็นหลักฐาน — ย้าย ไม่ลบ · คืนที่เก็บและรายชื่อไฟล์ */
+function quarantineMemory(memPath, runId) {
+  const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+  const dest = path.join(ROOT, 'evidence', 'memory-quarantine', `${new Date().toISOString().replace(/[:.]/g, '-')}__${runId}`);
+  fs.mkdirSync(dest, { recursive: true });
+  const files = fs.readdirSync(memPath);
+  for (const f of files) {
+    fs.cpSync(path.join(memPath, f), path.join(dest, f), { recursive: true });
+    fs.rmSync(path.join(memPath, f), { recursive: true, force: true });
+  }
+  return { dir: path.relative(ROOT, dest).split(path.sep).join('/'), files };
+}
+
 /** นับ tool call และคำสั่ง Bash ของรอบหนึ่ง — นิยามเดียวกับตัวแกะ stream ด้านล่าง */
 function countToolUse(events) {
   let toolCalls = 0, commands = 0;
@@ -647,6 +660,26 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
   // ของเดิมหยิบแค่ tools กับ apiKeySource ทำให้ MCP ที่ต่ออยู่ไม่เคยถูกมองเห็นเลยทั้งที่มีในนี้
   const initEv = events.find((e) => e.type === 'system' && e.subtype === 'init') ?? null;
 
+  /*
+   * auto-memory ที่เอเจนต์เขียนระหว่าง run (Study 3) — กักเก็บแล้วนับ ไม่หยุดทั้งชุด
+   *
+   * รอบนำร่องของชุดที่ 3 (4 ต.ค. 2569) เอเจนต์ใน S10 บันทึก "feedback" ว่าข้อความรอบตอบกลับคือ
+   * การอนุญาตให้ตัดสินเอง ถ้าปล่อยไว้ทุก run ถัดไปจะอ่านมัน · นโยบายของชุดที่ 1–2 คือหยุดทั้งชุดและ
+   * ทิ้ง run นั้น แต่รอบตอบกลับทำให้การเขียน memory เกิดบ่อยขึ้น (เอเจนต์อ่านมันเป็น feedback ของผู้ใช้)
+   * การทิ้งแล้วรันใหม่ซ้ำ ๆ คือการคัดเลือกเฉพาะ run ที่ไม่เขียน memory = selection bias
+   *
+   * นโยบาย quarantine: ย้ายไฟล์ไปเก็บเป็นหลักฐานใน evidence/memory-quarantine/ ติดธงไว้กับ run
+   * แล้ว run ถัดไปเริ่มจาก memory ว่างเหมือนเดิม (ด่าน "ก่อน run ต้องว่าง" ยังบังคับอยู่)
+   * ใช้เฉพาะเมื่อ config ประกาศ fixedFactors.memoryPolicy = "quarantine" — ชุด 1–2 ได้พฤติกรรมเดิม
+   */
+  const memPath = initEv?.memory_paths?.auto ?? null;
+  let memoryStateAfter = memoryDirState(memPath);
+  let memoryQuarantine = null;
+  if (fixedFactors?.memoryPolicy === 'quarantine' && memoryStateAfter === 'nonempty' && memoryStateBefore !== 'nonempty') {
+    memoryQuarantine = quarantineMemory(memPath, `${scenario.id}__${arm.id}__r${repIndex}`);
+    memoryStateAfter = memoryDirState(memPath);
+  }
+
   const artifact = {
     runId: `${scenario.id}__${arm.id}__r${repIndex}`,
     scenarioId: scenario.id, armId: arm.id, repIndex, seed,
@@ -724,7 +757,10 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
        * เพราะ "อ่านไม่ได้" ต้องหยุด ไม่ใช่ถูกกลืนเป็น "ว่าง"
        */
       memoryStateBefore,
-      memoryStateAfter: memoryDirState(initEv?.memory_paths?.auto ?? null),
+      memoryStateAfter,
+      // ไม่ใช่ null = เอเจนต์เขียน auto-memory ระหว่าง run นี้ และไฟล์ถูกย้ายไปกักเก็บแล้ว
+      memoryWrittenByAgent: Boolean(memoryQuarantine),
+      memoryQuarantine,
     },
     probes: { before: probesBefore, after: probesAfter },
     usage: {

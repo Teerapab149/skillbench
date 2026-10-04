@@ -396,6 +396,7 @@ export function textViewFor(artifact, rule) {
  */
 export function gradeRun(artifact, scenario) {
   const g = gradeRunCore(artifact, scenario);
+  if (artifact.control?.memoryWrittenByAgent !== undefined) g.memoryWrittenByAgent = artifact.control.memoryWrittenByAgent;
   if (artifact.firstTurn && Array.isArray(artifact.messages)) {
     const one = gradeRunCore(firstTurnView(artifact), scenario);
     g.RCRc1 = one.RCRc;
