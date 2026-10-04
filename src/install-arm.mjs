@@ -134,9 +134,50 @@ function applyAdversarial(cwd) {
  * คืน { installed, armCommit } — เก็บลง artifact เพื่อให้ตรวจย้อนหลังได้ว่า
  * run นั้น "ได้รับ context จริงหรือเปล่า" ไม่ต้องเชื่อว่าโค้ดทำงานถูก
  */
-export function installArm({ workspace, arm }) {
+/**
+ * สภาพเริ่มต้นรายโจทย์ (Study 3) — ปะลงบน baseline แล้ว commit ก่อนติดตั้ง arm
+ *
+ * ทุกโจทย์เคยเริ่มจาก fixture ชุดเดียวกัน โจทย์ที่ต้องใช้ฟีเจอร์ซึ่งเป็นงานของโจทย์อื่น
+ * จึงพังโดยไม่มีใครตั้งใจ: S07 ทดสอบ REQ-16 ด้วย event ยกเลิกที่ fixture ยังไม่มี (งานของ S10)
+ * และ S11 สั่ง REQ-15 ทั้งที่ REQ-14 ที่ต้องใช้คู่กันยังไม่มี · setupPatches ให้โจทย์ประกาศ
+ * สภาพตั้งต้นของตัวเองได้ โดย commit แยกไว้ก่อน startCommit — diff ของเอเจนต์จึงไม่รวมมัน
+ *
+ * รูปแบบไฟล์ (JSON): [{ file, find, replace } | { file, create }]
+ */
+export function loadSetupPatches(scenario) {
+  if (!scenario?.setupPatches) return [];
+  const p = path.join(ROOT, scenario.setupPatches);
+  if (!fs.existsSync(p)) throw new Error(`โจทย์ ${scenario.id} อ้างถึง setupPatches ที่ไม่มีอยู่จริง: ${scenario.setupPatches}`);
+  return JSON.parse(fs.readFileSync(p, 'utf8'));
+}
+
+export function applySetupPatches(cwd, patches) {
+  const lf = (t) => String(t).replace(/\r\n/g, '\n');
+  for (const p of patches) {
+    const abs = path.join(cwd, p.file);
+    if (p.create !== undefined) {
+      if (fs.existsSync(abs)) throw new Error(`setupPatches: ${p.file} มีอยู่แล้ว ใช้ find/replace แทน create`);
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, lf(p.create));
+      continue;
+    }
+    const before = lf(fs.readFileSync(abs, 'utf8'));
+    if (!before.includes(lf(p.find))) throw new Error(`setupPatches: หาข้อความที่จะแทนไม่เจอใน ${p.file}`);
+    fs.writeFileSync(abs, before.replace(lf(p.find), lf(p.replace)));
+  }
+}
+
+export function installArm({ workspace, arm, scenario = null }) {
   const cwd = path.resolve(workspace);
   resetToBaseline(cwd);
+
+  const setup = loadSetupPatches(scenario);
+  if (setup.length) {
+    applySetupPatches(cwd, setup);
+    gitStrict(cwd, ['add', '-A']);
+    gitStrict(cwd, ['-c', 'user.email=bench@local', '-c', 'user.name=skillbench',
+                    'commit', '-qm', `scenario-setup:${scenario.id}`]);
+  }
   const injectionTargets = [];
   const injectionProbes = [];
 
@@ -193,10 +234,12 @@ export function installArm({ workspace, arm }) {
    *
    * A0 ไม่มี arm commit จึงใช้ commit ของ tag baseline เป็นจุดอ้างอิงแทน
    */
-  const baselineCommit = git(cwd, ['rev-parse', `${BASELINE_TAG}^{commit}`]).trim();
+  // จุดเริ่มของเอเจนต์ = baseline + สภาพเริ่มต้นของโจทย์ (ถ้ามี) — ไม่ใช่ tag ตรง ๆ อีกต่อไป
+  const baselineCommit = git(cwd, ['rev-parse', 'HEAD']).trim();
 
   if (!installed.length) {   // A0 — ตั้งใจให้ว่าง
-    return { installed: [], armCommit: null, startCommit: baselineCommit || null, injectionTargets, injectionProbes };
+    return { installed: [], armCommit: null, startCommit: baselineCommit || null, injectionTargets, injectionProbes,
+             setupCommit: setup.length ? baselineCommit : null };
   }
 
   gitStrict(cwd, ['add', '-A']);
@@ -209,7 +252,8 @@ export function installArm({ workspace, arm }) {
   const dirty = git(cwd, ['status', '--porcelain']).trim();
   if (dirty) throw new Error(`ติดตั้ง arm ${arm.id} แล้ว workspace ยังไม่สะอาด:\n${dirty}`);
 
-  return { installed, armCommit, startCommit: startCommit || null, injectionTargets, injectionProbes };
+  return { installed, armCommit, startCommit: startCommit || null, injectionTargets, injectionProbes,
+           setupCommit: setup.length ? git(cwd, ['rev-parse', 'HEAD~1']).trim() : null };
 }
 
 /** ล้าง context ของ arm ออกให้หมด — ต้องเรียกเสมอ แม้ run จะพัง */

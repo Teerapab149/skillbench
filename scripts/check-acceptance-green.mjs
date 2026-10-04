@@ -20,6 +20,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 import { refuseIfCollecting } from './collection-guard.mjs';
 import { applyPatches } from './patch-fixture.mjs';
 import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
+import { applyScenarioSetup } from './lib/scenario-setup.mjs';
 import { FIXTURE_NOW } from '../src/adapters/claude-cli.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -53,6 +54,8 @@ for (const id of refs) {
   cpSync(SRC, DEST, { recursive: true, filter: (s) => !relative(SRC, s).split(/[\\/]/)[0].startsWith('reference') });
 
   const mod = await import(pathToFileURL(join(REF, `${id}.patch.mjs`)).href);
+  // เฉลยปะทับสภาพเริ่มต้นของโจทย์ ไม่ใช่ทับ fixture เปล่า — เอเจนต์เริ่มจากจุดนั้น
+  applyScenarioSetup(ROOT, FIXTURE, id);
   const { error: applyError } = applyPatches(FIXTURE, mod.patches);
 
   if (applyError) {

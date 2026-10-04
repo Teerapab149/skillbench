@@ -18,6 +18,7 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { refuseIfCollecting } from './collection-guard.mjs';
 import { lockFixtureForProcess } from '../src/fixture-lock.mjs';
+import { applyScenarioSetup, revertCreatedFiles } from './lib/scenario-setup.mjs';
 
 const ROOT = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 
@@ -71,6 +72,8 @@ const rows = [];
 for (const f of files) {
   const id = f.replace(/\.test\.ts$/, '');
   let passed, output = '';
+  // สภาพเริ่มต้นของโจทย์ (ถ้ามี) — "baseline" ของโจทย์นั้นคือ fixture + setupPatches
+  const setup = applyScenarioSetup(ROOT, FIXTURE, id);
   try {
     output = execFileSync(process.execPath, ['--test', `${DEST_NAME}/${f}`],
       { cwd: FIXTURE, encoding: 'utf8', stdio: 'pipe', timeout: 120000 });
@@ -79,8 +82,9 @@ for (const f of files) {
     passed = false;
     output = `${e.stdout ?? ''}${e.stderr ?? ''}`;
   }
-  // คืนสภาพหลังทุกไฟล์ เพราะเทสเขียนทับ data/events.jsonl
-  try { git(['checkout', '--', 'data']); } catch { /* data อาจไม่ถูก track */ }
+  // คืนสภาพหลังทุกไฟล์ เพราะเทสเขียนทับ data/events.jsonl และ setupPatches แก้ไฟล์ที่ track
+  try { git(['checkout', '--', '.']); } catch { /* ปล่อย */ }
+  revertCreatedFiles(FIXTURE, setup);
 
   /*
    * ตกอย่างเดียวไม่พอ — ต้องตก "ด้วยเหตุผลที่ถูก"

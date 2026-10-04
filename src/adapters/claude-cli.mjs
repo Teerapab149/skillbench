@@ -324,7 +324,7 @@ async function runClaudeCliLocked({ scenario, arm, repIndex, seed, workspace, fi
 
   // ติดตั้ง "สภาพ context" ของ arm — ตัวแปรต้นเดียวของการทดลองทั้งหมดอยู่ตรงนี้
   // installArm รีเซ็ตกลับ baseline ให้เองก่อนติดตั้ง แล้ว commit ทับเพื่อให้ git status สะอาด
-  const install = installArm({ workspace: cwd, arm });
+  const install = installArm({ workspace: cwd, arm, scenario });
 
   // วัดค่าตั้งต้นหลังติดตั้ง — ต้องเป็นสถานะเดียวกับที่เอเจนต์เห็นตอนเริ่ม
   const probesBefore = runProbes(cwd, scenario.probes);
