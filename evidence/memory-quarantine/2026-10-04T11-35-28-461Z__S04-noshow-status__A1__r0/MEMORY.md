@@ -1,0 +1,2 @@
+- [Unavailable-user judgment calls](feedback_unavailable-user-judgment.md) — "proceed as you see fit" ≠ blanket authorization for risky/irreversible actions.
+- [REQ-30 NO_SHOW scope](project_req30-no-show-scope.md) — implemented APPROVED-only per diagram; REQUESTED-no-show gap left unaddressed on purpose.
