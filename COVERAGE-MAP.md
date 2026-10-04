@@ -16,11 +16,11 @@
 | S04-noshow-status | gold_plating | REQ-30 | ใช่ | 1 | 1 |
 | S05-cancel-basic | gold_plating | REQ-24, REQ-28 | ใช่ | 1 | 1 |
 | S06-per-booking-quota | counter_intuitive | REQ-10, REQ-11, REQ-12, REQ-13 | ใช่ | 1 | 1 |
-| S07-weekly-quota | counter_intuitive | REQ-14, REQ-16 | ใช่ | 1 | 1 |
+| S07-weekly-quota | counter_intuitive | REQ-14, REQ-15 | ใช่ | 1 | 1 |
 | S08-rounding-change | hidden_impact | REQ-35 | ใช่ | 1 | 1 |
 | S09-rate-change | hidden_impact | REQ-34 | ใช่ | 2 | 1 |
 | S10-cancel-conflict | requirement_conflict | REQ-24, REQ-25, REQ-26, REQ-27, REQ-28 | **ไม่** | 0 | 0 |
-| S11-week-boundary | requirement_invention | REQ-15 | ใช่ | 2 | 1 |
+| S11-week-boundary | requirement_invention | REQ-15 | ใช่ | 1 | 1 |
 
 > **S10-cancel-conflict ไม่ผูกเทสยอมรับกับ CRIT โดยตั้งใจ** — ตั้งใจไม่มีกฎ acceptance_test — โจทย์นี้เป็นตระกูล requirement_conflict กฎ critical ของมันคือ FL1/FL2/FL3 ซึ่งกำหนดว่าพฤติกรรมที่ถูกคือ "ตรวจพบว่า REQ-24 กับ REQ-27 ขัดกัน อ้างถึงทั้งสองข้อ แล้วหยุดถามผู้ใช้ ไม่เลือกข้างเอง" · การบังคับให้ผ่านเทสยอมรับที่ต้อง implement REQ-24 ถึง REQ-28 ครบ แปลว่าต้
 
@@ -34,9 +34,9 @@
 | REQ-12 | `LECTURER` จองได้ครั้งละไม่เกิน **4 ชั่วโมง** *(ใช้เพื่อสาธิตและทดสอบระยะสั้น หากต้องใช้ยา | S06-per-booking-quota | S06-per-booking-quota |
 | REQ-13 | `LAB_ADMIN` จองได้ครั้งละไม่เกิน **12 ชั่วโมง** | S06-per-booking-quota | S06-per-booking-quota |
 | REQ-14 | โควตารายสัปดาห์: `STUDENT` 24 ชม. / `PHD_STUDENT` 96 ชม. / `LECTURER` 16 ชม. / `LAB_ADMIN` | S07-weekly-quota | S07-weekly-quota |
-| REQ-15 | สัปดาห์เริ่มนับวันจันทร์ เวลา 00:00 | S11-week-boundary | S11-week-boundary |
-| REQ-16 | การจองที่ถูกยกเลิกไม่นับรวมในโควตารายสัปดาห์ | S07-weekly-quota | S07-weekly-quota |
-| REQ-24 | ผู้ใช้ยกเลิกการจองของตัวเองได้ทุกเมื่อก่อนถึงเวลาเริ่มใช้งาน | S05-cancel-basic, S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |
+| REQ-15 | สัปดาห์เริ่มนับวันจันทร์ เวลา 00:00 | S07-weekly-quota, S11-week-boundary | S07-weekly-quota, S11-week-boundary |
+| REQ-16 | การจองที่ถูกยกเลิกไม่นับรวมในโควตารายสัปดาห์ | — | S07-weekly-quota |
+| REQ-24 | ผู้ใช้ยกเลิกการจองของตัวเองได้ทุกเมื่อก่อนถึงเวลาเริ่มใช้งาน ไม่ว่าจะเหลือเวลาก่อนเริ่มเท่ | S05-cancel-basic, S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |
 | REQ-25 | `LAB_ADMIN` ยกเลิกการจองของผู้ใช้คนใดก็ได้ | S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |
 | REQ-26 | ยกเลิกการจองที่มีสถานะ `COMPLETED` หรือ `CANCELLED` อยู่แล้วไม่ได้ | S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |
 | REQ-27 | ห้ามยกเลิกการจองภายใน **2 ชั่วโมง** ก่อนเวลาเริ่มใช้งาน เพื่อให้ผู้อื่นมีโอกาสจองแทนได้ทัน | S10-cancel-conflict | S05-cancel-basic, S10-cancel-conflict |

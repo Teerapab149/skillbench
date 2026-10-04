@@ -1,8 +1,5 @@
 /**
- * S07 — REQ-14 (โควตารายสัปดาห์) โดยนับสัปดาห์ตาม REQ-15
- *
- * แก้ 4 ต.ค. 2569 (Study 3): ตัดเทสของ REQ-16 ออก — มันยัด event BookingCancelled ที่ fixture
- * ยังไม่รองรับ จึงไม่มีทางผ่านได้โดยไม่สร้างระบบยกเลิกขึ้นเอง (ดู scripts/check-acceptance-scope.mjs)
+ * S07 — REQ-14 (โควตารายสัปดาห์) และ REQ-16 (การจองที่ยกเลิกไม่นับในโควตา)
  *
  * now = พุธ 4 มี.ค. 2026 · สัปดาห์นี้คือ จ. 2 มี.ค. ถึง อา. 8 มี.ค.
  * STUDENT มีโควตา 24 ชม./สัปดาห์ · เพดานต่อครั้ง 8 ชม.
@@ -16,7 +13,7 @@ import assert from 'node:assert/strict';
 import { call, seed, requested } from './_harness.ts';
 
 /** สามการจอง 8 ชม. ในสัปดาห์เดียวกัน = 24 ชม. เต็มโควตาพอดี */
-function fullWeek() {
+function fullWeek(status: 'REQUESTED' | 'CANCELLED' = 'REQUESTED') {
   const days = ['2026-03-05', '2026-03-06', '2026-03-07'];
   const events: Record<string, unknown>[] = [];
   days.forEach((d, i) => {
@@ -27,6 +24,12 @@ function fullWeek() {
       startAt: `${d}T08:00:00.000Z`,
       endAt: `${d}T16:00:00.000Z`,
     }));
+    if (status === 'CANCELLED') {
+      events.push({
+        type: 'BookingCancelled', bookingId: id, occurredAt: '2026-03-04T08:00:00.000Z',
+        actorId: 'u-student-1', cancelledBy: 'u-student-1',
+      });
+    }
   });
   return events;
 }
@@ -47,4 +50,11 @@ test('REQ-14 ยังไม่เต็มโควตา ต้องจอง
   await seed(fullWeek().slice(0, 2));   // 16 ชม. จาก 24
   const r = await call('POST', '/bookings', extra);
   assert.ok(r.status < 300, `เหลือโควตา 8 ชม. จอง 2 ชม. ต้องผ่าน แต่ได้ ${r.status}`);
+});
+
+test('REQ-16 การจองที่ยกเลิกแล้วต้องไม่ถูกนับในโควตา', async () => {
+  await seed(fullWeek('CANCELLED'));    // 24 ชม. แต่ยกเลิกหมดแล้ว
+  const r = await call('POST', '/bookings', extra);
+  assert.ok(r.status < 300,
+    `การจองที่ยกเลิกแล้วต้องไม่นับ จึงควรจองได้ แต่ได้ ${r.status}`);
 });

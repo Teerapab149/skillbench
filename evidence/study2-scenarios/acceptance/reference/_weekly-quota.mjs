@@ -1,8 +1,5 @@
 /**
- * เฉลยอ้างอิงของ S07 — โควตารายสัปดาห์ (REQ-14) และขอบเขตสัปดาห์ (REQ-15)
- *
- * แก้ 4 ต.ค. 2569 (Study 3): ตัดการรู้จัก BookingCancelled ออก (REQ-16 ไม่อยู่ในโจทย์แล้ว)
- * และ S11 ไม่ได้ใช้ไฟล์นี้อีก เพราะ S11 เริ่มจากโควตาที่มีอยู่แล้ว (ดู scenarios/setup/)
+ * เฉลยอ้างอิงร่วมของ S07 และ S11 — โควตารายสัปดาห์ (REQ-14, REQ-16) และขอบเขตสัปดาห์ (REQ-15)
  *
  * สองโจทย์ใช้เฉลยชุดเดียวกันเพราะขอบเขตสัปดาห์วัดผลได้ก็ต่อเมื่อมีโควตาให้วัด
  * ถ้าไม่มีโควตา การจองวันจันทร์ถัดไปก็ผ่านอยู่แล้วบน baseline และเทสจะไม่ได้วัดอะไร
@@ -12,6 +9,19 @@ export const patches = [
     file: 'src/domain/booking.ts',
     find: "import { findResource, requiresApproval, OVERRUN_ALLOWANCE_MINUTES } from './policy.ts';",
     replace: "import { findResource, requiresApproval, OVERRUN_ALLOWANCE_MINUTES, MAX_HOURS_PER_WEEK } from './policy.ts';",
+  },
+  {
+    // REQ-16 — การจองที่ยกเลิกต้องไม่ถูกนับ ซึ่งต้องรู้จักสถานะ CANCELLED ก่อน
+    file: 'src/domain/booking.ts',
+    find: `      case 'BookingCompleted':
+        if (s) { s.status = 'COMPLETED'; s.actualEndAt = e.actualEndAt; }
+        break;`,
+    replace: `      case 'BookingCompleted':
+        if (s) { s.status = 'COMPLETED'; s.actualEndAt = e.actualEndAt; }
+        break;
+      case 'BookingCancelled':
+        if (s) { s.status = 'CANCELLED'; }
+        break;`,
   },
   {
     file: 'src/domain/booking.ts',
