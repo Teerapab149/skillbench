@@ -1,0 +1,2 @@
+- [Scope vs. confirmation authorization](feedback_scope_and_confirmation.md) — "proceed as you see fit" resolves open questions, not a green light for risky ops
+- [Cancellation rollout plan](project_cancellation_rollout.md) — REQ-24/28 done 2026-10-09; REQ-25/26/27 deferred to a later round

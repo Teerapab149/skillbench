@@ -1,0 +1,1 @@
+- [Vague "proceed as you see fit" doesn't resolve open flags](feedback_vague_proceed_authorization.md) — don't use it to change business-rule values or expand scope

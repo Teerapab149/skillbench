@@ -1,0 +1,2 @@
+- [V100 rate change 20→25](project_v100_rate_change.md) — forward-only from 2026-10-09, non-retroactive billing design
+- [Delegated decisions ≠ pick riskiest path](feedback_delegated_decisions.md) — "proceed as you see fit" + "not permission for risky/irreversible" → choose conservative option

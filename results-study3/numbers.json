@@ -1,0 +1,306 @@
+{
+  "generatedAt": "2026-10-10T03:35:24.385Z",
+  "source": "results-study3/latest.json",
+  "simulated": false,
+  "adapter": "claude-cli",
+  "model": "claude-sonnet-5",
+  "maxTurns": 80,
+  "masterSeed": 20260804,
+  "experimentId": "e5ae643c-c93d-4b13-9307-285f1a967946",
+  "stamp": "2026-10-10T03-33-40",
+  "primary": {
+    "metric": "RCRc",
+    "armA": "A2",
+    "armB": "A1",
+    "rateA": 0.9723124098124096,
+    "rateB": 0.944594757094757,
+    "diff": 0.027717652717652475,
+    "ciLo": -0.0021945646945648045,
+    "ciHi": 0.06655844155844148,
+    "wins": 6,
+    "losses": 2,
+    "ties": 14,
+    "k": 22,
+    "p": 0.1484375,
+    "decision": {
+      "verdict": "equivalent",
+      "p": 0.1484375,
+      "margin": 0.125,
+      "ci95": [
+        -0.005952381007936519,
+        0.06415343922486776
+      ],
+      "ci90": [
+        -0.0014880953005952204,
+        0.058333333383333345
+      ],
+      "k": 22
+    }
+  },
+  "icc": {
+    "planning": 0.22,
+    "byArm": {
+      "A0": 0.6376557921023525,
+      "A1": 0,
+      "A2": 0.5317389829961087,
+      "A5": 0
+    },
+    "ofDifference": 0,
+    "kDifference": 22
+  },
+  "study3": {
+    "oneShot": {
+      "metric": "RCRc1",
+      "armA": "A2",
+      "armB": "A1",
+      "rateA": 0.8847703222703222,
+      "rateB": 0.8606301106301105,
+      "diff": 0.02414021164021164,
+      "p": 0.740234375,
+      "ci95": [
+        -0.07962962967962964,
+        0.13756613762169306
+      ],
+      "wins": 5,
+      "losses": 5,
+      "ties": 12,
+      "k": 22
+    },
+    "rescue": {
+      "A0": {
+        "n": 66,
+        "done1": 61,
+        "done2": 61,
+        "notDone1": 5,
+        "rescued": 0,
+        "rescueRate": 0,
+        "broke": 0
+      },
+      "A1": {
+        "n": 66,
+        "done1": 58,
+        "done2": 64,
+        "notDone1": 8,
+        "rescued": 7,
+        "rescueRate": 0.875,
+        "broke": 1
+      },
+      "A2": {
+        "n": 66,
+        "done1": 60,
+        "done2": 66,
+        "notDone1": 6,
+        "rescued": 6,
+        "rescueRate": 1,
+        "broke": 0
+      },
+      "A5": {
+        "n": 66,
+        "done1": 55,
+        "done2": 64,
+        "notDone1": 11,
+        "rescued": 9,
+        "rescueRate": 0.8181818181818182,
+        "broke": 0
+      }
+    },
+    "keySecondary": {
+      "armA": "A2",
+      "armB": "A5",
+      "metric": "RCRc",
+      "rateA": 0.9723124098124096,
+      "rateB": 0.9519600769600769,
+      "verdict": "not_tested",
+      "estimateVerdict": "equivalent",
+      "p": 0.46875,
+      "ci95": [
+        -0.023268398313852797,
+        0.06878306883862433
+      ],
+      "ci90": [
+        -0.019688644727106238,
+        0.060185185230639746
+      ],
+      "wins": 3,
+      "losses": 3,
+      "ties": 16,
+      "gateOpen": false
+    },
+    "memoryWrites": {
+      "A0": {
+        "n": 66,
+        "wrote": 0
+      },
+      "A1": {
+        "n": 66,
+        "wrote": 0
+      },
+      "A2": {
+        "n": 66,
+        "wrote": 2
+      },
+      "A5": {
+        "n": 66,
+        "wrote": 1
+      }
+    }
+  },
+  "allocation": {
+    "arms": [
+      "A0",
+      "A1",
+      "A2",
+      "A5"
+    ],
+    "scenarios": 22,
+    "reps": 3,
+    "declaredCells": 264,
+    "missingCells": 0,
+    "usableCells": 264,
+    "completeness": 1,
+    "fallbackUsed": {
+      "from": 4,
+      "to": 3
+    },
+    "structurallyExcluded": 0
+  },
+  "budgetExhausted": {
+    "total": 0,
+    "byArm": {
+      "A0": {
+        "runs": 66,
+        "hit": 0,
+        "rate": 0
+      },
+      "A1": {
+        "runs": 66,
+        "hit": 0,
+        "rate": 0
+      },
+      "A2": {
+        "runs": 66,
+        "hit": 0,
+        "rate": 0
+      },
+      "A5": {
+        "runs": 66,
+        "hit": 0,
+        "rate": 0
+      }
+    }
+  },
+  "perArm": {
+    "A0": {
+      "n": 66,
+      "CRIT": 0.5303030303030303,
+      "RCR": 0.8781479463297641,
+      "FULL": 0.3484848484848485,
+      "SCOPE": 0.7272727272727273,
+      "TASK": null,
+      "passHatK": 0.4090909090909091,
+      "jaccard": 0.8226911976911976,
+      "entropy": 0.432262500196679,
+      "RCRc": 0.8493265993265994,
+      "taskDoneRate": 0.9242424242424242,
+      "RCRcGivenDone": 0.918943533697632
+    },
+    "A1": {
+      "n": 66,
+      "CRIT": 0.7878787878787878,
+      "RCR": 0.9535840422204054,
+      "FULL": 0.5303030303030303,
+      "SCOPE": 0.8787878787878788,
+      "TASK": null,
+      "passHatK": 0.6363636363636364,
+      "jaccard": 0.8138888888888889,
+      "entropy": 0.4285486744718831,
+      "RCRc": 0.944594757094757,
+      "taskDoneRate": 0.9696969696969697,
+      "RCRcGivenDone": 0.9741133432539681
+    },
+    "A2": {
+      "n": 66,
+      "CRIT": 0.803030303030303,
+      "RCR": 0.9641198027561662,
+      "FULL": 0.6666666666666666,
+      "SCOPE": 0.9090909090909091,
+      "TASK": null,
+      "passHatK": 0.7272727272727273,
+      "jaccard": 0.95,
+      "entropy": 0.17067670464379403,
+      "RCRc": 0.9723124098124096,
+      "taskDoneRate": 1,
+      "RCRcGivenDone": 0.9723124098124096
+    },
+    "A5": {
+      "n": 66,
+      "CRIT": 0.8333333333333334,
+      "RCR": 0.9627481945663761,
+      "FULL": 0.6515151515151515,
+      "SCOPE": 0.9090909090909091,
+      "TASK": null,
+      "passHatK": 0.7272727272727273,
+      "jaccard": 0.8565656565656566,
+      "entropy": 0.33763958356279217,
+      "RCRc": 0.9519600769600769,
+      "taskDoneRate": 0.9696969696969697,
+      "RCRcGivenDone": 0.9817088293650793
+    }
+  },
+  "manipulation": {
+    "A0": {
+      "n": 66,
+      "skillsLoadedPerRun": 0,
+      "skillsInvokedPerRun": 0,
+      "runsLoadingAll": 0,
+      "runsInvokingAny": 0,
+      "totalInvocations": 0,
+      "totalLoads": 0
+    },
+    "A1": {
+      "n": 66,
+      "skillsLoadedPerRun": 0,
+      "skillsInvokedPerRun": 0,
+      "runsLoadingAll": 0,
+      "runsInvokingAny": 0,
+      "totalInvocations": 0,
+      "totalLoads": 0
+    },
+    "A2": {
+      "n": 66,
+      "skillsLoadedPerRun": 2.212121212121212,
+      "skillsInvokedPerRun": 2.212121212121212,
+      "runsLoadingAll": 1,
+      "runsInvokingAny": 66,
+      "totalInvocations": 146,
+      "totalLoads": 146
+    },
+    "A5": {
+      "n": 66,
+      "skillsLoadedPerRun": 0,
+      "skillsInvokedPerRun": 0.3333333333333333,
+      "runsLoadingAll": 0,
+      "runsInvokingAny": 16,
+      "totalInvocations": 22,
+      "totalLoads": 0
+    }
+  },
+  "triggerF1": {
+    "primary": {
+      "A2": {
+        "trace-to-requirement": 0.9923664122137404,
+        "impact-analysis": 0.7407407407407407,
+        "acceptance-first": 0.896551724137931,
+        "safe-shell": 0.7777777777777778
+      }
+    },
+    "sensitivity": {
+      "A2": {
+        "trace-to-requirement": 0.9923664122137404,
+        "impact-analysis": 0.5333333333333333,
+        "acceptance-first": 0.896551724137931,
+        "safe-shell": 0.7777777777777778
+      }
+    }
+  }
+}

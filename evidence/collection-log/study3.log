@@ -1,0 +1,450 @@
+[ตัวคุม 2026-10-09 01:03:44] ชุดการทดลอง: config/arms-study3.json → results-study3 · 4 รอบ · เป้าหมาย 352 cell
+[ตัวคุม 2026-10-09 01:03:44] รอบที่ 1 — เริ่มจาก 0/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+
+  แช่แข็ง manifest จาก run แรก -> manifest-8ff9e3447d1a.json
+    CLI 2.1.224 · tool 7 · baseline skill 18 · auth none
+    digest ของไฟล์การทดลอง 88c55933104ffc0d
+  progress 1/352 (0%)     progress 2/352 (1%)     progress 3/352 (1%)     progress 4/352 (1%)     progress 5/352 (1%)     progress 6/352 (2%)     progress 7/352 (2%)     progress 8/352 (2%)     progress 9/352 (3%)     progress 10/352 (3%)     progress 11/352 (3%)     progress 12/352 (3%)     progress 13/352 (4%)     progress 14/352 (4%)     progress 15/352 (4%)     progress 16/352 (5%)   [ตัวคุม 2026-10-09 02:06:57] แกะ fixture lock ที่เจ้าของตายไปแล้ว
+[ตัวคุม 2026-10-09 02:06:57] ชุดการทดลอง: config/arms-study3.json → results-study3 · 4 รอบ · เป้าหมาย 352 cell
+[ตัวคุม 2026-10-09 02:06:57] รอบที่ 1 — เริ่มจาก 16/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 16/352 run
+
+  progress 17/352 (5%)     progress 18/352 (5%)     progress 19/352 (5%)     progress 20/352 (6%)     progress 21/352 (6%)     progress 22/352 (6%)     progress 23/352 (7%)     progress 24/352 (7%)     progress 25/352 (7%)     progress 26/352 (7%)     progress 27/352 (8%)     progress 28/352 (8%)     progress 29/352 (8%)     progress 30/352 (9%)     progress 31/352 (9%)     progress 32/352 (9%)     progress 33/352 (9%)     progress 34/352 (10%)     progress 35/352 (10%)     progress 36/352 (10%)     progress 37/352 (11%)     progress 38/352 (11%)     progress 39/352 (11%)     progress 40/352 (11%)     progress 41/352 (12%)     progress 42/352 (12%)     progress 43/352 (12%)   
+
+  หยุดชั่วคราว — You've hit your session limit · resets 6am (Asia/Bangkok)
+  เก็บไว้แล้ว 43 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-08T20-41-06.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 03:41:06] รอบที่ 1 จบ · exit 0 · 16 -> 43/352
+[ตัวคุม 2026-10-09 03:41:06] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 04:01:06] รอบที่ 2 — เริ่มจาก 43/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 43/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 6am (Asia/Bangkok)
+  เก็บไว้แล้ว 43 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-08T21-01-13.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 04:01:13] รอบที่ 2 จบ · exit 0 · 43 -> 43/352
+[ตัวคุม 2026-10-09 04:01:13] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 04:21:14] รอบที่ 3 — เริ่มจาก 43/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 43/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 6am (Asia/Bangkok)
+  เก็บไว้แล้ว 43 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-08T21-21-21.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 04:21:21] รอบที่ 3 จบ · exit 0 · 43 -> 43/352
+[ตัวคุม 2026-10-09 04:21:21] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 04:41:21] รอบที่ 4 — เริ่มจาก 43/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 43/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 6am (Asia/Bangkok)
+  เก็บไว้แล้ว 43 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-08T21-41-28.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 04:41:28] รอบที่ 4 จบ · exit 0 · 43 -> 43/352
+[ตัวคุม 2026-10-09 04:41:28] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 05:01:28] รอบที่ 5 — เริ่มจาก 43/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 43/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 6am (Asia/Bangkok)
+  เก็บไว้แล้ว 43 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-08T22-01-36.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 05:01:36] รอบที่ 5 จบ · exit 0 · 43 -> 43/352
+[ตัวคุม 2026-10-09 05:01:36] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 05:21:36] รอบที่ 6 — เริ่มจาก 43/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 43/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 6am (Asia/Bangkok)
+  เก็บไว้แล้ว 43 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-08T22-21-43.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 05:21:43] รอบที่ 6 จบ · exit 0 · 43 -> 43/352
+[ตัวคุม 2026-10-09 05:21:43] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 05:41:44] รอบที่ 7 — เริ่มจาก 43/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 43/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 6am (Asia/Bangkok)
+  เก็บไว้แล้ว 43 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-08T22-41-51.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 05:41:51] รอบที่ 7 จบ · exit 0 · 43 -> 43/352
+[ตัวคุม 2026-10-09 05:41:51] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 06:01:51] รอบที่ 8 — เริ่มจาก 43/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 43/352 run
+
+  progress 44/352 (13%)     progress 45/352 (13%)     progress 46/352 (13%)     progress 47/352 (13%)     progress 48/352 (14%)     progress 49/352 (14%)     progress 50/352 (14%)     progress 51/352 (14%)     progress 52/352 (15%)     progress 53/352 (15%)     progress 54/352 (15%)     progress 55/352 (16%)     progress 56/352 (16%)     progress 57/352 (16%)     progress 58/352 (16%)     progress 59/352 (17%)     progress 60/352 (17%)     progress 61/352 (17%)     progress 62/352 (18%)     progress 63/352 (18%)     progress 64/352 (18%)     progress 65/352 (18%)     progress 66/352 (19%)     progress 67/352 (19%)     progress 68/352 (19%)     progress 69/352 (20%)     progress 70/352 (20%)     progress 71/352 (20%)     progress 72/352 (20%)     progress 73/352 (21%)     progress 74/352 (21%)     progress 75/352 (21%)     progress 76/352 (22%)     progress 77/352 (22%)     progress 78/352 (22%)     progress 79/352 (22%)     progress 80/352 (23%)     progress 81/352 (23%)     progress 82/352 (23%)     progress 83/352 (24%)     progress 84/352 (24%)     progress 85/352 (24%)     progress 86/352 (24%)     progress 87/352 (25%)     progress 88/352 (25%)     progress 89/352 (25%)     progress 90/352 (26%)     progress 91/352 (26%)     progress 92/352 (26%)     progress 93/352 (26%)     progress 94/352 (27%)   
+
+  หยุดชั่วคราว — You've hit your session limit · resets 11am (Asia/Bangkok)
+  เก็บไว้แล้ว 94 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T01-38-26.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 08:38:26] รอบที่ 8 จบ · exit 0 · 43 -> 94/352
+[ตัวคุม 2026-10-09 08:38:26] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 08:58:27] รอบที่ 9 — เริ่มจาก 94/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 94/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 11am (Asia/Bangkok)
+  เก็บไว้แล้ว 94 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T01-58-35.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 08:58:36] รอบที่ 9 จบ · exit 0 · 94 -> 94/352
+[ตัวคุม 2026-10-09 08:58:36] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 09:18:36] รอบที่ 10 — เริ่มจาก 94/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 94/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 11am (Asia/Bangkok)
+  เก็บไว้แล้ว 94 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T02-18-45.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 09:18:45] รอบที่ 10 จบ · exit 0 · 94 -> 94/352
+[ตัวคุม 2026-10-09 09:18:45] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 09:38:45] รอบที่ 11 — เริ่มจาก 94/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 94/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 11am (Asia/Bangkok)
+  เก็บไว้แล้ว 94 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T02-38-54.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 09:38:54] รอบที่ 11 จบ · exit 0 · 94 -> 94/352
+[ตัวคุม 2026-10-09 09:38:54] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 09:58:55] รอบที่ 12 — เริ่มจาก 94/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 94/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 11am (Asia/Bangkok)
+  เก็บไว้แล้ว 94 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T02-59-03.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 09:59:04] รอบที่ 12 จบ · exit 0 · 94 -> 94/352
+[ตัวคุม 2026-10-09 09:59:04] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 10:19:04] รอบที่ 13 — เริ่มจาก 94/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 94/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 11am (Asia/Bangkok)
+  เก็บไว้แล้ว 94 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T03-19-12.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 10:19:13] รอบที่ 13 จบ · exit 0 · 94 -> 94/352
+[ตัวคุม 2026-10-09 10:19:13] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 10:39:13] รอบที่ 14 — เริ่มจาก 94/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 94/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 11am (Asia/Bangkok)
+  เก็บไว้แล้ว 94 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T03-39-21.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 10:39:22] รอบที่ 14 จบ · exit 0 · 94 -> 94/352
+[ตัวคุม 2026-10-09 10:39:22] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 10:59:22] รอบที่ 15 — เริ่มจาก 94/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 94/352 run
+
+
+
+  หยุดชั่วคราว — You've hit your session limit · resets 11am (Asia/Bangkok)
+  เก็บไว้แล้ว 94 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T03-59-31.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 10:59:31] รอบที่ 15 จบ · exit 0 · 94 -> 94/352
+[ตัวคุม 2026-10-09 10:59:31] ชนลิมิตยาว — รอ 20 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 11:19:31] รอบที่ 16 — เริ่มจาก 94/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 94/352 run
+
+  progress 95/352 (27%)     progress 96/352 (27%)     progress 97/352 (28%)     progress 98/352 (28%)     progress 99/352 (28%)     progress 100/352 (28%)     progress 101/352 (29%)     progress 102/352 (29%)     progress 103/352 (29%)     progress 104/352 (30%)     progress 105/352 (30%)     progress 106/352 (30%)     progress 107/352 (30%)     progress 108/352 (31%)     progress 109/352 (31%)     progress 110/352 (31%)     progress 111/352 (32%)     progress 112/352 (32%)     progress 113/352 (32%)     progress 114/352 (32%)     progress 115/352 (33%)     progress 116/352 (33%)     progress 117/352 (33%)     progress 118/352 (34%)     progress 119/352 (34%)     progress 120/352 (34%)     progress 121/352 (34%)     progress 122/352 (35%)     progress 123/352 (35%)     progress 124/352 (35%)     progress 125/352 (36%)     progress 126/352 (36%)     progress 127/352 (36%)     progress 128/352 (36%)     progress 129/352 (37%)     progress 130/352 (37%)     progress 131/352 (37%)     progress 132/352 (38%)     progress 133/352 (38%)     progress 134/352 (38%)     progress 135/352 (38%)     progress 136/352 (39%)     progress 137/352 (39%)   
+
+  หยุดชั่วคราว — You've hit your session limit · resets 4:10pm (Asia/Bangkok)
+  เก็บไว้แล้ว 137 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T06-36-13.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 13:36:13] รอบที่ 16 จบ · exit 0 · 94 -> 137/352
+[ตัวคุม 2026-10-09 13:36:13] ชนลิมิตยาว — รอ 159 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 16:15:00] รอบที่ 17 — เริ่มจาก 137/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 137/352 run
+
+  progress 138/352 (39%)     progress 139/352 (39%)     progress 140/352 (40%)     progress 141/352 (40%)     progress 142/352 (40%)     progress 143/352 (41%)     progress 144/352 (41%)     progress 145/352 (41%)     progress 146/352 (41%)     progress 147/352 (42%)     progress 148/352 (42%)     progress 149/352 (42%)     progress 150/352 (43%)     progress 151/352 (43%)     progress 152/352 (43%)     progress 153/352 (43%)     progress 154/352 (44%)     progress 155/352 (44%)     progress 156/352 (44%)     progress 157/352 (45%)     progress 158/352 (45%)     progress 159/352 (45%)     progress 160/352 (45%)     progress 161/352 (46%)     progress 162/352 (46%)     progress 163/352 (46%)     progress 164/352 (47%)     progress 165/352 (47%)     progress 166/352 (47%)     progress 167/352 (47%)     progress 168/352 (48%)     progress 169/352 (48%)     progress 170/352 (48%)     progress 171/352 (49%)     progress 172/352 (49%)     progress 173/352 (49%)     progress 174/352 (49%)     progress 175/352 (50%)     progress 176/352 (50%)     progress 177/352 (50%)     progress 178/352 (51%)     progress 179/352 (51%)     progress 180/352 (51%)     progress 181/352 (51%)     progress 182/352 (52%)     progress 183/352 (52%)     progress 184/352 (52%)     progress 185/352 (53%)     progress 186/352 (53%)     progress 187/352 (53%)     progress 188/352 (53%)     progress 189/352 (54%)     progress 190/352 (54%)     progress 191/352 (54%)     progress 192/352 (55%)   
+
+  หยุดชั่วคราว — You've hit your session limit · resets 9:10pm (Asia/Bangkok)
+  เก็บไว้แล้ว 192 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T12-12-31.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-09 19:12:32] รอบที่ 17 จบ · exit 0 · 137 -> 192/352
+[ตัวคุม 2026-10-09 19:12:32] ชนลิมิตยาว — รอ 122 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-09 21:15:00] รอบที่ 18 — เริ่มจาก 192/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 192/352 run
+
+  progress 193/352 (55%)     progress 194/352 (55%)     progress 195/352 (55%)     progress 196/352 (56%)     progress 197/352 (56%)     progress 198/352 (56%)   [ตัวคุม 2026-10-09 23:49:22] แกะ fixture lock ที่เจ้าของตายไปแล้ว
+[ตัวคุม 2026-10-09 23:49:22] ชุดการทดลอง: config/arms-study3.json → results-study3 · 4 รอบ · เป้าหมาย 352 cell
+[ตัวคุม 2026-10-09 23:49:22] รอบที่ 1 — เริ่มจาก 198/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 198/352 run
+
+  progress 199/352 (57%)     progress 200/352 (57%)     progress 201/352 (57%)     progress 202/352 (57%)     progress 203/352 (58%)     progress 204/352 (58%)     progress 205/352 (58%)     progress 206/352 (59%)     progress 207/352 (59%)     progress 208/352 (59%)     progress 209/352 (59%)     progress 210/352 (60%)     progress 211/352 (60%)     progress 212/352 (60%)     progress 213/352 (61%)     progress 214/352 (61%)     progress 215/352 (61%)     progress 216/352 (61%)     progress 217/352 (62%)     progress 218/352 (62%)     progress 219/352 (62%)     progress 220/352 (63%)     progress 221/352 (63%)     progress 222/352 (63%)     progress 223/352 (63%)     progress 224/352 (64%)     progress 225/352 (64%)     progress 226/352 (64%)     progress 227/352 (64%)     progress 228/352 (65%)     progress 229/352 (65%)     progress 230/352 (65%)     progress 231/352 (66%)     progress 232/352 (66%)     progress 233/352 (66%)     progress 234/352 (66%)     progress 235/352 (67%)     progress 236/352 (67%)     progress 237/352 (67%)     progress 238/352 (68%)     progress 239/352 (68%)     progress 240/352 (68%)     progress 241/352 (68%)     progress 242/352 (69%)     progress 243/352 (69%)   
+
+  หยุดชั่วคราว — You've hit your session limit · resets 2:10am (Asia/Bangkok)
+  เก็บไว้แล้ว 243 run ที่สำเร็จ
+  พอโควตากลับมา รันคำสั่งเดิมพร้อม --resume ได้เลย จะรันซ่อมเฉพาะที่ขาด
+
+
+
+  บันทึกที่ results-study3/latest.json (+ graded-2026-10-09T18-52-20.json, artifacts, rules-long.csv)
+  ต่อไป: node src/analyze.mjs
+
+[ตัวคุม 2026-10-10 01:52:21] รอบที่ 1 จบ · exit 0 · 198 -> 243/352
+[ตัวคุม 2026-10-10 01:52:21] ชนลิมิตยาว — รอ 23 นาทีแล้วยิงต่อ
+[ตัวคุม 2026-10-10 02:15:00] รอบที่ 2 — เริ่มจาก 243/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 243/352 run
+
+  progress 244/352 (69%)     progress 245/352 (70%)     progress 246/352 (70%)     progress 247/352 (70%)     progress 248/352 (70%)     progress 249/352 (71%)     progress 250/352 (71%)     progress 251/352 (71%)     progress 252/352 (72%)     progress 253/352 (72%)     progress 254/352 (72%)   
+
+  ⛔ สภาพ runtime ของ S11-week-boundary__A5__r2 ไม่ตรงกับ manifest ที่ตรึงไว้ — หยุดทั้งชุด
+     - เรียก skill นอกการทดลอง: trace-to-requirement... 
+
+  run นี้ไม่ถูกบันทึกลง dataset · เก็บสำเร็จไปแล้ว 254 run
+  แก้สาเหตุก่อน แล้วค่อย --resume · ถ้าสาเหตุคือ CLI อัปเดตตัวเอง ต้องตัดสินใจว่าจะ
+  ปักหมุดเวอร์ชันเดิมกลับ หรือประกาศเริ่มการทดลองชุดใหม่ — ห้ามรันต่อเฉยๆ
+
+[ตัวคุม 2026-10-10 03:06:27] รอบที่ 2 จบ · exit 1 · 243 -> 254/352
+[ตัวคุม 2026-10-10 08:02:09] ชุดการทดลอง: config/arms-study3.json → results-study3 · 4 รอบ · เป้าหมาย 352 cell
+[ตัวคุม 2026-10-10 08:02:09] รอบที่ 1 — เริ่มจาก 255/352
+
+SkillBench — claude-cli
+  22 scenarios x 4 arms x 4 reps = 352 runs
+
+  manifest ที่ตรึงไว้: CLI 2.1.224 · tool 7 ตัว · baseline skill 18 ตัว
+  experimentId: e5ae643c-c93d-4b13-9307-285f1a967946
+  ทำต่อจาก checkpoint: มีอยู่แล้ว 255/352 run
+
+  progress 256/352 (73%)     progress 257/352 (73%)     progress 258/352 (73%)     progress 259/352 (74%)     progress 260/352 (74%)     progress 261/352 (74%)     progress 262/352 (74%)     progress 263/352 (75%)     progress 264/352 (75%)   
