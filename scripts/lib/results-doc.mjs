@@ -310,9 +310,9 @@ export function renderResultsDoc(n, { prefix = '5' } = {}) {
     if (ks) {
       p(`## ${prefix}.9 ผลรองหลัก — \`${ks.metric}\` · ${ks.armA} เทียบ ${ks.armB} (fixed-sequence)`);
       p('');
-      p(`| ${ks.armA} | ${ks.armB} | CI 95% | CI 90% | ชนะ/แพ้/เสมอ | p |`);
+      p(`| ${ks.armA} | ${ks.armB} | CI 95% | CI 90% | ชนะ/แพ้/เสมอ | p (เฉพาะเมื่อทดสอบ) |`);
       p('|---:|---:|---|---|---|---:|');
-      p(`| ${pct(ks.rateA)} | ${pct(ks.rateB)} | [${pct(ks.ci95[0])}, ${pct(ks.ci95[1])}] | [${pct(ks.ci90[0])}, ${pct(ks.ci90[1])}] | ${ks.wins}/${ks.losses}/${ks.ties} | ${pval(ks.p)} |`);
+      p(`| ${pct(ks.rateA)} | ${pct(ks.rateB)} | [${pct(ks.ci95[0])}, ${pct(ks.ci95[1])}] | [${pct(ks.ci90[0])}, ${pct(ks.ci90[1])}] | ${ks.wins}/${ks.losses}/${ks.ties} | ${ks.gateOpen ? pval(ks.p) : "ไม่ได้ทดสอบ"} |`);
       p('');
       if (ks.gateOpen) p(`> ประตูเปิด — ผลตามตาราง: **${ks.verdict}**`);
       else {
