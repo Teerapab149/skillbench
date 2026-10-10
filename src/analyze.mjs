@@ -41,8 +41,8 @@ const CONFIG_FILE = path.resolve(ROOT, argv('--config', 'config/arms.json'));
  * ชื่อเอกสารประกาศแผนต้องตามชุดที่กำลังวิเคราะห์
  * รายงานของชุดที่ 2 ที่อ้าง PRE-REGISTRATION.md ของชุดที่ 1 คือการอ้างผิดฉบับ
  */
-const PREREG_DOC = path.basename(CONFIG_FILE).includes('study2')
-  ? 'PRE-REGISTRATION-2.md' : 'PRE-REGISTRATION.md';
+const PREREG_DOC = path.basename(CONFIG_FILE).includes('study3') ? 'PRE-REGISTRATION-3.md'
+  : path.basename(CONFIG_FILE).includes('study2') ? 'PRE-REGISTRATION-2.md' : 'PRE-REGISTRATION.md';
 const raw = JSON.parse(fs.readFileSync(IN_FILE, 'utf8'));
 const meta = raw.meta;
 
@@ -116,7 +116,8 @@ function auditAllocation() {
   if (FALLBACK_REPS !== null) {
     const fb = PREREG.fallback ?? {};
     const min = fb.minReps ?? PREREG.reps;
-    if (fb.type !== 'uniform-rep-truncation') violations.push('config ไม่ได้ประกาศกฎสำรองแบบ uniform-rep-truncation ไว้');
+    // clock-truncation (ชุดที่ 3) คือการตัดรอบเท่ากันทุก arm เหมือนกัน ต่างแค่ว่าจำนวนรอบตัดสินด้วยเวลา
+    if (!['uniform-rep-truncation', 'clock-truncation'].includes(fb.type)) violations.push('config ไม่ได้ประกาศกฎสำรองแบบตัดรอบเท่ากันทุก arm ไว้');
     else if (FALLBACK_REPS < min || FALLBACK_REPS >= PREREG.reps) {
       violations.push(`--fallback-reps ${FALLBACK_REPS} อยู่นอกกรอบที่ประกาศไว้ (${min} ถึง ${PREREG.reps - 1})`);
     } else { declaredReps = FALLBACK_REPS; fallback = { from: PREREG.reps, to: FALLBACK_REPS }; }
