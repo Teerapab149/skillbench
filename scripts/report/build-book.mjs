@@ -92,6 +92,38 @@ fs.writeFileSync(path.join(FIG, 'fig-run.svg'), svg(760, 210, flow));
   fs.writeFileSync(path.join(FIG, 'fig-arms.svg'), svg(W, H, b));
 }
 
+// รูปที่ 3: ร่องรอยรอบแรกของ run จริง S10 × A2 × รอบ 1 จาก artifacts ชุดสุดท้าย (ไม่แต่งข้อความ ตัดเฉพาะความยาว)
+{
+  const RUN = 'S10-cancel-conflict__A2__r0';
+  const artFile = fs.readdirSync(path.join(ROOT, 'results-study3')).filter((f) => /^artifacts-.*\.json$/.test(f)).sort().at(-1);
+  const r = JSON.parse(fs.readFileSync(path.join(ROOT, 'results-study3', artFile), 'utf8')).find((x) => x.runId === RUN);
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const n1 = r.firstTurn?.toolCallCount ?? 16;
+  const short = (p) => String(p).split(/[\\/]/).pop();
+  const lines = r.toolCalls.slice(0, n1).map((t) => {
+    if (t.name === 'Skill') return `<span class="k">● Skill</span> ${esc(t.args.skill)}`;
+    if (t.name === 'Read') return `<span class="r">● Read</span> ${esc(short(t.args.file_path))}`;
+    if (t.name === 'Bash') return `<span class="b">● Bash</span> ${esc(String(t.args.command).replace(/^cd "[^"]+" && /, '').slice(0, 90))}`;
+    return `<span class="r">● ${esc(t.name)}</span>`;
+  });
+  const msg = String(r.firstMessage).split('\n').filter((l) => l.trim()).slice(0, 5)
+    .map((l) => esc(l.replace(/[*`]/g, '').slice(0, 260)) + (l.length > 260 ? ' …' : ''));
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+    body{margin:0;background:#fff;font-family:Tahoma,'TH SarabunPSK',sans-serif}
+    .w{width:900px;background:#1e1f24;color:#e6e6e6;border-radius:10px;padding:16px 20px 18px;box-sizing:border-box}
+    .h{color:#9aa0a6;font-size:13px;margin-bottom:10px;border-bottom:1px solid #3a3b40;padding-bottom:8px}
+    .t{font-family:Consolas,monospace;font-size:13.5px;line-height:1.55}
+    .k{color:#e0a030}.r{color:#7fb3ff}.b{color:#8bd48b}
+    .m{margin-top:12px;border-left:3px solid #e0a030;padding:6px 0 2px 12px;font-size:14px;line-height:1.6}
+    .m p{margin:0 0 6px}
+  </style></head><body><div class="w">
+    <div class="h">Claude Code · โจทย์ S10 (ข้อกำหนดขัดกัน) · กลุ่ม A2 Agent Skills · รอบแรก · run ${RUN}</div>
+    <div class="t">${lines.join('<br>')}</div>
+    <div class="m">${msg.map((x) => `<p>${x}</p>`).join('')}</div>
+  </div></body></html>`;
+  fs.writeFileSync(path.join(FIG, 'fig-transcript.html'), html);
+}
+
 // SVG → PNG ด้วย Edge แบบ headless (pandoc แปลง SVG เองไม่ได้ถ้าไม่มี rsvg-convert และ Word บางรุ่นไม่แสดง SVG)
 const EDGE = ['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Microsoft/Edge/Application/msedge.exe'].find((p) => fs.existsSync(p));
 const pngOf = {};
@@ -193,7 +225,15 @@ body = body.replace(/^\*\*ตารางที่ ([0-9]+)\*\* (.+)\n\n((?:\|.*
 
 // รูป: ใช้ไฟล์ SVG ที่สร้างได้ ที่เหลือคงเป็นกล่องบอกตำแหน่งให้ผู้วิจัยใส่ภาพ
 const figFile = { 'กรอบแนวคิดการวิจัย': 'fig-framework.svg', 'ขั้นตอนของหนึ่ง run': 'fig-run.svg',
-  'ผลต่าง A2 − A1 กับเกณฑ์เทียบเท่า': 'fig-primary.svg', 'ตัวชี้วัดรายกลุ่ม': 'fig-arms.svg' };
+  'ผลต่าง A2 − A1 กับเกณฑ์เทียบเท่า': 'fig-primary.svg', 'ตัวชี้วัดรายกลุ่ม': 'fig-arms.svg',
+  'ตัวอย่างร่องรอยการทำงานจริงของเอเจนต์': 'fig-transcript.html' };
+if (EDGE) {
+  const png = path.join(FIG, 'fig-transcript.png');
+  execFileSync(EDGE, ['--headless', '--disable-gpu', '--hide-scrollbars', '--force-device-scale-factor=2',
+    '--window-size=900,720', `--screenshot=${png}`, 'file:///' + path.join(FIG, 'fig-transcript.html').replace(/\\/g, '/')], { stdio: 'ignore' });
+  for (let i = 0; i < 60 && !fs.existsSync(png); i++) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+  if (fs.existsSync(png)) pngOf['fig-transcript.html'] = 'fig-transcript.png';
+}
 body = body.replace(/^> \*\*\[รูปที่ ([0-9]+) ([^\]]+)\]\*\*(.*)$/gm, (m, k, title, rest) => {
   const f = figFile[title.trim()];
   if (f) return `::: {custom-style="Captioned Figure"}\n![](figures/${pngOf[f] ?? f}){width=100%}\n:::\n\n${caption('รูปที่', k, title.trim(), 'center')}`;
