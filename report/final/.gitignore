@@ -1,0 +1,7 @@
+build/book.md
+build/book.txt
+build/book.pdf
+build/ref/
+build/reference.docx
+build/figures/*.html
+build/pg*.png
