@@ -172,16 +172,32 @@ body = tok(body, tMap, 'ตารางที่');
 body = tok(body, fMap, 'รูปที่');
 body = body.replace(/\u0000/g, '');
 
-// คำบรรยายตาราง → caption ของ pandoc (อยู่เหนือตาราง)
-body = body.replace(/^\*\*ตารางที่ ([0-9]+)\*\* (.+)\n\n((?:\|.*\n)+)/gm, (m, k, cap, tbl) => `${tbl}\nTable: **ตารางที่ ${k}** ${cap}\n`);
+/*
+ * caption จริงของ Word: ป้าย "ตารางที่"/"รูปที่" + ฟิลด์ SEQ ที่ Word เรียงเลขเอง
+ * สารบัญตาราง/รูปในส่วนหน้าเป็นฟิลด์ TOC \c ที่ดึงจาก SEQ นี้ — ผู้วิจัยใช้ Insert Caption เพิ่มรายการเองได้
+ * แล้วกด Update Field เลขจะเรียงใหม่ทั้งเล่ม (การอ้างถึงในเนื้อความยังเป็นข้อความธรรมดา)
+ */
+const segTh = new Intl.Segmenter('th', { granularity: 'word' });
+const thSeg = (t) => t.replace(/[฀-๿]{2,}/g, (run) => [...segTh.segment(run)].map((x) => x.segment).join('​'));
+const xml = (t) => thSeg(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function caption(label, n, text, jc) {
+  return '```{=openxml}\n'
+    + `<w:p><w:pPr><w:pStyle w:val="Caption"/>${jc === 'center' ? '<w:keepNext w:val="0"/>' : '<w:keepNext/>'}<w:jc w:val="${jc}"/></w:pPr>`
+    + `<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t xml:space="preserve">${label} </w:t></w:r>`
+    + `<w:fldSimple w:instr=" SEQ ${label} \\* ARABIC "><w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>${n}</w:t></w:r></w:fldSimple>`
+    + `<w:r><w:t xml:space="preserve"> ${xml(text)}</w:t></w:r></w:p>\n`
+    + '```';
+}
+body = body.replace(/^\*\*ตารางที่ ([0-9]+)\*\* (.+)\n\n((?:\|.*\n)+)/gm,
+  (m, k, cap, tbl) => `${caption('ตารางที่', k, cap.replace(/\*\*/g, ''), 'left')}\n\n${tbl}`);
 
 // รูป: ใช้ไฟล์ SVG ที่สร้างได้ ที่เหลือคงเป็นกล่องบอกตำแหน่งให้ผู้วิจัยใส่ภาพ
 const figFile = { 'กรอบแนวคิดการวิจัย': 'fig-framework.svg', 'ขั้นตอนของหนึ่ง run': 'fig-run.svg',
   'ผลต่าง A2 − A1 กับเกณฑ์เทียบเท่า': 'fig-primary.svg', 'ตัวชี้วัดรายกลุ่ม': 'fig-arms.svg' };
 body = body.replace(/^> \*\*\[รูปที่ ([0-9]+) ([^\]]+)\]\*\*(.*)$/gm, (m, k, title, rest) => {
   const f = figFile[title.trim()];
-  if (f) return `![รูปที่ ${k} ${title.trim()}](figures/${pngOf[f] ?? f}){width=100%}`;
-  return `::: {custom-style="Block Text"}\n[ตำแหน่งรูปที่ ${k} ${title.trim()} — ผู้วิจัยใส่ภาพ]${rest}\n:::\n\n::: {custom-style="Image Caption"}\nรูปที่ ${k} ${title.trim()}\n:::`;
+  if (f) return `::: {custom-style="Captioned Figure"}\n![](figures/${pngOf[f] ?? f}){width=100%}\n:::\n\n${caption('รูปที่', k, title.trim(), 'center')}`;
+  return `::: {custom-style="Block Text"}\n[ตำแหน่งรูปที่ ${k} ${title.trim()} — ผู้วิจัยใส่ภาพ]${rest}\n:::\n\n${caption('รูปที่', k, title.trim(), 'center')}`;
 });
 
 const refs = stripComments(fs.readFileSync(path.join(FINAL, '08-references.md'), 'utf8').replace(/\r\n/g, '\n'));

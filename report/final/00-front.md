@@ -72,7 +72,7 @@ Controlling LLM Agent Behavior in Software Development via Context Engineering a
 :::
 
 ```{=openxml}
-<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r><w:r><w:instrText xml:space="preserve"> TOC \h \z \t "Table Caption,3" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>คลิกขวา แล้วเลือก Update Field</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>
+<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r><w:r><w:instrText xml:space="preserve"> TOC \h \z \c "ตารางที่" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>คลิกขวา แล้วเลือก Update Field</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>
 ```
 
 ::: {custom-style="Front Heading"}
@@ -80,5 +80,5 @@ Controlling LLM Agent Behavior in Software Development via Context Engineering a
 :::
 
 ```{=openxml}
-<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r><w:r><w:instrText xml:space="preserve"> TOC \h \z \t "Image Caption,3" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>คลิกขวา แล้วเลือก Update Field</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>
+<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r><w:r><w:instrText xml:space="preserve"> TOC \h \z \c "รูปที่" </w:instrText></w:r><w:r><w:fldChar w:fldCharType="separate"/></w:r><w:r><w:t>คลิกขวา แล้วเลือก Update Field</w:t></w:r><w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>
 ```

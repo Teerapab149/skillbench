@@ -14,13 +14,13 @@ const FB = 'DB ChuanPim PSU Bold';
 const rpr = (font, sz, bold = false) =>
   `<w:rPr><w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:eastAsia="${font}" w:cs="${font}"/>${bold ? '<w:b/><w:bCs/>' : ''}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/><w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="th-TH"/></w:rPr>`;
 const para = (id, name, { based = 'Normal', next = 'Normal', jc = null, before = 0, after = 0, outline = null, sz = 32, font = F, bold = false, ind = null, keep = false, pageBreak = false } = {}) =>
-  `<w:style w:type="paragraph"${/^(Heading\d|Title|Subtitle|BodyText|BlockText|Bibliography)$/.test(id) ? '' : ' w:customStyle="1"'} w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="${based}"/><w:next w:val="${next}"/><w:qFormat/>`
+  `<w:style w:type="paragraph"${/^(Heading\d|Title|Subtitle|BodyText|BlockText|Bibliography|Caption|TableofFigures)$/.test(id) ? '' : ' w:customStyle="1"'} w:styleId="${id}"><w:name w:val="${name}"/><w:basedOn w:val="${based}"/><w:next w:val="${next}"/><w:qFormat/>`
   + `<w:pPr>${keep ? '<w:keepNext/>' : ''}${pageBreak ? '<w:pageBreakBefore/>' : ''}<w:spacing w:before="${before}" w:after="${after}"/>${ind ?? ''}${jc ? `<w:jc w:val="${jc}"/>` : ''}${outline !== null ? `<w:outlineLvl w:val="${outline}"/>` : ''}</w:pPr>`
   + `${rpr(font, sz, bold)}</w:style>`;
 
 // ลบ style ที่จะเขียนใหม่ (ถ้ามี) แล้วเติมชุดใหม่
 const ids = ['Normal', 'Heading1', 'Heading2', 'Heading3', 'Heading4', 'Title', 'Subtitle', 'Cover', 'BodyText', 'FirstParagraph',
-  'Compact', 'TableCaption', 'ImageCaption', 'CaptionedFigure', 'Bibliography', 'BlockText', 'SourceCode', 'TOCHeading', 'Table', 'FrontHeading', 'Signature', 'TOC1', 'TOC2', 'TOC3'];
+  'Compact', 'TableCaption', 'ImageCaption', 'CaptionedFigure', 'Bibliography', 'BlockText', 'SourceCode', 'TOCHeading', 'Table', 'FrontHeading', 'Signature', 'TOC1', 'TOC2', 'TOC3', 'Caption', 'TableofFigures'];
 for (const id of ids) s = s.replace(new RegExp(`<w:style [^>]*w:styleId="${id}"[^>]*>[\\s\\S]*?</w:style>`), '');
 
 const defs = [
@@ -47,6 +47,8 @@ const defs = [
   `<w:style w:type="paragraph" w:styleId="TOC1"><w:name w:val="toc 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="9350"/></w:tabs><w:spacing w:before="60"/><w:jc w:val="left"/></w:pPr>${rpr(FB, 32, true)}</w:style>`,
   `<w:style w:type="paragraph" w:styleId="TOC2"><w:name w:val="toc 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="9350"/></w:tabs><w:ind w:left="440"/><w:jc w:val="left"/></w:pPr>${rpr(F, 32)}</w:style>`,
   `<w:style w:type="paragraph" w:styleId="TOC3"><w:name w:val="toc 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="9350"/></w:tabs><w:jc w:val="left"/></w:pPr>${rpr(F, 32)}</w:style>`,
+  para('Caption', 'caption', { jc: 'left', before: 120, after: 60 }),
+  `<w:style w:type="paragraph" w:styleId="TableofFigures"><w:name w:val="table of figures"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="99"/><w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="9350"/></w:tabs><w:jc w:val="left"/></w:pPr>${rpr(F, 32)}</w:style>`,
   para('TOCHeading', 'TOC Heading', { based: 'Heading1', next: 'Normal', sz: 36, font: FB, bold: true, jc: 'center' }),
 ];
 s = s.replace('</w:styles>', defs.join('') + '</w:styles>');
