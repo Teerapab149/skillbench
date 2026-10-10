@@ -149,12 +149,53 @@ const fence = (txt) => '```text\n' + txt.replace(/```/g, "'''") + '\n```';
 
 const scen = fs.readdirSync(path.join(ROOT, 'scenarios')).filter((f) => f.endsWith('.json')).sort()
   .map((f) => JSON.parse(rd(`scenarios/${f}`)));
+/*
+ * ภาคผนวก ง: ทุกอย่างที่เอเจนต์ได้รับในแต่ละโจทย์ — คำสั่ง (ตรงตัวอักษร) · สภาพเริ่มต้นเฉพาะโจทย์ที่ฝังกับดัก ·
+ * กฎที่ใช้ให้คะแนน · และหมายเหตุของผู้ออกแบบ (เอเจนต์ไม่เห็น) · อ่านจาก scenarios/*.json และ scenarios/setup/*.json
+ */
+const famTh = { ordinary: 'ธรรมดา', gold_plating: 'ทำเกินสั่ง', counter_intuitive: 'ขัดกับสามัญสำนึก', hidden_impact: 'ผลกระทบซ่อนเร้น',
+  requirement_conflict: 'ข้อกำหนดขัดกัน', requirement_invention: 'เติมข้อกำหนดเอง', embedded_instruction: 'คำสั่งฝังในโค้ด', destructive_action: 'คำสั่งทำลายข้อมูล' };
+const addedLines = (find, replace) => {
+  const old = new Set(String(find).split('\n'));
+  return String(replace).split('\n').filter((l) => !old.has(l)).join('\n');
+};
 let scenMd = '';
-for (const s of scen) {
-  scenMd += `### ${s.id}\n\n**ตระกูล:** ${s.family} · **ข้อกำหนดที่เกี่ยวข้อง:** ${(s.reqs ?? []).join(', ') || '—'}\n\n**คำสั่งที่เอเจนต์ได้รับ:** ${s.prompt.replace(/\n+/g, ' ')}\n\n`;
-  scenMd += '| กฎ | ระดับ | คำอธิบาย |\n|---|---|---|\n' + s.rules.map((r) => `| ${r.id} | ${r.severity} | ${String(r.desc).replace(/\|/g, '/')} |`).join('\n') + '\n\n';
-}
+scen.forEach((s, idx) => {
+  scenMd += `### ง.${idx + 1} ${s.id}\n\n**ตระกูลกับดัก:** ${famTh[s.family] ?? s.family} · **ข้อกำหนดที่เกี่ยวข้อง:** ${(s.reqs ?? []).join(', ') || '—'}\n\n`;
+  scenMd += `**คำสั่งที่เอเจนต์ได้รับ (ตรงตัวอักษร)**\n\n${fence(s.prompt)}\n\n`;
+  const setupFile = path.join(ROOT, 'scenarios/setup', `${s.id}.json`);
+  if (fs.existsSync(setupFile)) {
+    const patches = JSON.parse(fs.readFileSync(setupFile, 'utf8'));
+    scenMd += '**สภาพเริ่มต้นเฉพาะโจทย์นี้** (ปะลงระบบก่อนเอเจนต์เริ่ม และ commit ให้ดูเหมือนสภาพเดิมของระบบ) — บรรทัดที่เพิ่มหรือเปลี่ยน:\n\n';
+    for (const p of patches) {
+      const body = p.create != null ? String(p.create) : addedLines(p.find, p.replace);
+      const shown = body.length > 1500 ? body.slice(0, 1500) + '\n… (ตัดเหลือ 1,500 ตัวอักษร · ฉบับเต็มอยู่ใน scenarios/setup/)' : body;
+      scenMd += `ไฟล์ \`${p.file}\`${p.create != null ? ' (สร้างใหม่)' : ''}\n\n${fence(shown || '(ลบบรรทัดออกเท่านั้น)')}\n\n`;
+    }
+  } else {
+    scenMd += '**สภาพเริ่มต้น:** ระบบตามสภาพมาตรฐาน (`skillbench-baseline`) ไม่มีการแก้เฉพาะโจทย์\n\n';
+  }
+  scenMd += '**กฎที่ใช้ให้คะแนน** (critical นับในตัวชี้วัดหลัก · major รายงานประกอบ)\n\n'
+    + '| กฎ | ระดับ | ตรวจอะไร |\n|---|---|---|\n' + s.rules.map((r) => `| ${r.id} | ${r.severity} | ${String(r.desc).replace(/\|/g, '/')} |`).join('\n') + '\n\n';
+  if (s._designNote) scenMd += `**หมายเหตุของผู้ออกแบบ** (เอเจนต์ไม่เห็น): ${String(s._designNote).replace(/\n+/g, ' ')}\n\n`;
+});
 const skills = fs.readdirSync(path.join(ROOT, 'arms/A2/skills')).sort();
+const skillDesc = (k) => (rd(`arms/A2/skills/${k}/SKILL.md`).match(/^description:\s*(.+)$/m) ?? [, ''])[1];
+const cfg3 = JSON.parse(rd('config/arms-study3.json'));
+const armsAppendix = [
+  '## ภาคผนวก ค สิ่งที่ส่งให้เอเจนต์แต่ละกลุ่ม (ข้อความจริงทั้งหมด)',
+  'ภาคผนวกนี้แสดงข้อความทุกตัวอักษรที่ถูกวางลงในโฟลเดอร์งานก่อนเอเจนต์เริ่มทำงาน คัดจากไฟล์ใน `arms/` ที่ใช้รันจริง ณ git tag `study3-prereg` ไม่ได้ย่อหรือแก้ เอเจนต์ทุกกลุ่มได้รับคำสั่งของโจทย์ (ภาคผนวก ง) ระบบจำลองและเอกสารข้อกำหนด (ภาคผนวก ซ) และข้อความรอบตอบกลับเหมือนกันทุกประการ ความต่างระหว่างกลุ่มมีเฉพาะไฟล์ในภาคผนวกนี้',
+  '| กลุ่ม | ไฟล์ที่วางลงโฟลเดอร์งาน | เอเจนต์เห็นเมื่อใด |\n|---|---|---|\n'
+    + '| A0 | ไม่มีไฟล์ใด | — |\n'
+    + '| A1 | `CLAUDE.md` (ค.2) | ทุกครั้งที่เริ่มงาน ตลอดการทำงาน |\n'
+    + '| A2 | `CLAUDE.md` สั้น (ค.3) + skill 4 ตัวใน `.claude/skills/` (ค.4–ค.7) | `CLAUDE.md` และ *ชื่อกับคำอธิบาย* ของ skill เห็นตลอด · *เนื้อความ* ของ skill เห็นเมื่อเอเจนต์เลือกโหลด |\n'
+    + '| A5 | `CLAUDE.md` ที่รวมเนื้อความ skill ทั้ง 4 ตัว (ค.8) | ทุกครั้งที่เริ่มงาน ตลอดการทำงาน |',
+  '### ค.1 ข้อความรอบตอบกลับ (ส่งให้ทุกกลุ่มหลังรอบแรก)', fence(cfg3.fixedFactors.followUp.text),
+  '### ค.2 A1 — ไฟล์กฎไฟล์เดียว `CLAUDE.md`', fence(rd('arms/A1/CLAUDE.md')),
+  '### ค.3 A2 — `CLAUDE.md` (โหลดตลอด)', fence(rd('arms/A2/CLAUDE.md')),
+  ...skills.map((k, i) => `### ค.${i + 4} A2 — skill \`${k}\` (โหลดเมื่อเอเจนต์เลือก)\n\n**ส่วนที่เอเจนต์เห็นตลอดเวลา (คำอธิบาย):** ${skillDesc(k)}\n\n**เนื้อความเต็มที่โหลดเมื่อเลือกใช้:**\n\n${fence(rd(`arms/A2/skills/${k}/SKILL.md`))}`),
+  '### ค.8 A5 — `CLAUDE.md` ที่รวมข้อความของ skill ทั้งสี่ตัว (โหลดตลอด)', fence(rd('arms/A5/CLAUDE.md')),
+].join('\n\n');
 const appendix = [
   '# ภาคผนวก {.unnumbered}',
   '## ภาคผนวก ก แผนการวิเคราะห์ที่ประกาศล่วงหน้า (PRE-REGISTRATION-3)',
@@ -162,12 +203,10 @@ const appendix = [
   demote(stripComments(rd('PRE-REGISTRATION-3.md')).replace(/^# .*\n/, '').replace(/^## ภาคผนวก ก — /m, '## ภาคผนวกของแผน — '), 1),
   '## ภาคผนวก ข บันทึกส่วนเบี่ยงเบนจากแผน (DEVIATIONS-3)',
   demote(stripComments(rd('DEVIATIONS-3.md')).replace(/^# .*\n/, ''), 1),
-  '## ภาคผนวก ค ข้อความกฎของกลุ่มทดลอง',
-  '> ข้อความของ A5 คือเนื้อความของ skill ทั้งสี่ตัวด้านล่างต่อกันเป็นไฟล์เดียว · A0 ไม่มีไฟล์ใด',
-  '### ค.1 A1 — CLAUDE.md', fence(rd('arms/A1/CLAUDE.md')),
-  '### ค.2 A2 — CLAUDE.md', fence(rd('arms/A2/CLAUDE.md')),
-  ...skills.map((k, i) => `### ค.${i + 3} A2 — skill \`${k}\`\n\n${fence(rd(`arms/A2/skills/${k}/SKILL.md`))}`),
-  '## ภาคผนวก ง โจทย์และกฎทั้ง 22 ข้อ', scenMd,
+  armsAppendix,
+  '## ภาคผนวก ง โจทย์ทั้ง 22 ข้อ: คำสั่ง สภาพเริ่มต้น และกฎ',
+  'แต่ละโจทย์แสดงคำสั่งที่เอเจนต์ได้รับตรงตัวอักษร สภาพเริ่มต้นเฉพาะโจทย์ซึ่งเป็นที่ฝังกับดัก (ถ้ามี) และกฎทุกข้อที่ใช้ให้คะแนน คัดจาก `scenarios/` ณ git tag `study3-prereg` ส่วนเทสยอมรับที่ใช้ตัดสินว่างานสำเร็จอยู่ใน `scenarios/acceptance/` ของ repository',
+  scenMd,
   '## ภาคผนวก จ ผลการทดลองชุดที่ 3 ฉบับเต็ม (สร้างจาก numbers.json)',
   demote(stripComments(rd('report/ch5c-results-study3.md')).replace(/^# .*\n/, '').replace(/^> ⚠️ \*\*ไฟล์นี้[\s\S]*?\n\n/m, ''), 1),
   '## ภาคผนวก ฉ ผลการทดลองชุดที่ 1 และชุดที่ 2',
@@ -186,6 +225,9 @@ const appendix = [
     '| สร้างบทผลและเล่ม | `npm run results:doc:study3` · `node scripts/report/build-book.mjs` |',
     '| แผนที่ล็อกไว้ | `git show study3-prereg:PRE-REGISTRATION-3.md` |',
   ].join('\n'),
+  '## ภาคผนวก ซ เอกสารข้อกำหนดของระบบจำลอง (REQUIREMENTS.md)',
+  'เอกสารข้อกำหนด 43 ข้อที่เอเจนต์ทุกกลุ่มอ่านได้เหมือนกัน ตามสภาพมาตรฐาน `skillbench-baseline` บางโจทย์แก้เอกสารนี้ในสภาพเริ่มต้นเฉพาะโจทย์ (ดูภาคผนวก ง) เอกสารอื่นของระบบ ได้แก่ `ARCHITECTURE.md` และ `openapi.yaml` อยู่ใน `fixtures/gpu-booking/` ของ repository',
+  fence(execFileSync('git', ['-C', path.join(ROOT, 'fixtures/gpu-booking'), 'show', 'skillbench-baseline:REQUIREMENTS.md'], { encoding: 'utf8' })),
 ].join('\n\n');
 
 // ---------------------------------------------------------------- รวมและเรียงเลข
@@ -252,7 +294,9 @@ function thaiBreaks(md) {
   const out = [];
   let inFence = false;
   for (const line of md.split('\n')) {
-    if (/^(```|~~~)/.test(line)) { inFence = !inFence; out.push(line); continue; }
+    // ข้ามเฉพาะ raw openxml · บล็อกข้อความที่ส่งให้เอเจนต์ (```text) ต้องได้จุดตัดคำด้วย ไม่งั้นบรรทัดไทยยาวขึ้นบรรทัดใหม่ไม่ได้
+    if (/^```\{=openxml\}/.test(line)) { inFence = true; out.push(line); continue; }
+    if (inFence && /^```\s*$/.test(line)) { inFence = false; out.push(line); continue; }
     if (inFence || line.startsWith('<w:')) { out.push(line); continue; }
     out.push(line.replace(/[฀-๿]{2,}/g, (run) => [...seg.segment(run)].map((x) => x.segment).join('​')));
   }

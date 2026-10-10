@@ -20,7 +20,7 @@ const para = (id, name, { based = 'Normal', next = 'Normal', jc = null, before =
 
 // ลบ style ที่จะเขียนใหม่ (ถ้ามี) แล้วเติมชุดใหม่
 const ids = ['Normal', 'Heading1', 'Heading2', 'Heading3', 'Heading4', 'Title', 'Subtitle', 'Cover', 'BodyText', 'FirstParagraph',
-  'Compact', 'TableCaption', 'ImageCaption', 'CaptionedFigure', 'Bibliography', 'BlockText', 'SourceCode', 'TOCHeading', 'Table', 'FrontHeading', 'Signature', 'TOC1', 'TOC2', 'TOC3', 'Caption', 'TableofFigures'];
+  'Compact', 'TableCaption', 'ImageCaption', 'CaptionedFigure', 'Bibliography', 'BlockText', 'SourceCode', 'TOCHeading', 'Table', 'FrontHeading', 'Signature', 'TOC1', 'TOC2', 'TOC3', 'Caption', 'TableofFigures', 'VerbatimChar'];
 for (const id of ids) s = s.replace(new RegExp(`<w:style [^>]*w:styleId="${id}"[^>]*>[\\s\\S]*?</w:style>`), '');
 
 const defs = [
@@ -41,7 +41,9 @@ const defs = [
   para('CaptionedFigure', 'Captioned Figure', { jc: 'center', keep: true }),
   para('Bibliography', 'Bibliography', { jc: 'left', after: 120, ind: '<w:ind w:left="720" w:hanging="720"/>' }),
   para('BlockText', 'Block Text', { jc: 'left', ind: '<w:ind w:left="567" w:right="567"/>', sz: 32 }),
-  para('SourceCode', 'Source Code', { jc: 'left', sz: 20, font: 'Consolas' }),
+  // ข้อความที่ส่งให้เอเจนต์ (ภาคผนวก ค ง ซ): กล่องพื้นเทา ฟอนต์เดียวกับเนื้อหา ขนาด 14 อ่านภาษาไทยได้
+  `<w:style w:type="paragraph" w:customStyle="1" w:styleId="SourceCode"><w:name w:val="Source Code"/><w:basedOn w:val="Normal"/><w:pPr><w:pBdr><w:top w:val="single" w:sz="4" w:space="4" w:color="BFBFBF"/><w:left w:val="single" w:sz="4" w:space="4" w:color="BFBFBF"/><w:bottom w:val="single" w:sz="4" w:space="4" w:color="BFBFBF"/><w:right w:val="single" w:sz="4" w:space="4" w:color="BFBFBF"/></w:pBdr><w:shd w:val="clear" w:color="auto" w:fill="F4F5F7"/><w:spacing w:before="60" w:after="120"/><w:ind w:left="113" w:right="113"/><w:jc w:val="left"/></w:pPr>${rpr(F, 28)}</w:style>`,
+  `<w:style w:type="character" w:customStyle="1" w:styleId="VerbatimChar"><w:name w:val="Verbatim Char"/>${rpr(F, 28)}</w:style>`,
   para('FrontHeading', 'Front Heading', { jc: 'center', after: 240, sz: 36, font: FB, bold: true, pageBreak: true }),
   para('Signature', 'Signature', { jc: 'right' }),
   `<w:style w:type="paragraph" w:styleId="TOC1"><w:name w:val="toc 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="39"/><w:pPr><w:tabs><w:tab w:val="right" w:leader="dot" w:pos="9350"/></w:tabs><w:spacing w:before="60"/><w:jc w:val="left"/></w:pPr>${rpr(FB, 32, true)}</w:style>`,
