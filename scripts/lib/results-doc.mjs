@@ -112,7 +112,28 @@ export function renderResultsDoc(n, { prefix = '5' } = {}) {
     p('');
 
     const significant = Number.isFinite(pr.p) && pr.p < 0.05;
-    if (significant) {
+    /*
+     * ชุดที่ 3 ประกาศตารางตัดสินสามทาง (PRE-REGISTRATION-3 §5) — ถ้า numbers มี decision ต้องใช้ตารางนั้น
+     * ข้อความ "สรุปไม่ได้ ไม่ใช่ไม่ต่างกัน" ของชุดที่ 1–2 ผิดเมื่อ CI 90% อยู่ในเกณฑ์เทียบเท่าแล้ว
+     */
+    const dec = pr.decision;
+    if (dec) {
+      const label = { A_better: `${pr.armA} ดีกว่า`, B_better: `${pr.armB} ดีกว่า`, equivalent: 'เทียบเท่า',
+        different_but_trivial: 'ต่างอย่างมีนัยสำคัญแต่เล็กกว่าเกณฑ์ที่มีความหมาย', inconclusive: 'สรุปไม่ได้' }[dec.verdict] ?? dec.verdict;
+      p(`**ผลตามตารางตัดสินที่ประกาศไว้ล่วงหน้า: ${label}**`);
+      p('');
+      p('| p (two-sided) | CI 95% (กลับด้าน sign-flip) | CI 90% | เกณฑ์เทียบเท่า |');
+      p('|---:|---|---|---|');
+      p(`| ${pval(dec.p)} | [${pct(dec.ci95[0])}, ${pct(dec.ci95[1])}] | [${pct(dec.ci90[0])}, ${pct(dec.ci90[1])}] | ±${pct(dec.margin)} |`);
+      p('');
+      if (dec.verdict === 'equivalent') {
+        p(`> p ≥ 0.05 และ CI 90% ทั้งช่วงอยู่ในกรอบ ±${pct(dec.margin)} (TOST ที่ 0.05 ต่อด้าน)`);
+        p(`> **เทียบเท่า = ต่างกันไม่เกินเกณฑ์ที่ประกาศไว้** (กฎ critical หนึ่งข้อต่อ run) ไม่ได้แปลว่าเหมือนกันทุกประการ`);
+      } else if (dec.verdict === 'inconclusive') {
+        p('> ⚠️ **ต้องรายงานว่า “สรุปไม่ได้” ไม่ใช่ “ไม่ต่างกัน”** — CI 90% ยื่นออกนอกเกณฑ์เทียบเท่า');
+      }
+      p('');
+    } else if (significant) {
       p(`ที่ระดับนัยสำคัญ 0.05 ผลต่างนี้ **มีนัยสำคัญ** (p = ${pval(pr.p)})`);
       p('');
       p('> ข้อควรระวังในการตีความ: นัยสำคัญที่ k = ' + pr.k + ' โจทย์ ไม่ได้แปลว่าขนาดของผล');
@@ -280,6 +301,70 @@ export function renderResultsDoc(n, { prefix = '5' } = {}) {
     p('> ถ้าสองชุดชี้คนละทาง ข้อสรุปเรื่องการยิง skill ต้องอ่อนลง ไม่ใช่เลือกชุดที่ค่าดีกว่า');
     p('> ทั้งสองชุดยังเป็นการตัดสินของผู้วิจัยจาก description ที่ผู้วิจัยเขียนเอง');
     p('');
+  }
+
+  // ---------- ชุดที่ 3: ผลรองที่ประกาศไว้ล่วงหน้า ----------
+  const s3 = n.study3;
+  if (s3) {
+    const ks = s3.keySecondary;
+    if (ks) {
+      p(`## ${prefix}.9 ผลรองหลัก — \`${ks.metric}\` · ${ks.armA} เทียบ ${ks.armB} (fixed-sequence)`);
+      p('');
+      p(`| ${ks.armA} | ${ks.armB} | CI 95% | CI 90% | ชนะ/แพ้/เสมอ | p |`);
+      p('|---:|---:|---|---|---|---:|');
+      p(`| ${pct(ks.rateA)} | ${pct(ks.rateB)} | [${pct(ks.ci95[0])}, ${pct(ks.ci95[1])}] | [${pct(ks.ci90[0])}, ${pct(ks.ci90[1])}] | ${ks.wins}/${ks.losses}/${ks.ties} | ${pval(ks.p)} |`);
+      p('');
+      if (ks.gateOpen) p(`> ประตูเปิด — ผลตามตาราง: **${ks.verdict}**`);
+      else {
+        p('> ⚠️ **ประตูปิด — แถวนี้ไม่ถูกทดสอบ** เพราะผลหลักไม่ต่างอย่างมีนัยสำคัญ (fixed-sequence)');
+        p(`> รายงานเป็นค่าประมาณเท่านั้น · ถ้าอ่านด้วยตารางเดียวกันจะตกช่อง "${ks.estimateVerdict}" แต่ห้ามอ้างเป็นผลการทดสอบ`);
+      }
+      p('');
+    }
+    const sa = n.sensitivityPrereg;
+    if (sa?.results) {
+      p(`## ${prefix}.10 การวิเคราะห์ความไวที่ประกาศไว้ล่วงหน้า (DEVIATIONS-3 §4)`);
+      p('');
+      p('| ชุด | ความหมาย | k | ผลต่าง | CI 95% | CI 90% | p | ผลตามตาราง |');
+      p('|---|---|---:|---:|---|---|---:|---|');
+      const what = { MAIN: 'ตามแผน (ตัวตรวจเดิม)', 'SA-1': 'ตัวตรวจที่แก้ F1′–F3′', 'SA-2': 'ตัด S05 S06 S08 S09' };
+      for (const [name, r] of Object.entries(sa.results)) {
+        const v = r.primary_A2_vs_A1;
+        p(`| ${name} | ${what[name] ?? ''} | ${v.k} | ${pct(v.meanDiff)} | [${pct(v.ci95[0])}, ${pct(v.ci95[1])}] | [${pct(v.ci90[0])}, ${pct(v.ci90[1])}] | ${pval(v.p)} | ${v.verdict} |`);
+      }
+      p('');
+      const verdicts = new Set(Object.values(sa.results).map((r) => r.primary_A2_vs_A1.verdict));
+      p(verdicts.size === 1
+        ? '> ทั้งสามชุดให้ข้อสรุปเดียวกัน ข้อสรุปหลักจึงทนต่อข้อบกพร่องของตัวตรวจที่พบระหว่างเก็บข้อมูล'
+        : '> ⚠️ **ชุดต่าง ๆ ให้ข้อสรุปไม่ตรงกัน** — ผลหลักยังเป็นแถว MAIN ตามที่ประกาศไว้ ห้ามเลือกชุดที่ผลดีกว่า');
+      p('');
+    }
+    const os = s3.oneShot;
+    if (os) {
+      p(`## ${prefix}.11 ผลแบบรอบเดียว (\`${os.metric}\` ภาพ ณ จบรอบแรก ก่อนรอบตอบกลับ)`);
+      p('');
+      p(`| ${os.armA} | ${os.armB} | ผลต่างเฉลี่ยรายโจทย์ | CI 95% | ชนะ/แพ้/เสมอ | k | p |`);
+      p('|---:|---:|---:|---|---|---:|---:|');
+      p(`| ${pct(os.rateA)} | ${pct(os.rateB)} | ${pct(os.diff)} | [${pct(os.ci95[0])}, ${pct(os.ci95[1])}] | ${os.wins}/${os.losses}/${os.ties} | ${os.k} | ${pval(os.p)} |`);
+      p('');
+      p('> ผลรองเชิงพรรณนา ไม่คุม alpha · เทียบได้กับการวัดแบบรอบเดียวของชุดที่ 1–2');
+      p('');
+    }
+    if (s3.rescue) {
+      p(`## ${prefix}.12 รอบตอบกลับช่วยแต่ละกลุ่มไปเท่าไร (เชิงพรรณนา)`);
+      p('');
+      p('| arm | run | เสร็จหลังรอบแรก | เสร็จหลังรอบสอง | ไม่เสร็จรอบแรก → เสร็จรอบสอง | เสร็จรอบแรก → พังรอบสอง |');
+      p('|---|---:|---:|---:|---:|---:|');
+      for (const [arm, v] of Object.entries(s3.rescue)) {
+        p(`| ${arm} | ${v.n} | ${v.done1} | ${v.done2} | ${v.rescued}/${v.notDone1} | ${v.broke} |`);
+      }
+      p('');
+    }
+    if (s3.memoryWrites) {
+      const w = Object.entries(s3.memoryWrites).map(([a, v]) => `${a} ${v.wrote}/${v.n}`).join(' · ');
+      p(`> run ที่เอเจนต์เขียน auto-memory (กักเก็บก่อน run ถัดไปตามนโยบาย): ${w}`);
+      p('');
+    }
   }
 
   p('---');

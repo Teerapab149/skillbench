@@ -26,6 +26,9 @@ const IN = path.resolve(ROOT, argv('--in', 'results/numbers.json'));
 const OUT = path.resolve(ROOT, argv('--out', 'report/ch5-results.md'));
 
 const numbers = loadNumbers(IN);
+// ชุดที่ 3: ผลการวิเคราะห์ความไวที่ประกาศล่วงหน้า (scripts/study3/sensitivity.mjs) อยู่ข้าง numbers.json
+const SA = argv('--sensitivity', null);
+if (SA) numbers.sensitivityPrereg = JSON.parse(fs.readFileSync(path.resolve(ROOT, SA), 'utf8'));
 const text = renderResultsDoc(numbers, { prefix: argv('--prefix', '5') });
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
