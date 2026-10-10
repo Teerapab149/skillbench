@@ -69,10 +69,42 @@ try {
     $tb.PreferredWidth = 100
     $tb.Rows.Item(1).HeadingFormat = -1   # repeat header row when a table spans pages
   }
+  # Main TOC: replace the plain TOC field with Word's own "Automatic Table 1" building block
+  # (content control with the Update Table button), Thai version if installed, levels 1-2
+  $word.Templates.LoadBuildingBlocks()
+  $bb = $null
+  foreach ($lcid in '\1054\', '\1033\') {
+    foreach ($tp in $word.Templates) {
+      if ($bb -eq $null -and $tp.FullName -like "*$lcid*Built-In Building Blocks*") {
+        for ($i = 1; $i -le $tp.BuildingBlockEntries.Count; $i++) {
+          $e = $tp.BuildingBlockEntries.Item($i)
+          if ($e.Type.Index -eq 14) { $bb = $e; break }    # first table-of-contents entry = Automatic Table 1
+        }
+      }
+    }
+  }
+  if ($bb -ne $null) {
+    $old = $d.TablesOfContents.Item(1)
+    $pos = $old.Range.Start
+    $head = $d.Range($pos - 1, $pos - 1).Paragraphs.Item(1)   # the "สารบัญ" front heading just before the field
+    $old.Delete()
+    $hs = $head.Range.Start
+    $head.Range.Delete() | Out-Null
+    $bb.Insert($d.Range($hs, $hs), $true) | Out-Null
+    # The block's own heading says "Contents"/"เนื้อหา"; rename it to "สารบัญ" (built from code points: script is ANSI)
+    $title = [string]::new([char[]](0x0E2A, 0x0E32, 0x0E23, 0x0E1A, 0x0E31, 0x0E0D))
+    $hr = $d.Range($hs, $hs).Paragraphs.Item(1).Range
+    $hr.MoveEnd(1, -1) | Out-Null
+    $hr.Text = $title
+    $toc = $d.TablesOfContents.Item(1)
+    $toc.UpperHeadingLevel = 1
+    $toc.LowerHeadingLevel = 2
+  }
   foreach ($t in $d.TablesOfContents) { $t.Update() }
   $d.Fields.Update() | Out-Null
   $pages = $d.ComputeStatistics(2)
-  try { $d.SaveAs2($final, 16) } catch { $final = $final -replace '\.docx$', '-new.docx'; $d.SaveAs2($final, 16) }
+  # If the final file is open in Word, save a timestamped copy instead
+  try { $d.SaveAs2($final, 16) } catch { $final = $final -replace '\.docx$', ('-' + (Get-Date -Format 'HHmm') + '.docx'); $d.SaveAs2($final, 16) }
   $d.SaveAs2("$b\book.pdf", 17)
   $d.Close(0)
   "pages $pages"
