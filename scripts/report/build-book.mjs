@@ -173,7 +173,7 @@ body = tok(body, fMap, 'รูปที่');
 body = body.replace(/\u0000/g, '');
 
 // คำบรรยายตาราง → caption ของ pandoc (อยู่เหนือตาราง)
-body = body.replace(/^\*\*ตารางที่ ([0-9]+)\*\* (.+)\n\n((?:\|.*\n)+)/gm, (m, k, cap, tbl) => `${tbl}\nTable: ตารางที่ ${k} ${cap}\n`);
+body = body.replace(/^\*\*ตารางที่ ([0-9]+)\*\* (.+)\n\n((?:\|.*\n)+)/gm, (m, k, cap, tbl) => `${tbl}\nTable: **ตารางที่ ${k}** ${cap}\n`);
 
 // รูป: ใช้ไฟล์ SVG ที่สร้างได้ ที่เหลือคงเป็นกล่องบอกตำแหน่งให้ผู้วิจัยใส่ภาพ
 const figFile = { 'กรอบแนวคิดการวิจัย': 'fig-framework.svg', 'ขั้นตอนของหนึ่ง run': 'fig-run.svg',
@@ -185,11 +185,30 @@ body = body.replace(/^> \*\*\[รูปที่ ([0-9]+) ([^\]]+)\]\*\*(.*)$/gm
 });
 
 const refs = stripComments(fs.readFileSync(path.join(FINAL, '08-references.md'), 'utf8').replace(/\r\n/g, '\n'));
-const book = `${body}\n\n${refs}\n\n${appendix}\n`;
+/*
+ * จุดตัดคำภาษาไทย — ใส่ zero-width space (U+200B) ระหว่างคำไทย
+ * Word ตัดคำไทยได้เฉพาะเมื่อเครื่องเปิดภาษาไทยในการแก้ไข ถ้าไม่เปิด บรรทัดจะขึ้นใหม่ได้แค่ตรงช่องว่าง
+ * แล้วการกระจายแบบไทยจะยืดตัวอักษรห่าง · ใช้ตัวตัดคำของ ICU ใน Node ทำให้ผลเหมือนกันทุกเครื่อง
+ * ข้ามบล็อกโค้ดและ raw openxml
+ */
+const seg = new Intl.Segmenter('th', { granularity: 'word' });
+function thaiBreaks(md) {
+  const out = [];
+  let inFence = false;
+  for (const line of md.split('\n')) {
+    if (/^(```|~~~)/.test(line)) { inFence = !inFence; out.push(line); continue; }
+    if (inFence || line.startsWith('<w:')) { out.push(line); continue; }
+    out.push(line.replace(/[฀-๿]{2,}/g, (run) => [...seg.segment(run)].map((x) => x.segment).join('​')));
+  }
+  return out.join('\n');
+}
+const book = thaiBreaks(`${body}\n\n${refs}\n\n${appendix}\n`);
 fs.writeFileSync(path.join(BUILD, 'book.md'), book);
 
 const PANDOC = process.env.PANDOC ?? path.join(process.env.LOCALAPPDATA ?? '', 'Pandoc', 'pandoc.exe');
-const out = path.join(FINAL, 'รายงานฉบับสมบูรณ์-477-401.docx');
+// เขียนลง build/ ก่อนเสมอ (ไฟล์ปลายทางอาจเปิดค้างใน Word) · build.ps1 จัดหน้าแล้วบันทึกเป็นไฟล์ปลายทาง
+const out = path.join(BUILD, 'book.docx');
 execFileSync(PANDOC, ['book.md', '-f', 'markdown+pipe_tables+fenced_divs+raw_attribute', '-o', out,
-  '--reference-doc', 'reference.docx', '--resource-path', BUILD], { cwd: BUILD, stdio: 'inherit' });
+  '--reference-doc', 'reference.docx', '--resource-path', BUILD, '-M', 'lang=th-TH'], { cwd: BUILD, stdio: 'inherit' });
+fs.writeFileSync(path.join(BUILD, 'final-path.txt'), path.join(FINAL, 'รายงานฉบับสมบูรณ์-477-401.docx'));
 console.log(`ตาราง ${tMap.size} · รูป ${fMap.size} · ${path.relative(ROOT, out)}`);

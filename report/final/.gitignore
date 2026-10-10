@@ -5,3 +5,5 @@ build/ref/
 build/reference.docx
 build/figures/*.html
 build/pg*.png
+build/book.docx
+build/final-path.txt
