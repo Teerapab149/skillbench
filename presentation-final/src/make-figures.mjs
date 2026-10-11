@@ -96,7 +96,7 @@ const figs = {};
   // หัว
   b += t(800, 80, `Agent Skills ${pct(p.rateA)}%  ·  ไฟล์เดียว ${pct(p.rateB)}%`, { size: 50, anchor: 'middle', weight: 700 });
   b += t(800, 135, 'ผลต่าง RCRc (A2 − A1) เป็นจุด', { size: 30, anchor: 'middle', fill: C.mute });
-  b += t(800, 740, 'ช่วงทั้งเส้นอยู่ในแถบเขียว  →  เทียบเท่ากันตามเกณฑ์', { size: 42, anchor: 'middle', weight: 700, fill: '#2f6b2f' });
+  // ข้อสรุปอยู่ที่หัวสไลด์แล้ว ไม่พิมพ์ซ้ำในภาพ
   b += t(800, 800, `${p.k} โจทย์ · ชนะ/แพ้/เสมอ ${p.wins}/${p.losses}/${p.ties} · p = ${p.p.toFixed(3)}`, { size: 26, anchor: 'middle', fill: C.mute });
   figs['fig-s8-primary'] = svg(b);
 }
@@ -127,9 +127,7 @@ const figs = {};
     b += `<rect x="${x}" y="800" width="30" height="30" fill="${C[a]}"/>`;
     b += t(x + 42, 826, ARM_LABEL[a], { size: 26 });
   });
-  b += t(800, 70, 'ความต่างใหญ่ที่สุด: ระหว่าง “มีกฎ” กับ “ไม่มีกฎ”', { size: 44, anchor: 'middle', weight: 700 });
-  b += `<rect x="1280" y="95" width="210" height="44" rx="22" fill="#fff4e0" stroke="${C.A5}" stroke-width="2"/>`;
-  b += t(1385, 126, 'เชิงสำรวจ', { size: 26, anchor: 'middle', fill: '#9a6a10', weight: 700 });
+  // หัวเรื่องและป้าย "เชิงสำรวจ" อยู่ที่หัวสไลด์แล้ว ไม่พิมพ์ซ้ำในภาพ
   figs['fig-s9-rules'] = svg(b);
 }
 
