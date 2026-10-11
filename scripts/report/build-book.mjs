@@ -33,9 +33,9 @@ const defs = '<defs><marker id="a" markerWidth="10" markerHeight="8" refX="9" re
 fs.writeFileSync(path.join(FIG, 'fig-framework.svg'), svg(760, 330, defs
   + box(10, 40, 220, 170, ['ตัวแปรต้น: วิธีส่งกฎ', 'A0 ไม่มีกฎ', 'A1 ไฟล์เดียว', 'A2 Agent Skills', 'A5 ข้อความ A2 โหลดตลอด'])
   + box(270, 70, 220, 110, ['เอเจนต์ Claude Sonnet 5', 'ทำโจทย์ 22 ข้อ', 'บนระบบจำลอง'], '#fff6e5', '#a0702a')
-  + box(530, 40, 220, 170, ['ตัวแปรตาม', 'RCRc (ผลหลัก)', 'การทำงานสำเร็จ', 'ขอบเขต · ต้นทุน', 'การเรียก skill'])
+  + box(530, 40, 220, 170, ['ตัวแปรตาม', 'RCRc (ผลหลัก)', 'การทำงานสำเร็จ', 'ขอบเขตและต้นทุน', 'การเรียก skill'])
   + arrow(230, 125, 268, 125) + arrow(490, 125, 528, 125)
-  + box(120, 240, 520, 70, ['ตัวแปรควบคุม: โมเดล · ชุดเครื่องมือ · เวอร์ชัน CLI', 'สภาพเริ่มต้นของระบบ · ข้อความรอบตอบกลับ'], '#f1f1f1', '#777')));
+  + box(120, 240, 520, 70, ['ตัวแปรควบคุม: โมเดล ชุดเครื่องมือ และเวอร์ชัน CLI', 'สภาพเริ่มต้นของระบบ และข้อความรอบตอบกลับ'], '#f1f1f1', '#777')));
 
 const steps = ['รีเซ็ตระบบจำลอง', 'ติดตั้งกฎของกลุ่ม', 'วัดค่าตั้งต้น', 'รอบแรก', 'เก็บภาพรอบแรก', 'รอบตอบกลับ', 'วัดค่าปลายทาง', 'ตรวจสภาพ runtime', 'ให้คะแนน + บันทึก'];
 let flow = defs;
@@ -57,7 +57,7 @@ fs.writeFileSync(path.join(FIG, 'fig-run.svg'), svg(760, 210, flow));
   let b = `<rect x="${X(-12.5)}" y="20" width="${X(12.5) - X(-12.5)}" height="${H - 70}" fill="#e8f3e8"/>`
     + `<line x1="${X(0)}" y1="20" x2="${X(0)}" y2="${H - 50}" stroke="#999" stroke-dasharray="4"/>`;
   for (const v of [-15, -10, -5, 0, 5, 10, 15]) b += `<text x="${X(v)}" y="${H - 30}" text-anchor="middle" font-size="14" ${FONT}>${v > 0 ? '+' : ''}${v}</text>`;
-  b += `<text x="${(x0 + x1) / 2}" y="${H - 8}" text-anchor="middle" font-size="15" ${FONT}>ผลต่าง RCRc A2 − A1 (จุด) · แถบเขียว = เกณฑ์เทียบเท่า ±12.5</text>`;
+  b += `<text x="${(x0 + x1) / 2}" y="${H - 8}" text-anchor="middle" font-size="15" ${FONT}>ผลต่าง RCRc A2 − A1 (จุด) แถบเขียวคือเกณฑ์เทียบเท่า ±12.5</text>`;
   const rows = [['MAIN (ตามแผน)', sa.results.MAIN], ['SA-1 แก้ตัวตรวจ/ผ่อนเกณฑ์', sa.results['SA-1']], ['SA-2 ตัด 4 โจทย์', sa.results['SA-2']]];
   rows.forEach(([label, r], i) => {
     const v = r.primary_A2_vs_A1, y = 55 + i * 55;
@@ -117,7 +117,7 @@ fs.writeFileSync(path.join(FIG, 'fig-run.svg'), svg(760, 210, flow));
     .m{margin-top:12px;border-left:3px solid #e0a030;padding:6px 0 2px 12px;font-size:14px;line-height:1.6}
     .m p{margin:0 0 6px}
   </style></head><body><div class="w">
-    <div class="h">Claude Code · โจทย์ S10 (ข้อกำหนดขัดกัน) · กลุ่ม A2 Agent Skills · รอบแรก · run ${RUN}</div>
+    <div class="h">Claude Code&nbsp;&nbsp; โจทย์ S10 (ข้อกำหนดขัดกัน)&nbsp;&nbsp; กลุ่ม A2 Agent Skills&nbsp;&nbsp; รอบแรก&nbsp;&nbsp; run ${RUN}</div>
     <div class="t">${lines.join('<br>')}</div>
     <div class="m">${msg.map((x) => `<p>${x}</p>`).join('')}</div>
   </div></body></html>`;
@@ -154,11 +154,11 @@ function cleanResults(md, from, to) {
   return md
     .replace(/^\*เอกสารนี้สร้างอัตโนมัติ[^\n]*\*\s*$/gm, '')
     .replace(/^> ⚠️ ชุดนี้ใช้กฎสำรองของ Amendment 14 — ตัดรอบจาก 4 เหลือ 3 เท่ากันทุก arm/m,
-      '> ชุดนี้ใช้ข้อมูล 3 รอบเท่ากันทุกกลุ่ม (แผนกำหนด 2–4 รอบ · ส่วนเบี่ยงเบน D3/D6 ในภาคผนวก ข)')
+      '> ชุดนี้ใช้ข้อมูล 3 รอบเท่ากันทุกกลุ่ม (แผนกำหนด 2–4 รอบ ส่วนเบี่ยงเบน D3 และ D6 อยู่ในภาคผนวก ข)')
     .replace(/กฎสำรองของ Amendment 14/g, 'กฎจำนวนรอบสำรอง (Amendment 14 ในแผนของชุดที่ 1)')
     .replace(/^> ⚠️ /gm, '> ')
     .replace(/ห้ามสรุป/g, 'ไม่ควรสรุป').replace(/ห้ามนำไปอ้าง/g, 'ไม่ควรนำไปอ้าง')
-    .replace(/\| ผลต่างเฉลี่ยรายโจทย์ \| 95% CI \|/g, '| ผลต่างเฉลี่ยรายโจทย์ | 95% CI (cluster bootstrap · ไม่ใช้ตัดสิน) |')
+    .replace(/\| ผลต่างเฉลี่ยรายโจทย์ \| 95% CI \|/g, '| ผลต่างเฉลี่ยรายโจทย์ | 95% CI (cluster bootstrap ไม่ใช้ตัดสิน) |')
     .replace(/±12\.5%/g, '±12.5 จุด')
     .replace(/\(จาก `claude-opus-5`\)/g, '(จากข้อมูลสอบเทียบช่วงพัฒนาเครื่องมือ ซึ่งใช้ `claude-opus-5` ไม่ใช่โมเดลของการทดลองหลัก)')
     // ศัพท์ภายในของตัวสร้างรายงาน → ภาษารายงาน
@@ -228,7 +228,7 @@ const addedLines = (find, replace) => {
 };
 let scenMd = '';
 scen.forEach((s, idx) => {
-  scenMd += `### ง.${idx + 1} ${s.id}\n\n**ตระกูลกับดัก:** ${famTh[s.family] ?? s.family} · **ข้อกำหนดที่เกี่ยวข้อง:** ${(s.reqs ?? []).join(', ') || '—'}\n\n`;
+  scenMd += `### ง.${idx + 1} ${s.id}\n\n**ตระกูลกับดัก:** ${famTh[s.family] ?? s.family}\n\n**ข้อกำหนดที่เกี่ยวข้อง:** ${(s.reqs ?? []).join(', ') || 'ไม่มี'}\n\n`;
   scenMd += `**คำสั่งที่เอเจนต์ได้รับ (ตรงตัวอักษร)**\n\n${fence(s.prompt)}\n\n`;
   const setupFile = path.join(ROOT, 'scenarios/setup', `${s.id}.json`);
   if (fs.existsSync(setupFile)) {
@@ -249,7 +249,7 @@ scen.forEach((s, idx) => {
   } else {
     scenMd += '**สภาพเริ่มต้น:** ระบบตามสภาพมาตรฐาน (`skillbench-baseline`) ไม่มีการแก้เฉพาะโจทย์\n\n';
   }
-  scenMd += '**กฎที่ใช้ให้คะแนน** (critical นับในตัวชี้วัดหลัก · major รายงานประกอบ)\n\n'
+  scenMd += '**กฎที่ใช้ให้คะแนน** (critical นับในตัวชี้วัดหลัก ส่วน major รายงานประกอบ)\n\n'
     + '| กฎ | ระดับ | ตรวจอะไร |\n|---|---|---|\n' + s.rules.map((r) => `| ${r.id} | ${r.severity} | ${String(r.desc).replace(/\|/g, '/')} |`).join('\n') + '\n\n';
   if (s._designNote) scenMd += `**หมายเหตุการออกแบบโจทย์** (เอเจนต์ไม่เห็น): ${String(s._designNote).replace(/\n+/g, ' ')}\n\n`;
 });
@@ -262,7 +262,7 @@ const armsAppendix = [
   '| กลุ่ม | ไฟล์ที่วางลงโฟลเดอร์งาน | เอเจนต์เห็นเมื่อใด |\n|---|---|---|\n'
     + '| A0 | ไม่มีไฟล์ใด | — |\n'
     + '| A1 | `CLAUDE.md` (ค.2) | ทุกครั้งที่เริ่มงาน ตลอดการทำงาน |\n'
-    + '| A2 | `CLAUDE.md` สั้น (ค.3) + skill 4 ตัวใน `.claude/skills/` (ค.4–ค.7) | `CLAUDE.md` และ *ชื่อกับคำอธิบาย* ของ skill เห็นตลอด · *เนื้อความ* ของ skill เห็นเมื่อเอเจนต์เลือกโหลด |\n'
+    + '| A2 | `CLAUDE.md` สั้น (ค.3) + skill 4 ตัวใน `.claude/skills/` (ค.4–ค.7) | `CLAUDE.md` และ *ชื่อกับคำอธิบาย* ของ skill เห็นตลอด ส่วน *เนื้อความ* ของ skill เห็นเมื่อเอเจนต์เลือกโหลด |\n'
     + '| A5 | `CLAUDE.md` ที่รวมเนื้อความ skill ทั้ง 4 ตัว (ค.8) | ทุกครั้งที่เริ่มงาน ตลอดการทำงาน |',
   '### ค.1 ข้อความรอบตอบกลับ (ส่งให้ทุกกลุ่มหลังรอบแรก)', fence(cfg3.fixedFactors.followUp.text),
   '### ค.2 A1 — ไฟล์กฎไฟล์เดียว `CLAUDE.md`', fence(rd('arms/A1/CLAUDE.md')),
@@ -298,12 +298,12 @@ const appendix = [
     'โค้ด ข้อมูล และประวัติทั้งหมดอยู่ที่ https://github.com/Teerapab149/skillbench (branch `main`)',
     '',
     '| ขั้นตอน | คำสั่ง |', '|---|---|',
-    '| ติดตั้ง | Node.js 24 และ Claude Code CLI 2.1.224 · `node scripts/setup-fixtures.mjs` |',
-    '| ตรวจเครื่องมือวัด | `npm test` · `npm run gate` · `npm run preflight:study3` |',
+    '| ติดตั้ง | Node.js 24 และ Claude Code CLI 2.1.224 แล้วรัน `node scripts/setup-fixtures.mjs` |',
+    '| ตรวจเครื่องมือวัด | `npm test` `npm run gate` และ `npm run preflight:study3` |',
     '| เก็บข้อมูลชุดที่ 3 | `npm run main:study3` |',
     '| วิเคราะห์ผลหลัก | `npm run analyze:study3 -- --fallback-reps 3` |',
     '| วิเคราะห์ความไว | `node scripts/study3/sensitivity.mjs` |',
-    '| สร้างบทผลและเล่ม | `npm run results:doc:study3` · `node scripts/report/build-book.mjs` |',
+    '| สร้างบทผลและเล่ม | `npm run results:doc:study3` แล้ว `node scripts/report/build-book.mjs` |',
     '| แผนที่ล็อกไว้ | `git show study3-prereg:PRE-REGISTRATION-3.md` |',
   ].join('\n'),
   '## ภาคผนวก ซ เอกสารข้อกำหนดของระบบจำลอง (REQUIREMENTS.md)',
