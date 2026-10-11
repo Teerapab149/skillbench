@@ -140,6 +140,7 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
 
   <section id="explore" class="wide">
     <h2>สำรวจข้อมูลทั้งหมด</h2>
+    <p class="report-dl"><a href={`${base}skillbench-report.pdf`}>อ่านรายงานฉบับสมบูรณ์</a> <span>PDF ภาษาไทย 1.9 MB รายละเอียดวิธีวิจัย ผล และข้อจำกัดของทั้งสามชุด</span></p>
     <div class="explore">
       <a href={`${base}runs/`}><b>ทะเบียน {totalRuns} run</b><span>ผลตรวจกฎทีละข้อ ไฟล์ที่แก้ skill ที่เปิด และต้นทุนของทุก run</span></a>
       <a href={`${base}scenarios/`}><b>โจทย์ {scenarios.length} ข้อ</b><span>คำสั่ง กับดัก กฎที่ใช้ให้คะแนน และผลในแต่ละชุด</span></a>
@@ -248,4 +249,7 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
   .explore b { font-family: var(--serif); font-size: 1.1rem; }
   .explore span { color: var(--ink-3); font-size: 0.95rem; }
   .explore a:hover b { color: var(--teal); }
+  .report-dl { margin: 0 0 1.5rem; }
+  .report-dl a { font-family: var(--serif); font-weight: 600; font-size: 1.15rem; color: var(--teal); }
+  .report-dl span { display: block; color: var(--ink-3); font-size: 0.95rem; }
 </style>

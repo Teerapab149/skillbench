@@ -18,7 +18,7 @@ Framework (user's choice, 11 ต.ค. 2569). Astro was chosen because it builds 
 
 ## Product Purpose
 
-SkillBench is a closed measurement system and controlled experiment. It asks whether delivering the same team rules to a coding agent as Agent Skills (loaded on demand) or as one always-loaded file (`CLAUDE.md`) changes rule compliance. The site presents study 3, the final study, as a readable story. Every claim can be traced to the runs, scenarios and rule texts behind it.
+SkillBench is a closed measurement system and controlled experiment. It asks whether delivering the same team rules to a coding agent as Agent Skills (loaded on demand) or as one always-loaded file (`CLAUDE.md`) changes rule compliance. The site presents all three studies in the order they were run (study 1 with 220 runs, study 2 with 176, study 3 with 264) as a readable story, with study 3 as the final, confirmatory study. Every claim can be traced to the runs, scenarios and rule texts behind it.
 
 ## Positioning
 
@@ -28,13 +28,15 @@ Every number comes from programmatic grading of real agent traces: files changed
 
 - Presented together with a slide deck (`presentation-final/SLIDES-FINAL.md`), with a QR code on the last slide.
 - The report is `report/final/` (Thai technical report, ฉบับสมบูรณ์).
-- Studies 1–2 were inconclusive and appear only as the path that led to study 3.
+- Studies 1 and 2 were inconclusive. Each has its own page with its design, primary result, per-scenario differences and what changed for the next study.
+- The final report PDF is published with the site at `/skillbench-report.pdf`.
 
 ## Capabilities and Constraints
 
 - Thai only.
+- Study 1 data: 5 arms (A0 to A4), 11 scenarios, 4 reps (6 planned, stopped at 4 under the fallback rule), 220 runs, metric CRIT. Study 2 data: 4 arms (A0, A1, A2, A5), 11 scenarios, 4 reps, 176 runs, metric RCRc.
 - Study 3 data: 4 arms (A0 no rules, A1 single file, A2 Agent Skills, A5 A2's text always loaded), 22 scenarios, 3 reps, 264 runs, model `claude-sonnet-5`.
-- Sources: `results-study3/numbers.json`, `results-study3/latest.json`, `results-study3/sensitivity.json`, `scenarios/*.json`, `config/arms-study3.json`, `arms/**`.
+- Sources: `results*/numbers.json`, `evidence/study1-scenarios`, `evidence/study2-scenarios`, `config/arms*.json`, `results-study3/numbers.json`, `results-study3/latest.json`, `results-study3/sensitivity.json`, `scenarios/*.json`, `config/arms-study3.json`, `arms/**`.
 - **No hand-typed result numbers.** Every number is derived at build time from the files above.
 - Wording rules that must hold:
   - "เทียบเท่า" (equivalent within ±12.5 pts), never "เหมือนกัน" (same).
@@ -59,4 +61,4 @@ Every number comes from programmatic grading of real agent traces: files changed
 
 ## Accessibility & Inclusion
 
-Mobile-first readability for Thai script. The site must also be legible when projected on a large screen.
+Mobile-first readability for Thai script: most of the audience opens the site on a phone from the QR code, so every page is checked at 375 to 390 px with no sideways scrolling, and charts have a separate narrow layout. The site must also be legible when projected on a large screen.
