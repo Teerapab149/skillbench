@@ -73,3 +73,9 @@ The landing page hero is the only dark surface. It carries the run field (one ma
 | `/method/` | one run step by step, the metrics and the statistics |
 | `/protocol/` | the three pre-registrations, deviations and course requirements |
 | `/skillbench-report.pdf` | the final report |
+
+## Sharing and accessibility
+
+- Every page carries Open Graph and Twitter card tags (`layouts/Base.astro`). The share image is `site/public/og.png`, 1200×630, generated from the result files by `node scripts/make-og.mjs` (headless Edge). Regenerate it if the results change.
+- Documents rendered from markdown (rule files, pre-registrations) go through `src/lib/md.ts`, which pushes their headings down two levels so each page keeps a single `h1` and an unbroken heading order. Their look comes from the `md-h1` to `md-h3` classes.
+- Dense run grids are not in the tab order. Keyboard users reach runs through one link per study in the run field caption and through the rep-number headers of each scenario's rule matrix. Every cell still has a text label for screen readers.

@@ -10,6 +10,7 @@ const d = p.decision;
 const s09 = scenarios.find((s) => s.code === 'S09')!;
 const totalRuns = studies.reduce((s, st) => s + st.usable, 0);
 const allArms = new Set(studies.flatMap((st) => st.armIds)).size;
+const trapped = scenarios.filter((s) => s.family !== 'ordinary').length;
 const outcomes = ['ต่างกัน', 'เทียบเท่า', 'สรุปไม่ได้'];
 // อัตราในโจทย์ S09 มาจากคำสั่งจริง (20 → 25 บาท) ส่วนจำนวนชั่วโมงเป็นตัวอย่าง
 const [, rateFrom, rateTo] = (s09.prompt.match(/(\d+)\s*บาทเป็น\s*(\d+)/) ?? ['', '20', '25']).map(Number);
@@ -33,18 +34,18 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
       </div>
       <div class="hero-field">
         <RunField />
-        <p class="field-note">แต่ละช่องคือหนึ่ง run สีเขียวคือทำตามกฎได้ครบ สีส้มคือพลาด คลิกช่องใดก็ได้เพื่อดูว่า AI ทำอะไรใน run นั้น</p>
+        <p class="field-note">แต่ละช่องคือหนึ่ง run สีคือคะแนนหลักของ run นั้น เขียวคือคะแนนเต็ม ส้มคือศูนย์ สีระหว่างกลางคือได้บางส่วน คลิกช่องใดก็ได้เพื่อดูว่า AI ทำอะไรใน run นั้น</p>
       </div>
     </div>
   </section>
 
   <section class="facts-line">
-    <p><b>{studies.length}</b> ชุดการทดลอง <b>{totalRuns}</b> run <b>{scenarios.length}</b> โจทย์ที่มีกับดัก <b>{allArms}</b> กลุ่มทดลอง ให้คะแนนด้วยโปรแกรมทั้งหมด ไม่มีคนหรือ AI ตัดสิน</p>
+    <p><b>{studies.length}</b> ชุดการทดลอง <b>{totalRuns}</b> run <b>{scenarios.length}</b> โจทย์ (มีกับดัก {trapped} ข้อ) <b>{allArms}</b> กลุ่มทดลอง ให้คะแนนด้วยโปรแกรมทั้งหมด ไม่มีคนหรือ AI ตัดสิน</p>
   </section>
 
   <section id="answer" class="band">
     <h2>คำตอบ</h2>
-    <p class="answer">Skills กับไฟล์เดียวให้ผล<span class="verdict">เทียบเท่า</span>กันตามเกณฑ์ที่ประกาศไว้ล่วงหน้า แต่การ<b>มีกฎ</b>สำคัญกว่ารูปแบบของกฎ</p>
+    <p class="answer">Skills กับไฟล์เดียวให้ผล<span class="verdict">เทียบเท่า</span>กันตามเกณฑ์ที่ประกาศไว้ล่วงหน้า และข้อมูลเชิงสำรวจชี้ว่าการ<b>มีกฎ</b>สำคัญกว่ารูปแบบของกฎ</p>
     <p class="answer-sub">กว่าจะได้คำตอบนี้ต้องทดลองสามครั้ง ก่อนเก็บข้อมูลแต่ละชุด ผู้วิจัยประกาศไว้ว่าผลออกได้สามทาง ตารางนี้คือสิ่งที่เกิดขึ้นจริง</p>
     <div class="vm" role="table" aria-label="ผลที่เป็นไปได้และผลที่เกิดจริงของแต่ละชุด">
       <div class="vm-row head" role="row"><span role="columnheader"></span>{outcomes.map((o) => <span role="columnheader">{o}</span>)}</div>
@@ -92,12 +93,12 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
       <figure class="file">
         <p class="file-h"><span class="mono">{a1.path}</span><span class="load always">อ่านทุกครั้งที่เริ่มงาน</span></p>
         <div class="file-b">{a1Lines.map((l) => <p class={l.startsWith('#') ? 'fh' : ''}>{l.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</p>)}<p class="more">กฎทุกข้ออยู่ในไฟล์นี้ {a1.body.length.toLocaleString('en-US')} ตัวอักษร</p></div>
-        <figcaption><b>ไฟล์เดียว</b> วิธีที่ทีมใช้กันมากที่สุด ง่าย แต่ AI อ่านกฎทุกข้อแม้ข้อที่ไม่เกี่ยวกับงาน</figcaption>
+        <figcaption><b>ไฟล์เดียว</b> เขียนและดูแลง่าย แต่ AI อ่านกฎทุกข้อแม้ข้อที่ไม่เกี่ยวกับงาน</figcaption>
       </figure>
       <figure class="file">
         <p class="file-h"><span class="mono">{skill.path}</span><span class="load ondemand">เปิดเมื่องานเกี่ยว</span></p>
         <div class="file-b"><p class="fh">description</p><p>{skill.description}</p><p class="more">AI เห็นแค่บรรทัดนี้ตอนเริ่มงาน เนื้อหาเต็ม {skill.body.length.toLocaleString('en-US')} ตัวอักษรจะถูกเปิดเมื่องานตรงกับคำอธิบาย</p></div>
-        <figcaption><b>Agent Skills</b> แยกกฎเป็นชุดย่อย กฎที่ไม่เกี่ยวไม่รกบริบท แนวคิดคือ AI น่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น แต่ยังไม่มีใครวัด</figcaption>
+        <figcaption><b>Agent Skills</b> แยกกฎเป็นชุดย่อย กฎที่ไม่เกี่ยวไม่รกบริบท แนวคิดคือ AI น่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น แต่เท่าที่ผู้วิจัยค้น ยังไม่มีงานที่วัดเทียบสองแบบนี้ตรง ๆ</figcaption>
       </figure>
     </div>
     <p class="col"><a href={`${base}arms/`}>ดูกลุ่มทดลองทั้ง 6 และข้อความกฎเต็มทุกไฟล์</a></p>

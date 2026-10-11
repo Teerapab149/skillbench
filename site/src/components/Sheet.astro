@@ -1,9 +1,9 @@
 ---
 // แผ่นเอกสาร: ไฟล์กฎจริงที่ส่งให้เอเจนต์ เรนเดอร์จาก markdown
-import { marked } from 'marked';
+import { renderDoc } from '../lib/md';
 interface Props { path: string; always: boolean; body: string; open?: boolean; id?: string }
 const { path, always, body, open = false, id } = Astro.props;
-const html = marked.parse(body, { async: false }) as string;
+const html = renderDoc(body);
 const long = body.length > 2600;
 ---
 <div class="sheet" id={id}>

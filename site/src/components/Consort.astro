@@ -4,7 +4,7 @@ import { ARM_INFO, type Study } from '../lib/data';
 interface Props { st: Study; n: number }
 const { st, n } = Astro.props;
 const a = st.nums.allocation;
-const planned = st.fallback ? `แผนประกาศไว้ ${st.fallback.from} รอบ ใช้ ${st.fallback.to} รอบตามกฎสำรอง` : `ตามแผน ${st.reps} รอบ`;
+const planned = (st as { repsNote?: string }).repsNote ? (st as { repsNote?: string }).repsNote : st.fallback ? `แผนประกาศไว้ ${st.fallback.from} รอบ ใช้ ${st.fallback.to} รอบตามกฎสำรอง` : `ตามแผน ${st.reps} รอบ`;
 ---
 <figure class="fig-wide consort" aria-label={`แผนผังการไหลของข้อมูลชุดที่ ${st.n}`}>
   <div class="c-row"><div class="box">

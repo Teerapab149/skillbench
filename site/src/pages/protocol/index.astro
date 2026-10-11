@@ -1,6 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { marked } from 'marked';
+import { renderDoc } from '../../lib/md';
 import { docs } from '../../lib/data';
 const sections = [
   { id: 'prereg-1', title: 'แผนล่วงหน้าของชุดที่ 1', file: 'PRE-REGISTRATION.md', note: 'แผนของการทดลองชุดที่ 1 รวมการแก้ไข (Amendment) ที่บันทึกไว้ก่อนเก็บข้อมูล', md: docs.prereg1 },
@@ -8,7 +8,7 @@ const sections = [
   { id: 'prereg-3', title: 'แผนล่วงหน้าของชุดที่ 3', file: 'PRE-REGISTRATION-3.md', note: 'ล็อกด้วย git tag study3-prereg เมื่อ 5 ต.ค. 2569 ก่อนเก็บข้อมูลหลัก', md: docs.prereg3 },
   { id: 'deviations', title: 'บันทึกส่วนเบี่ยงเบนจากแผนของชุดที่ 3', file: 'DEVIATIONS-3.md', note: 'บันทึกและ commit ก่อนเปิดดูผลแยกกลุ่ม', md: docs.deviations },
   { id: 'requirements', title: 'ข้อกำหนดของระบบจำลอง', file: 'fixtures/gpu-booking/REQUIREMENTS.md', note: 'เอกสารที่เอเจนต์ทุกกลุ่มใช้อ้างอิงระหว่างทำโจทย์', md: docs.requirements },
-].map((s) => ({ ...s, html: marked.parse(s.md, { async: false }) as string }));
+].map((s) => ({ ...s, html: renderDoc(s.md) }));
 ---
 <Base title="เอกสารแผน SkillBench" current="protocol/">
   <header class="title-block col">

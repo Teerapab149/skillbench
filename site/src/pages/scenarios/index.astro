@@ -28,7 +28,7 @@ const old = scenarios.filter((s) => s.usedIn.length === 3).length;
             <td class="code"><a href={`${base}scenarios/${s.id}/`} class="mono">{s.code}</a></td>
             <td>
               <a class="prompt" href={`${base}scenarios/${s.id}/`}>{s.prompt}</a>
-              <span class="meta small">{s.familyName}, ความยาก{DIFFICULTY[s.difficulty] ?? s.difficulty}, อ้าง {s.reqs.join(' ')}</span>
+              <span class="meta small">{s.familyName} ระดับ{DIFFICULTY[s.difficulty] ?? s.difficulty} อ้าง {s.reqs.join(' ')}</span>
             </td>
             {studies.map((st) => {
               const ps = s.perStudy.find((x) => x.study.n === st.n)?.ps;
