@@ -56,11 +56,11 @@ const figs = {};
   b += `<rect x="100" y="60" width="1400" height="110" rx="55" fill="#eef2f8"/>`;
   b += t(800, 130, `“${s09.prompt}”`, { size: 34, anchor: 'middle' });
   b += card(160, 'ใบแจ้งหนี้เดือนที่แล้ว', 'ออกให้ลูกค้าไปแล้ว', from, C.A1, 'ยอดที่ลูกค้าจ่ายไปแล้ว');
-  b += card(880, 'ใบแจ้งหนี้ใบเดิม', 'หลัง AI แก้อัตรา', to, C.bad, 'เปลี่ยนเอง · AI ไม่ได้บอกใคร');
+  b += card(880, 'ใบแจ้งหนี้ใบเดิม', 'หลัง AI แก้อัตรา', to, C.bad, 'เปลี่ยนเอง และ AI ไม่ได้บอกใคร');
   b += `<path d="M 735 470 L 860 470" stroke="${C.ink}" stroke-width="6" marker-end="url(#ah)"/>`;
   b += `<defs><marker id="ah" markerWidth="10" markerHeight="10" refX="6" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="${C.ink}"/></marker></defs>`;
-  b += t(800, 770, 'ระบบคำนวณใบแจ้งหนี้จากอัตราปัจจุบัน — แก้อัตราถูก แต่ยอดย้อนหลังเปลี่ยนตาม', { size: 34, anchor: 'middle', weight: 700 });
-  b += t(800, 830, `ภาพอธิบายจากโจทย์ S09 · อัตรา ${from}→${to} บาทจากโจทย์จริง · จำนวนชั่วโมงสมมติ`, { size: 24, anchor: 'middle', fill: C.mute });
+  b += t(800, 770, 'ระบบคำนวณใบแจ้งหนี้จากอัตราปัจจุบัน แก้อัตราถูก แต่ยอดย้อนหลังเปลี่ยนตาม', { size: 34, anchor: 'middle', weight: 700 });
+  b += t(800, 830, `ภาพอธิบายจากโจทย์ S09 อัตรา ${from}→${to} บาทจากโจทย์จริง จำนวนชั่วโมงสมมติ`, { size: 24, anchor: 'middle', fill: C.mute });
   figs['fig-s2-invoice'] = svg(b);
 }
 
@@ -94,10 +94,10 @@ const figs = {};
   b += t(X(-0.13), 650, '← ไฟล์เดียวดีกว่า', { size: 26, fill: C.mute });
   b += t(X(0.13), 650, 'Agent Skills ดีกว่า →', { size: 26, fill: C.mute, anchor: 'end' });
   // หัว
-  b += t(800, 80, `Agent Skills ${pct(p.rateA)}%  ·  ไฟล์เดียว ${pct(p.rateB)}%`, { size: 50, anchor: 'middle', weight: 700 });
+  b += t(800, 80, `Agent Skills ${pct(p.rateA)}%   ไฟล์เดียว ${pct(p.rateB)}%`, { size: 50, anchor: 'middle', weight: 700 });
   b += t(800, 135, 'ผลต่าง RCRc (A2 − A1) เป็นจุด', { size: 30, anchor: 'middle', fill: C.mute });
   // ข้อสรุปอยู่ที่หัวสไลด์แล้ว ไม่พิมพ์ซ้ำในภาพ
-  b += t(800, 800, `${p.k} โจทย์ · ชนะ/แพ้/เสมอ ${p.wins}/${p.losses}/${p.ties} · p = ${p.p.toFixed(3)}`, { size: 26, anchor: 'middle', fill: C.mute });
+  b += t(800, 800, `${p.k} โจทย์, ชนะ/แพ้/เสมอ ${p.wins}/${p.losses}/${p.ties}, p = ${p.p.toFixed(3)}`, { size: 26, anchor: 'middle', fill: C.mute });
   figs['fig-s8-primary'] = svg(b);
 }
 
