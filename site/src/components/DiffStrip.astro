@@ -1,0 +1,30 @@
+---
+// ผลต่าง A2 − A1 รายโจทย์ของการทดลองหนึ่งชุด เรียงจากน้อยไปมาก คลิกจุดเพื่อเปิดโจทย์
+import { pct, pts, tie, type Study } from '../lib/data';
+interface Props { st: Study; n: number }
+const { st, n } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const rows = [...st.perScenario].sort((a, b) => a.diff - b.diff || a.code.localeCompare(b.code));
+const ties = rows.filter((s) => tie(s.diff)).length;
+const maxAbs = Math.max(0.25, ...rows.map((r) => Math.abs(r.diff)));
+---
+<figure class="fig-wide strip">
+  <div class="plot" style={`--cols:${rows.length}`}>
+    {rows.map((s) => (
+      <a class={`dot ${s.diff > 1e-9 ? 'up' : -s.diff > 1e-9 ? 'down' : 'tie'}`} href={`${base}scenarios/${s.id}/#study-${st.n}`} style={`--y:${(s.diff / maxAbs).toFixed(3)}`} title={`${s.code} A2 ${pct(s.byArm.A2.mean)} A1 ${pct(s.byArm.A1.mean)} ผลต่าง ${pts(s.diff)} จุด`}>
+        <span class="lab">{s.code}</span>
+      </a>
+    ))}
+  </div>
+  <figcaption><b>รูปที่ {n}</b> ผลต่าง {st.metricName} ระหว่าง A2 กับ A1 รายโจทย์ในชุดที่ {st.n} เรียงจากน้อยไปมาก จุดเหนือเส้นกลางคือโจทย์ที่ Skills ได้มากกว่า {ties} จาก {rows.length} โจทย์ได้เท่ากันพอดี (จุดบนเส้น) และไม่ให้ข้อมูลกับการทดสอบ คลิกจุดเพื่อเปิดโจทย์</figcaption>
+</figure>
+<style>
+  .plot { position: relative; height: 15rem; display: grid; grid-template-columns: repeat(var(--cols), 1fr); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);
+    background: linear-gradient(to bottom, transparent calc(50% - 0.5px), var(--ink-3) calc(50% - 0.5px), var(--ink-3) calc(50% + 0.5px), transparent calc(50% + 0.5px)); }
+  .dot { position: relative; text-decoration: none; }
+  .dot::before { content: ''; position: absolute; left: 50%; top: calc(50% - var(--y) * 6rem); width: 0.95rem; height: 0.95rem; margin: -0.47rem 0 0 -0.47rem; border-radius: 50%; background: var(--paper); border: 1.5px solid var(--ink-3); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+  .dot.up::before { background: var(--a2); border-color: var(--a2); }
+  .dot.down::before { background: var(--a1); border-color: var(--a1); }
+  .dot:hover::before, .dot:focus-visible::before { transform: scale(1.5); }
+  .lab { position: absolute; bottom: 0.3rem; left: 0; right: 0; text-align: center; font-size: 0.7rem; color: var(--ink-3); writing-mode: vertical-rl; transform: rotate(180deg); }
+</style>

@@ -9,7 +9,7 @@ const long = body.length > 2600;
 <div class="sheet" id={id}>
   <div class="sheet-head">
     <span class="mono">{path}</span>
-    <span class={`load ${always ? 'always' : 'ondemand'}`}>{always ? 'โหลดทุกครั้งที่เริ่มงาน' : 'เปิดเมื่องานตรงกับคำอธิบาย'} · {body.length.toLocaleString('en-US')} ตัวอักษร</span>
+    <span class={`load ${always ? 'always' : 'ondemand'}`}>{always ? 'โหลดทุกครั้งที่เริ่มงาน' : 'เปิดเมื่องานตรงกับคำอธิบาย'}, {body.length.toLocaleString('en-US')} ตัวอักษร</span>
   </div>
   <div class={`sheet-body doc ${open || !long ? 'open' : ''}`} set:html={html} />
   {long && !open && <button class="more" type="button" data-expand>แสดงทั้งไฟล์</button>}

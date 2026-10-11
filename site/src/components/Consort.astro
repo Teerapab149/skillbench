@@ -1,35 +1,37 @@
 ---
-// แผนผังการไหลของข้อมูลแบบ CONSORT · ทุกค่าจาก numbers.json
-import { nums, ARMS, ARM_INFO } from '../lib/data';
-const a = nums.allocation;
-const perArm = a.scenarios * a.reps;
+// แผนผังการไหลของข้อมูลแบบ CONSORT สำหรับการทดลองหนึ่งชุด ทุกค่าจาก numbers.json ของชุดนั้น
+import { ARM_INFO, type Study } from '../lib/data';
+interface Props { st: Study; n: number }
+const { st, n } = Astro.props;
+const a = st.nums.allocation;
+const planned = st.fallback ? `แผนประกาศไว้ ${st.fallback.from} รอบ ใช้ ${st.fallback.to} รอบตามกฎสำรอง` : `ตามแผน ${st.reps} รอบ`;
 ---
-<figure class="fig-wide consort" aria-label="แผนผังการไหลของข้อมูล">
+<figure class="fig-wide consort" aria-label={`แผนผังการไหลของข้อมูลชุดที่ ${st.n}`}>
   <div class="c-row"><div class="box">
-    <b>{a.scenarios} โจทย์ × {a.arms.length} กลุ่ม × {a.reps} รอบ</b>
-    <span>ประกาศไว้ {a.declaredCells} run ในแผน (แผนให้ 2–4 รอบ ใช้ 3 รอบตามกฎสำรอง)</span>
+    <b>{a.scenarios} โจทย์ × {st.armIds.length} กลุ่ม × {st.reps} รอบ</b>
+    <span>{a.declaredCells} run ({planned})</span>
   </div></div>
   <div class="c-arrow" aria-hidden="true"></div>
   <div class="c-row"><div class="box">
     <b>เก็บได้ {a.usableCells} run ({(a.completeness * 100).toFixed(0)}%)</b>
-    <span>ล้มเหลวเชิงโครงสร้าง {a.structurallyExcluded} · ใช้ turn หมดเพดาน {nums.budgetExhausted.total} · ทุก run ได้รอบตอบกลับ</span>
+    <span>ตัดออกเพราะล้มเหลวเชิงโครงสร้าง {a.structurallyExcluded} run และใช้ turn หมดเพดาน {st.nums.budgetExhausted.total} run</span>
   </div></div>
-  <div class="c-arrow split" aria-hidden="true"></div>
-  <div class="c-row arms">
-    {ARMS.map((id) => (
+  <div class="c-arrow" aria-hidden="true"></div>
+  <div class="c-row arms" style={`--k:${st.armIds.length}`}>
+    {st.armIds.map((id) => (
       <div class={`box arm-box arm-${id}`}>
         <b><span class={`arm arm-${id}`}>{id}</span></b>
         <span>{ARM_INFO[id].short}</span>
-        <span class="n">{nums.perArm[id].n} run</span>
+        <span class="n">{st.nums.perArm[id].n} run</span>
       </div>
     ))}
   </div>
   <div class="c-arrow" aria-hidden="true"></div>
   <div class="c-row"><div class="box unit">
-    <b>หน่วยวิเคราะห์ = โจทย์ ({nums.primary.k} คู่)</b>
-    <span>เฉลี่ย RCRc ของ {a.reps} รอบในแต่ละโจทย์ แล้วเทียบ A2 กับ A1 แบบจับคู่รายโจทย์ด้วย sign-flip test · run จากโจทย์เดียวกันไม่เป็นอิสระต่อกัน จึงไม่นับ run เป็นหน่วย</span>
+    <b>หน่วยวิเคราะห์คือโจทย์ ({st.k} คู่)</b>
+    <span>เฉลี่ยคะแนนของ {st.reps} รอบในแต่ละโจทย์ แล้วเทียบ A2 กับ A1 แบบจับคู่รายโจทย์</span>
   </div></div>
-  <figcaption><b>รูปที่ 1</b> การไหลของข้อมูลในการทดลองชุดที่ 3 · กลุ่มละ {perArm} run ({a.scenarios} โจทย์ × {a.reps} รอบ)</figcaption>
+  <figcaption><b>รูปที่ {n}</b> การไหลของข้อมูลในการทดลองชุดที่ {st.n}</figcaption>
 </figure>
 <style>
   .consort { display: flex; flex-direction: column; align-items: stretch; }
@@ -37,8 +39,8 @@ const perArm = a.scenarios * a.reps;
   .box { border: 1.5px solid var(--ink); background: #fff; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.15rem; max-width: 38rem; width: 100%; text-align: center; line-height: 1.5; }
   .box b { font-family: var(--serif); font-weight: 600; }
   .box span { font-size: 0.95rem; color: var(--ink-2); }
-  .arms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 46rem; margin: 0 auto; width: 100%; }
-  @media (min-width: 760px) { .arms { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .arms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 52rem; margin: 0 auto; width: 100%; }
+  @media (min-width: 760px) { .arms { grid-template-columns: repeat(var(--k), minmax(0, 1fr)); } }
   .arm-box { border-top: 4px solid var(--c); }
   .arm-box .n { font-weight: 600; color: var(--ink); }
   .unit { border-color: var(--teal); }

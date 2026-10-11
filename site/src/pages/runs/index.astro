@@ -1,71 +1,75 @@
 ---
 import Base from '../../layouts/Base.astro';
-import { runs, scenarios, ARMS, ARM_INFO, nums } from '../../lib/data';
+import { studies, scenarios, ARM_INFO } from '../../lib/data';
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
-const reps = [...Array(nums.allocation.reps).keys()];
-const byKey = new Map(runs.map((r) => [`${r.sc}|${r.arm}|${r.rep}`, r]));
-// สีตาม RCRc: 0 = ส้มอิฐ · 1 = เขียวหัวเป็ด (ผสมใน oklab)
 const shade = (v: number) => `color-mix(in oklab, var(--teal) ${Math.round(v * 100)}%, var(--brick))`;
-const payload = runs.map((r) => ({ ...r, scCode: r.sc.split('-')[0], scPrompt: scenarios.find((s) => s.id === r.sc)?.prompt }));
+const promptOf = (id: string) => scenarios.find((s) => s.id === id)?.prompt ?? '';
+const payload = studies.flatMap((st) => st.runs.map((r) => ({ ...r, metric: st.metricName, scCode: r.sc.split('-')[0], scPrompt: st.perScenario.find((p) => p.id === r.sc)?.prompt || promptOf(r.sc) })));
+const total = studies.reduce((s, st) => s + st.usable, 0);
 ---
-<Base title="ทะเบียน 264 run · SkillBench" current="runs/">
+<Base title="ทะเบียน run SkillBench" current="runs/">
   <header class="title-block col">
-    <h1>ทะเบียน run ทั้ง {runs.length} ตัว</h1>
-    <p class="lede" style="margin-top:1rem">หนึ่งช่องคือหนึ่ง run (โจทย์ × กลุ่ม × รอบ) สีบอก RCRc ของ run นั้น คลิกช่องเพื่อเปิดบันทึก: กฎทีละข้อ ไฟล์ที่แก้ skill ที่เปิด และต้นทุน ทุกค่ามาจาก <span class="mono">results-study3/latest.json</span></p>
+    <h1>ทะเบียน run ทั้ง {total} ตัว จากการทดลองสามชุด</h1>
+    <p class="lede" style="margin-top:1rem">หนึ่งช่องคือหนึ่ง run คือโจทย์หนึ่งข้อ กลุ่มหนึ่งกลุ่ม รอบหนึ่งรอบ สีบอกคะแนนหลักของ run นั้น คลิกช่องเพื่อเปิดบันทึก ซึ่งมีผลตรวจกฎทีละข้อ ไฟล์ที่แก้ skill ที่เปิด และต้นทุน</p>
   </header>
 
-  <div class="reg-wrap">
-    <div class="grid-wrap">
-      <div class="key small">
-        <span>RCRc</span><i class="ramp"></i><span>0</span><span>1</span>
-        <i class="cell fail demo" aria-hidden="true"></i><span>เส้นทแยง = งานหลักไม่สำเร็จ (RCRc = 0)</span>
-      </div>
-      <table class="reg" aria-label="ทะเบียน run">
-        <thead>
-          <tr><th></th>{ARMS.map((a) => <th colspan={reps.length} class="ah"><span class={`arm arm-${a}`}>{a}</span><span class="as">{ARM_INFO[a].short}</span></th>)}</tr>
-        </thead>
-        <tbody>
-          {scenarios.map((s) => (
-            <tr>
-              <th scope="row"><a href={`${base}scenarios/${s.id}/`} class="mono">{s.code}</a></th>
-              {ARMS.map((a) => reps.map((rep, i) => {
-                const r = byKey.get(`${s.id}|${a}|${rep}`);
-                return (
-                  <td class={i === 0 ? 'first' : ''}>
-                    {r && <button type="button" class={`cell ${r.done ? '' : 'fail'}`} data-run={r.id} style={`background-color:${shade(r.rcrc)}`} aria-label={`${r.id} RCRc ${r.rcrc.toFixed(2)}`}></button>}
-                  </td>
-                );
-              }))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+  <div class="switch" role="tablist" aria-label="เลือกการทดลอง">
+    {studies.map((st, i) => (
+      <button type="button" role="tab" aria-selected={i === studies.length - 1 ? 'true' : 'false'} data-study={st.n}>
+        <b>ชุดที่ {st.n}</b><span>{st.usable} run, {st.metricName}</span>
+      </button>
+    ))}
+  </div>
 
+  <div class="reg-wrap">
+    <div>
+      {studies.map((st, i) => (
+        <div class="grid-wrap" data-grid={st.n} hidden={i !== studies.length - 1}>
+          <p class="key small"><span>{st.metricName} ของ run</span><i class="ramp"></i><span>0 ถึง 1</span>{st.n > 1 && <><i class="cell fail demo" aria-hidden="true"></i><span>เส้นทแยงคืองานหลักไม่สำเร็จ</span></>}</p>
+          <table class="reg" aria-label={`ทะเบียน run ชุดที่ ${st.n}`}>
+            <thead><tr><th></th>{st.armIds.map((a) => <th colspan={st.reps} class="ah"><span class={`arm arm-${a}`}>{a}</span><span class="as">{ARM_INFO[a].short}</span></th>)}</tr></thead>
+            <tbody>
+              {st.perScenario.map((ps) => (
+                <tr>
+                  <th scope="row"><a href={`${base}scenarios/${ps.id}/#study-${st.n}`} class="mono">{ps.code}</a></th>
+                  {st.armIds.map((a) => ps.byArm[a].runs.map((r, j) => (
+                    <td class={j === 0 ? 'first' : ''}>
+                      <button type="button" class={`cell ${r.done === false ? 'fail' : ''}`} data-run={r.id} style={`background-color:${shade(r.score)}`} aria-label={`${r.id} คะแนน ${r.score.toFixed(2)}`}></button>
+                    </td>
+                  )))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
     <aside class="panel" id="panel" aria-live="polite">
-      <div class="empty">
-        <p class="pt">เลือก run จากตาราง</p>
-        <p class="small muted">หรือเปิดจากลิงก์ในหน้าโจทย์ ลิงก์ของแต่ละ run แชร์ได้ด้วย <span class="mono">#ชื่อ-run</span></p>
-      </div>
+      <p class="pt">เลือก run จากตาราง</p>
+      <p class="small muted">ลิงก์ของแต่ละ run แชร์ได้ เพราะชื่อ run อยู่ท้าย URL</p>
     </aside>
   </div>
   <script type="application/json" id="runs-data" set:html={JSON.stringify(payload)} />
 </Base>
 <style>
-  .reg-wrap { display: grid; gap: 2rem; grid-template-columns: 1fr; }
+  .switch { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--ink); margin-bottom: 1.5rem; }
+  .switch button { font: inherit; background: none; border: 0; border-bottom: 3px solid transparent; padding: 0.6rem 1.25rem 0.5rem 0; margin-right: 1.25rem; cursor: pointer; text-align: left; display: flex; flex-direction: column; color: var(--ink-3); }
+  .switch button b { font-family: var(--serif); font-size: 1.15rem; }
+  .switch button span { font-size: 0.85rem; }
+  .switch button[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--teal); }
+  .reg-wrap { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); }
   @media (min-width: 1080px) { .reg-wrap { grid-template-columns: auto minmax(0, 1fr); align-items: start; } .panel { position: sticky; top: 5rem; max-height: calc(100vh - 6rem); overflow: auto; } }
-  .grid-wrap { overflow-x: auto; }
-  .key { display: flex; align-items: center; gap: 0.5rem; color: var(--ink-3); margin-bottom: 0.75rem; }
-  .ramp { width: 8rem; height: 0.7rem; background: linear-gradient(90deg, var(--brick), var(--teal)); }
-  .key .x { margin-left: 1rem; }
+  .grid-wrap { overflow-x: auto; position: relative; }
+  .key { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; color: var(--ink-3); margin-bottom: 0.75rem; }
+  .ramp { width: 7rem; height: 0.7rem; background: linear-gradient(90deg, var(--brick), var(--teal)); }
   .reg { border-collapse: separate; border-spacing: 3px; }
   .reg th { font-weight: 500; font-size: 0.85rem; }
   .reg .ah { text-align: left; padding-bottom: 0.3rem; border-bottom: 1px solid var(--ink); }
-  .reg .as { display: block; font-weight: 400; color: var(--ink-3); font-size: 0.75rem; }
+  .reg .as { display: block; font-weight: 400; color: var(--ink-3); font-size: 0.72rem; line-height: 1.3; max-width: 6.5rem; }
   .reg th[scope='row'] { text-align: right; padding-right: 0.5rem; }
   .reg th[scope='row'] a { color: var(--ink-2); text-decoration: none; }
   .reg td.first { padding-left: 0.6rem; }
-  .cell { width: 1.7rem; height: 1.7rem; border: 0; border-radius: 2px; cursor: pointer; padding: 0; color: #fff; font-size: 0.8rem; display: grid; place-items: center; transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1); }
+  .cell { width: 1.6rem; height: 1.6rem; border: 0; border-radius: 2px; cursor: pointer; padding: 0; display: block; transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1); }
   .cell.fail { background-image: linear-gradient(to top right, transparent 45%, #fdfdfb 45%, #fdfdfb 55%, transparent 55%); }
   .cell.demo { display: inline-block; width: 1rem; height: 1rem; background-color: var(--brick); margin-left: 1rem; cursor: default; }
   .cell:hover { transform: scale(1.18); }
@@ -75,55 +79,64 @@ const payload = runs.map((r) => ({ ...r, scCode: r.sc.split('-')[0], scPrompt: s
   :global(.panel h3) { font-size: 1rem; margin: 1.25rem 0 0.4rem; }
   :global(.panel .kv) { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 1rem; font-size: 0.95rem; margin: 0.75rem 0; }
   :global(.panel .kv dt) { color: var(--ink-3); }
-  :global(.panel .kv dd) { margin: 0; }
+  :global(.panel .kv dd) { margin: 0; overflow-wrap: anywhere; }
   :global(.panel ul.rules) { list-style: none; padding: 0; margin: 0; }
-  :global(.panel ul.rules li) { display: grid; grid-template-columns: 1.1rem 4.8rem 1fr; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid var(--rule); font-size: 0.95rem; line-height: 1.5; }
+  :global(.panel ul.rules li) { display: grid; grid-template-columns: 1.1rem 5rem 1fr; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid var(--rule); font-size: 0.95rem; line-height: 1.5; }
   :global(.panel .m) { width: 0.9rem; height: 0.9rem; border-radius: 2px; margin-top: 0.3rem; }
   :global(.panel .m.ok) { background: var(--teal); } :global(.panel .m.no) { background: var(--brick); } :global(.panel .m.na) { border: 1px dashed var(--ink-3); }
   :global(.panel .minor) { color: var(--ink-3); }
 </style>
 <script>
-  type Run = any;
-  const data: Run[] = JSON.parse(document.getElementById('runs-data')!.textContent!);
-  const byId = new Map(data.map((r) => [r.id, r]));
+  const data: any[] = JSON.parse(document.getElementById('runs-data')!.textContent!);
+  const byId = new Map(data.map((r) => [r.id + '|' + r.study, r]));
   const panel = document.getElementById('panel')!;
   const base = (document.querySelector('.brand') as HTMLAnchorElement).getAttribute('href')!;
-  const esc = (s: string) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-  const armName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A5: 'ข้อความ A2 โหลดตลอด' };
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const armName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A3: 'ข้อความหลอกยาวเท่า A1', A4: 'Skills และคอมเมนต์ล่อ', A5: 'ข้อความ A2 ในไฟล์เดียว' };
   const sev: Record<string, string> = { critical: 'สำคัญ', major: 'รอง', minor: 'ย่อย' };
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-study]')];
+  let study = Number(new URLSearchParams(location.search).get('study')) || Number(tabs[tabs.length - 1].dataset.study);
+  function setStudy(n: number) {
+    study = n;
+    tabs.forEach((t) => t.setAttribute('aria-selected', String(Number(t.dataset.study) === n)));
+    document.querySelectorAll<HTMLElement>('[data-grid]').forEach((g) => { g.hidden = Number(g.dataset.grid) !== n; });
+    const u = new URL(location.href); u.searchParams.set('study', String(n)); history.replaceState(null, '', u);
+  }
   function show(id: string, scroll = false) {
-    const r = byId.get(id);
+    const r = byId.get(id + '|' + study);
     if (!r) return;
     document.querySelectorAll('.cell.on').forEach((c) => c.classList.remove('on'));
-    document.querySelector(`[data-run="${CSS.escape(id)}"]`)?.classList.add('on');
+    document.querySelector(`[data-grid="${study}"] [data-run="${CSS.escape(id)}"]`)?.classList.add('on');
     const rules = r.rules.map((x: any) => {
       const c = !x.app ? 'na' : x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na';
       const t = c === 'ok' ? 'ผ่าน' : c === 'no' ? 'ตก' : 'ไม่เข้าเงื่อนไข';
-      return `<li class="${x.sev === 'critical' ? '' : 'minor'}"><i class="m ${c}" title="${t}"></i><span class="mono">${esc(x.id)}</span><span>${esc(x.desc)} <span class="muted small">· ${sev[x.sev] ?? x.sev} · ${t}</span></span></li>`;
+      return `<li class="${x.sev === 'critical' ? '' : 'minor'}"><i class="m ${c}" title="${t}"></i><span class="mono">${esc(x.id)}</span><span>${esc(x.desc)} <span class="muted small">(${sev[x.sev] ?? x.sev}, ${t})</span></span></li>`;
     }).join('');
-    const skills = r.skills.length ? r.skills.map(esc).join(', ') : 'ไม่ได้เปิด';
-    const exp = r.expected.length ? r.expected.map(esc).join(', ') : '—';
+    const done = r.done == null ? '' : `<dt>งานหลักสำเร็จ</dt><dd>${r.done ? 'ใช่' : '<b class="qual">ไม่</b>'}${r.done1 === false && r.done ? ' <span class="muted">สำเร็จหลังรอบตอบกลับ</span>' : ''}</dd>`;
     panel.innerHTML = `
-      <p class="pt"><span class="arm arm-${r.arm}">${r.arm}</span> ${esc(armName[r.arm])} · รอบ ${r.rep + 1}</p>
-      <p class="small"><a href="${base}scenarios/${esc(r.sc)}/">${esc(r.scCode)}</a> “${esc(r.scPrompt)}”</p>
+      <p class="pt"><span class="arm arm-${r.arm}">${r.arm}</span> ${esc(armName[r.arm])}, รอบที่ ${r.rep + 1}</p>
+      <p class="small">ชุดที่ ${r.study}, <a href="${base}scenarios/${esc(r.sc)}/#study-${r.study}">${esc(r.scCode)}</a> “${esc(r.scPrompt)}”</p>
       <dl class="kv">
-        <dt>RCRc</dt><dd><b>${r.rcrc.toFixed(3)}</b>${r.rcrc1 != null ? ` <span class="muted">(จบรอบแรก ${r.rcrc1.toFixed(3)})</span>` : ''}</dd>
-        <dt>งานหลักสำเร็จ</dt><dd>${r.done ? 'ใช่' : '<b class="qual">ไม่</b>'}${r.done1 === false && r.done ? ' <span class="muted">· สำเร็จหลังรอบตอบกลับ</span>' : ''}</dd>
+        <dt>${esc(r.metric)}</dt><dd><b>${r.score.toFixed(3)}</b>${r.rcrc1 != null ? ` <span class="muted">(จบรอบแรก ${r.rcrc1.toFixed(3)})</span>` : ''}</dd>
+        ${done}
         <dt>ไฟล์ที่แก้</dt><dd class="mono">${r.files.length ? r.files.map(esc).join('<br>') : 'ไม่มี'}</dd>
-        <dt>skill ที่เปิด</dt><dd class="mono">${skills}</dd>
-        <dt>skill ที่ควรเปิด</dt><dd class="mono">${exp}</dd>
-        <dt>เรียกเครื่องมือ</dt><dd>${r.tools ?? '—'} ครั้ง</dd>
-        <dt>เวลา · ต้นทุน</dt><dd>${r.ms != null ? Math.round(r.ms / 1000) + ' วินาที' : '—'} · ${r.usd != null ? '$' + r.usd.toFixed(2) : '—'}</dd>
-        <dt>token</dt><dd>เข้า ${r.inTok?.toLocaleString('en-US') ?? '—'} · ออก ${r.outTok?.toLocaleString('en-US') ?? '—'}</dd>
+        <dt>skill ที่เปิด</dt><dd class="mono">${r.skills.length ? r.skills.map(esc).join(', ') : 'ไม่ได้เปิด'}</dd>
+        <dt>skill ที่ควรเปิด</dt><dd class="mono">${r.expected.length ? r.expected.map(esc).join(', ') : 'ไม่มี'}</dd>
+        <dt>เรียกเครื่องมือ</dt><dd>${r.tools ?? 'ไม่มีข้อมูล'} ครั้ง</dd>
+        <dt>เวลา</dt><dd>${r.ms != null ? Math.round(r.ms / 1000) + ' วินาที' : 'ไม่มีข้อมูล'}</dd>
+        <dt>ต้นทุน</dt><dd>${r.usd != null ? '$' + r.usd.toFixed(2) : 'ไม่มีข้อมูล'}</dd>
+        <dt>token</dt><dd>เข้า ${r.inTok?.toLocaleString('en-US') ?? '-'} ออก ${r.outTok?.toLocaleString('en-US') ?? '-'}</dd>
       </dl>
       <h3>ผลตรวจกฎ</h3><ul class="rules">${rules}</ul>
       <p class="small muted mono" style="margin-top:1rem">${esc(r.id)}</p>`;
     if (scroll && window.innerWidth < 1080) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-  document.querySelectorAll<HTMLButtonElement>('.cell').forEach((b) => b.addEventListener('click', () => {
-    history.replaceState(null, '', '#' + b.dataset.run);
+  tabs.forEach((t) => t.addEventListener('click', () => setStudy(Number(t.dataset.study))));
+  document.querySelectorAll<HTMLButtonElement>('.cell[data-run]').forEach((b) => b.addEventListener('click', () => {
+    const u = new URL(location.href); u.hash = b.dataset.run!; history.replaceState(null, '', u);
     show(b.dataset.run!, true);
   }));
+  setStudy(study);
   const fromHash = () => { const h = decodeURIComponent(location.hash.slice(1)); if (h) show(h, true); };
   window.addEventListener('hashchange', fromHash);
   fromHash();

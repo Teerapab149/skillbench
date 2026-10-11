@@ -1,26 +1,29 @@
 ---
-// small multiples: ตัวชี้วัดละหนึ่งแผง แท่งของ 4 กลุ่ม พร้อมป้ายค่าบนแท่ง
-import { nums, ARMS, ARM_INFO } from '../lib/data';
-interface Props { n: number }
-const { n } = Astro.props;
-const metrics = [
+// small multiples: ตัวชี้วัดละหนึ่งแผง แท่งของทุกกลุ่มในชุดนั้น พร้อมค่าบนแท่ง
+import { ARM_INFO, type Study } from '../lib/data';
+interface Props { st: Study; n: number }
+const { st, n } = Astro.props;
+const all = [
   { key: 'taskDoneRate', label: 'ทำงานสำเร็จ' },
   { key: 'CRIT', label: 'ผ่านกฎสำคัญครบทุกข้อ' },
-  { key: 'SCOPE', label: 'แก้ไฟล์อยู่ในขอบเขตงาน' },
-  { key: 'RCRc', label: 'RCRc (ตัวชี้วัดหลัก)' },
+  { key: 'SCOPE', label: 'แก้ไฟล์อยู่ในขอบเขต' },
+  { key: 'RCR', label: 'สัดส่วนกฎที่ทำตาม (RCR)' },
+  { key: 'RCRc', label: 'RCRc' },
 ];
+const metrics = all.filter((m) => st.armIds.every((a) => typeof st.nums.perArm[a][m.key] === 'number'))
+  .filter((m) => st.n === 1 ? m.key !== 'RCRc' : m.key !== 'RCR');
 ---
 <figure class="fig-wide bars">
-  <div class="panels">
+  <div class="panels" style={`--n:${metrics.length}`}>
     {metrics.map((m) => (
       <div class="panel">
         <p class="pt">{m.label}</p>
-        <div class="plot">
-          {ARMS.map((a) => {
-            const v = nums.perArm[a][m.key] as number;
+        <div class="plot" style={`--k:${st.armIds.length}`}>
+          {st.armIds.map((a) => {
+            const v = st.nums.perArm[a][m.key] as number;
             return (
-              <div class="bar-col" title={`${a} ${ARM_INFO[a].short}: ${(v * 100).toFixed(1)}%`}>
-                <span class="v">{(v * 100).toFixed(1)}</span>
+              <div class="bar-col">
+                <span class="v">{(v * 100).toFixed(0)}</span>
                 <div class={`bar arm-${a}`} style={`height:${(v * 100).toFixed(2)}%`}></div>
                 <span class="a">{a}</span>
               </div>
@@ -30,17 +33,17 @@ const metrics = [
       </div>
     ))}
   </div>
-  <p class="legend">{ARMS.map((a) => <span class={`arm arm-${a}`}>{a} {ARM_INFO[a].short}</span>)}</p>
-  <figcaption><b>รูปที่ {n}</b> ตัวชี้วัดรายกลุ่ม (ร้อยละ, {nums.perArm.A0.n} run ต่อกลุ่ม) · ความต่างที่เห็นชัดอยู่ระหว่าง A0 กับกลุ่มที่มีกฎ ไม่ใช่ระหว่างกลุ่มที่มีกฎด้วยกัน</figcaption>
+  <p class="legend">{st.armIds.map((a) => <span class={`arm arm-${a}`}>{a} {ARM_INFO[a].short}</span>)}</p>
+  <figcaption><b>รูปที่ {n}</b> ตัวชี้วัดรายกลุ่มของชุดที่ {st.n} เป็นร้อยละ กลุ่มละ {st.nums.perArm[st.armIds[0]].n} run</figcaption>
 </figure>
 <style>
-  .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem 2rem; }
-  @media (min-width: 900px) { .panels { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 2rem; }
+  @media (min-width: 900px) { .panels { grid-template-columns: repeat(var(--n), minmax(0, 1fr)); } }
   .pt { font-family: var(--serif); font-weight: 600; font-size: 1rem; margin-bottom: 0.5rem; }
-  .plot { height: 12rem; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4rem; align-items: end; border-bottom: 1.5px solid var(--ink); }
-  .bar-col { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; position: relative; }
+  .plot { height: 11rem; display: grid; grid-template-columns: repeat(var(--k), 1fr); gap: 0.35rem; align-items: end; border-bottom: 1.5px solid var(--ink); }
+  .bar-col { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; position: relative; }
   .bar { background: var(--c); min-height: 2px; }
-  .v { font-size: 0.85rem; text-align: center; color: var(--ink-2); line-height: 1.3; }
-  .a { position: absolute; bottom: -1.6rem; left: 0; right: 0; text-align: center; font-size: 0.85rem; color: var(--ink-3); }
+  .v { font-size: 0.82rem; text-align: center; color: var(--ink-2); line-height: 1.3; }
+  .a { position: absolute; bottom: -1.5rem; left: 0; right: 0; text-align: center; font-size: 0.8rem; color: var(--ink-3); }
   .legend { margin-top: 2.4rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; font-size: 0.95rem; color: var(--ink-2); }
 </style>

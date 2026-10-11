@@ -1,0 +1,49 @@
+---
+// ผลหลักของสามชุดบนแกนเดียวกัน (ผลต่าง A2 − A1 เป็นจุด พร้อม CI 95%)
+// แต่ละชุดใช้ตัวชี้วัดของตัวเอง คำบรรยายรูปบอกไว้ชัดว่าเทียบตัวเลขข้ามชุดตรง ๆ ไม่ได้
+import { studies, pts, fmtP } from '../lib/data';
+interface Props { n: number }
+const { n } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const W = 1000, padL = 250, padR = 150, lo = -0.3, hi = 0.3;
+const X = (v: number) => padL + ((v - lo) / (hi - lo)) * (W - padL - padR);
+const rowH = 96, top = 30, H = top + studies.length * rowH + 50;
+const margin = studies[2].primary.decision.margin as number;
+---
+<figure class="fig-wide three">
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="ผลหลักของการทดลองสามชุด ชุดที่ 1 และ 2 สรุปไม่ได้ ชุดที่ 3 เทียบเท่า">
+    <line x1={X(0)} x2={X(0)} y1={top - 10} y2={top + studies.length * rowH - 20} stroke="var(--ink-3)" stroke-dasharray="4 5" />
+    {studies.map((st, i) => {
+      const y = top + i * rowH + 30;
+      const last = i === studies.length - 1;
+      return (
+        <a href={`${base}study-${st.n}/`}>
+          <g class={`srow ${last ? 'main' : ''}`}>
+            {last && <rect x={X(-margin)} y={y - 26} width={X(margin) - X(-margin)} height="52" fill="var(--teal-wash)" />}
+            <text x="0" y={y - 4} class="t-lab">ชุดที่ {st.n}</text>
+            <text x="0" y={y + 22} class="t-sub">{st.metricName}, {st.k} โจทย์ × {st.reps} รอบ</text>
+            <line x1={X(st.ci95[0])} x2={X(st.ci95[1])} y1={y} y2={y} stroke="var(--ink)" stroke-width="3" />
+            <rect x={X(st.primary.diff) - 8} y={y - 8} width="16" height="16" fill={last ? 'var(--teal)' : 'var(--paper)'} stroke="var(--ink)" stroke-width="2" />
+            <text x={W} y={y - 4} text-anchor="end" class={`t-ver ${last ? 'ok' : ''}`}>{st.verdict}</text>
+            <text x={W} y={y + 22} text-anchor="end" class="t-sub">{pts(st.primary.diff)} จุด, p = {fmtP(st.primary.p)}</text>
+          </g>
+        </a>
+      );
+    })}
+    {[-30, -20, -10, 0, 10, 20, 30].map((t) => (
+      <text x={X(t / 100)} y={H - 18} text-anchor="middle" class="t-tick">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>
+    ))}
+  </svg>
+  <figcaption><b>รูปที่ {n}</b> ผลต่าง A2 ลบ A1 ของการทดลองแต่ละชุด สี่เหลี่ยมคือค่าประมาณ เส้นคือช่วงความเชื่อมั่น 95% แถบเขียวในชุดที่ 3 คือเกณฑ์เทียบเท่า ±{(margin * 100).toFixed(1)} จุดที่ประกาศไว้ก่อนเก็บข้อมูล ทั้งสามชุดชี้ไปทาง Skills เล็กน้อย แต่แต่ละชุดใช้ตัวชี้วัดและชุดโจทย์ต่างกัน จึงเทียบขนาดของตัวเลขข้ามชุดกันตรง ๆ ไม่ได้ คลิกแต่ละแถวเพื่อเปิดหน้าของชุดนั้น</figcaption>
+</figure>
+<style>
+  .three svg { width: 100%; font-family: var(--sans); overflow: visible; }
+  .t-lab { font-size: 26px; font-family: var(--serif); font-weight: 600; fill: var(--ink); }
+  .t-sub { font-size: 18px; fill: var(--ink-3); }
+  .t-ver { font-size: 22px; font-family: var(--serif); font-weight: 600; fill: var(--ink-2); }
+  .t-ver.ok { fill: var(--teal); }
+  .t-tick { font-size: 18px; fill: var(--ink-3); }
+  .three a { cursor: pointer; }
+  .srow { transition: opacity 0.2s; }
+  .three svg:has(.srow:hover) .srow:not(:hover) { opacity: 0.35; }
+</style>
