@@ -1,0 +1,85 @@
+---
+import Base from '../../layouts/Base.astro';
+import Toc from '../../components/Toc.astro';
+import Sheet from '../../components/Sheet.astro';
+import { arms, nums, pct } from '../../lib/data';
+const toc: [string, string][] = [['overview', 'ภาพรวม'], ...arms.map((a) => [a.id, `${a.id} ${a.short}`] as [string, string]), ['equal', 'ข้อผูกพันเท่ากันอย่างไร']];
+const a2 = arms.find((a) => a.id === 'A2')!;
+const a2skills = a2.files.filter((f) => !f.always);
+---
+<Base title="กลุ่มทดลองและกฎ · SkillBench" current="arms/">
+  <header class="title-block col">
+    <h1>กลุ่มทดลองทั้ง 4 และข้อความกฎจริงที่เอเจนต์ได้รับ</h1>
+    <p class="lede" style="margin-top:1rem">ทุกกลุ่มใช้เอเจนต์ตัวเดียวกัน โจทย์เดียวกัน ระบบเดียวกัน ต่างกันเฉพาะ "กฎที่ได้รับ" และ "จังหวะที่กฎเข้าบริบท" ข้อความด้านล่างคือไฟล์จริงที่ติดตั้งให้เอเจนต์ ไม่ได้ย่อหรือแก้</p>
+  </header>
+  <div class="article-grid">
+    <Toc items={toc} />
+    <article>
+      <section id="overview" class="wide">
+        <figure class="timeline">
+          <div class="tl-head"><span></span><span>ตอนเริ่มงาน</span><span>ระหว่างทำงาน</span></div>
+          {arms.map((a) => (
+            <div class="tl-row">
+              <span class={`arm arm-${a.id}`}><b>{a.id}</b>&nbsp;{a.short}</span>
+              <span class="lane">{a.files.filter((f) => f.always).map((f) => <i class={`chip arm-${a.id}`}>{f.name} · {f.body.length.toLocaleString('en-US')}</i>)}{a.id === 'A0' && <i class="chip none">ไม่มีกฎ</i>}{a.id === 'A2' && <i class="chip desc">คำอธิบาย {a2skills.length} skill</i>}</span>
+              <span class="lane">{a.files.filter((f) => !f.always).map((f) => <i class="chip od">{f.name}</i>)}</span>
+            </div>
+          ))}
+          <figcaption><b>รูปที่ ก1</b> สิ่งที่เข้าบริบทของเอเจนต์ในแต่ละกลุ่ม (ตัวเลขคือจำนวนตัวอักษร) · A2 เห็นแค่บรรทัดคำอธิบายของ skill ตอนเริ่มงาน และเปิดเนื้อหาเต็มเมื่องานตรงกับคำอธิบาย ในการทดลอง A2 เปิดเฉลี่ย {nums.manipulation.A2.skillsLoadedPerRun.toFixed(2)} จาก {a2skills.length} skill ต่อ run</figcaption>
+        </figure>
+      </section>
+
+      {arms.map((a) => (
+        <section id={a.id} class="wide">
+          <div class="col">
+            <h2><span class={`arm arm-${a.id}`}>{a.id}</span> {a.name}</h2>
+            <p class="lede">{a.role}</p>
+            <p class="facts small">
+              <span>จังหวะที่กฎเข้าบริบท: <b>{a.delivery}</b></span>
+              <span>RCRc <b>{pct(a.perArm.RCRc)}%</b></span>
+              <span>ผ่านกฎสำคัญครบ <b>{pct(a.perArm.CRIT)}%</b></span>
+              <span>ทำงานสำเร็จ <b>{pct(a.perArm.taskDoneRate)}%</b></span>
+            </p>
+          </div>
+          {a.id === 'A0' && (
+            <div class="col"><p>A0 ไม่มีไฟล์กฎใด ๆ เอเจนต์ยังเห็นเอกสารของโปรเจกต์ตามปกติ เช่น <code>REQUIREMENTS.md</code> และ <code>ARCHITECTURE.md</code> แต่ไม่มีใครบอกว่าต้องทำงานอย่างไร ตัวตรวจยังให้คะแนน A0 ด้วยกฎชุดเดียวกับกลุ่มอื่น รวมถึงกฎเฉพาะโปรเจกต์ที่ A0 ไม่เคยได้รับ (เช่น ห้ามแก้ <code>REQUIREMENTS.md</code>) ผลของ A0 จึงใช้เป็นเส้นฐานเชิงพรรณนา ไม่ใช่คู่ทดสอบ</p></div>
+          )}
+          {a.id === 'A2' && (
+            <div class="col">
+              <h3>สิ่งที่ A2 เห็นตอนเริ่มงาน: ชื่อและคำอธิบายของ skill</h3>
+              <dl class="skills">
+                {a2skills.map((s) => <><dt class="mono"><a href={`#skill-${s.name}`}>{s.name}</a></dt><dd>{s.description}</dd></>)}
+              </dl>
+              <p class="small muted">Claude Code ใส่บรรทัดเหล่านี้ไว้ในบริบท และเอเจนต์เรียก skill เองเมื่อเห็นว่างานตรงกับคำอธิบาย เนื้อหาเต็มของแต่ละ skill อยู่ด้านล่าง</p>
+            </div>
+          )}
+          {a.id === 'A5' && (
+            <div class="col"><p>ไฟล์ของ A5 คือไฟล์หลักของ A2 ต่อด้วยเนื้อหาของ skill ทั้ง {a2skills.length} ตัวเรียงกันเป็นหัวข้อ (ปรับเฉพาะประโยคที่บอกว่ากฎอยู่ที่ไหน) ข้อความจึงยาวกว่า A2 ที่เห็นจริงในแต่ละ run เพราะ A2 ไม่ได้เปิดครบทุก skill · ข้อความบางวลีในไฟล์ชวนให้เรียก skill เอเจนต์ A5 จึงพยายามเรียก skill ใน {nums.manipulation.A5.runsInvokingAny} run แต่ไม่สำเร็จ เพราะไม่ได้ติดตั้ง skill ไว้</p></div>
+          )}
+          {a.files.map((f) => <Sheet path={f.path} always={f.always} body={f.body} id={f.always ? undefined : `skill-${f.name}`} />)}
+        </section>
+      ))}
+
+      <section id="equal" class="col">
+        <h2>ข้อผูกพันเท่ากันอย่างไร</h2>
+        <p>กฎของงานนี้มี 20 ข้อ แยกเป็นข้อผูกพัน 47 ข้อ (สิ่งที่ต้องทำหรือห้ามทำหนึ่งอย่าง) ผู้วิจัยทำตารางไขว้ <code>COVERAGE-MAP.md</code> ว่าข้อผูกพันแต่ละข้ออยู่ในไฟล์ใดของแต่ละกลุ่ม และตรวจด้วยเครื่องว่า A1 และ A2 มีครบทั้ง 47 ข้อเท่ากัน ส่วนถ้อยคำและความยาวต่างกันโดยตั้งใจ เพราะเป็นการเขียนกฎสองแบบที่ทีมพัฒนาใช้จริง</p>
+        <p>ดังนั้นผลหลัก (A2 เทียบ A1) ตอบว่า <b>ชุดกฎสองรูปแบบ</b> ให้ผลต่างกันหรือไม่ ส่วนคำถามว่า <b>กลไกการโหลด</b> มีผลหรือไม่ ต้องดู A2 เทียบ A5 ซึ่งใช้เนื้อหาเดียวกัน แต่คู่นั้นไม่ได้ถูกทดสอบตามแผน</p>
+      </section>
+    </article>
+  </div>
+</Base>
+<style>
+  .timeline { margin: 0 0 1rem; }
+  .tl-head, .tl-row { display: grid; grid-template-columns: 11rem 1fr 1fr; gap: 1rem; align-items: center; }
+  .tl-head { font-size: 0.9rem; color: var(--ink-3); border-bottom: 1px solid var(--ink); padding-bottom: 0.4rem; }
+  .tl-row { padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
+  .lane { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .chip { font-style: normal; font-size: 0.85rem; font-family: var(--mono); padding: 0.1rem 0.5rem; border: 1px solid var(--c, var(--rule)); background: #fff; white-space: nowrap; }
+  .chip.none { font-family: var(--sans); color: var(--ink-3); border-style: dashed; }
+  .chip.desc { font-family: var(--sans); --c: var(--a2); border-style: dashed; }
+  .chip.od { --c: var(--a2); background: var(--teal-wash); }
+  @media (max-width: 700px) { .tl-head { display: none; } .tl-row { grid-template-columns: 1fr; gap: 0.4rem; } }
+  .facts { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; color: var(--ink-2); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 0.5rem 0; }
+  .skills dt { margin-top: 0.75rem; font-weight: 500; }
+  .skills dd { margin: 0.15rem 0 0; color: var(--ink-2); }
+</style>

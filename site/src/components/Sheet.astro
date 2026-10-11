@@ -1,0 +1,29 @@
+---
+// แผ่นเอกสาร: ไฟล์กฎจริงที่ส่งให้เอเจนต์ เรนเดอร์จาก markdown
+import { marked } from 'marked';
+interface Props { path: string; always: boolean; body: string; open?: boolean; id?: string }
+const { path, always, body, open = false, id } = Astro.props;
+const html = marked.parse(body, { async: false }) as string;
+const long = body.length > 2600;
+---
+<div class="sheet" id={id}>
+  <div class="sheet-head">
+    <span class="mono">{path}</span>
+    <span class={`load ${always ? 'always' : 'ondemand'}`}>{always ? 'โหลดทุกครั้งที่เริ่มงาน' : 'เปิดเมื่องานตรงกับคำอธิบาย'} · {body.length.toLocaleString('en-US')} ตัวอักษร</span>
+  </div>
+  <div class={`sheet-body doc ${open || !long ? 'open' : ''}`} set:html={html} />
+  {long && !open && <button class="more" type="button" data-expand>แสดงทั้งไฟล์</button>}
+</div>
+<style>
+  .sheet { margin: 1.25rem 0 2rem; }
+  .more { font: inherit; font-size: 0.95rem; color: var(--teal); background: none; border: 0; border-top: 1px solid var(--rule); width: 100%; padding: 0.6rem; cursor: pointer; }
+  .more:hover { background: var(--paper-2); }
+</style>
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-expand]').forEach((b) => b.addEventListener('click', () => {
+    const body = b.previousElementSibling as HTMLElement;
+    const open = body.classList.toggle('open');
+    b.textContent = open ? 'ย่อกลับ' : 'แสดงทั้งไฟล์';
+    if (!open) body.scrollIntoView({ block: 'nearest' });
+  }));
+</script>

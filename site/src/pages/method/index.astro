@@ -1,0 +1,135 @@
+---
+import Base from '../../layouts/Base.astro';
+import Toc from '../../components/Toc.astro';
+import { nums, sens, pts } from '../../lib/data';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const d = nums.primary.decision;
+const steps = [
+  ['รีเซ็ตระบบจำลอง', 'คืนโค้ด ข้อมูล และประวัติ git ของระบบจองเครื่อง GPU ให้เหมือนเดิมเป๊ะทุก run และตั้งสภาพเริ่มต้นเฉพาะของโจทย์ (เช่น ใส่คอมเมนต์ TODO หรือบรรทัดข้อมูลเสีย)'],
+  ['ติดตั้งกฎของกลุ่ม', 'วางไฟล์กฎหรือ skill ของกลุ่มนั้น และลบของกลุ่มอื่นออก กันหน่วยความจำอัตโนมัติของเอเจนต์ไม่ให้ข้ามระหว่าง run'],
+  ['วัดค่าตั้งต้น', 'รันคำสั่งวัดผล เช่น รายงานรายได้ย้อนหลัง เก็บไว้เทียบหลังเอเจนต์ทำงาน'],
+  ['รอบแรก', `ส่งโจทย์ภาษาไทยให้ Claude Code (${nums.model}) ทำจนจบ เพดาน ${nums.maxTurns} turn เครื่องมือ 7 ตัว ปิด MCP`],
+  ['เก็บภาพรอบแรก', 'บันทึกโค้ดที่แก้ ผลเทส และข้อความตอบ ณ จบรอบแรก โดยไม่เปลี่ยนสิ่งที่เอเจนต์เห็น ใช้คำนวณ RCRc1'],
+  ['รอบตอบกลับ', 'ส่งข้อความตายตัวหนึ่งครั้งให้ทำต่อ เพดาน 40 turn เพื่อไม่ลงโทษเอเจนต์ที่หยุดถามตามกฎ'],
+  ['วัดค่าปลายทาง', 'รันคำสั่งวัดผลอีกครั้ง และรันเทสยอมรับที่เอเจนต์มองไม่เห็น'],
+  ['ตรวจสภาพการทดลอง', 'ยืนยันว่ากฎถึงเอเจนต์จริง กลุ่มที่ไม่มี skill ต้องโหลด skill ไม่ได้ และไม่มี run ใดชนเพดานงบ'],
+  ['ให้คะแนนและบันทึก', 'โปรแกรมตรวจกฎทีละข้อจากร่องรอย แล้วเขียนผลลง checkpoint ที่ตรวจย้อนได้'],
+];
+const toc: [string, string][] = [['run', 'หนึ่ง run ทำอะไรบ้าง'], ['metrics', 'ตัวชี้วัด'], ['stats', 'สถิติและเกณฑ์ตัดสิน'], ['sensitivity', 'การวิเคราะห์ความไว'], ['instrument', 'การตรวจเครื่องมือวัด'], ['fixed', 'ปัจจัยที่คุม']];
+---
+<Base title="วิธีวิจัย · SkillBench" current="method/">
+  <header class="title-block col">
+    <h1>วัดการทำตามกฎของเอเจนต์อย่างไร ให้ตรวจซ้ำได้และไม่มีคนตัดสิน</h1>
+  </header>
+  <div class="article-grid">
+    <Toc items={toc} />
+    <article>
+      <section id="run" class="col">
+        <h2 class="h-first">หนึ่ง run ทำอะไรบ้าง</h2>
+        <ol class="steps">
+          {steps.map(([t, x]) => <li><b>{t}</b><span>{x}</span></li>)}
+        </ol>
+        <p class="small muted">ลำดับการรันสุ่มแบบ randomized block: ในแต่ละรอบสุ่มลำดับของทุกกลุ่มและทุกโจทย์ใหม่ เพื่อไม่ให้ช่วงเวลาหรือสภาพเครื่องผูกกับกลุ่มใดกลุ่มหนึ่ง</p>
+      </section>
+
+      <section id="metrics" class="col">
+        <h2>ตัวชี้วัด</h2>
+        <div class="formula">RCRc = กฎสำคัญที่เข้าเงื่อนไขและผ่าน ÷ กฎสำคัญที่เข้าเงื่อนไข <span>ถ้างานหลักสำเร็จ · เท่ากับ 0 ถ้าไม่สำเร็จ</span></div>
+        <p>"เข้าเงื่อนไข" คือกฎนั้นมีโอกาสถูกละเมิดจริงใน run นั้น เช่น กฎห้ามแก้ไฟล์นอกขอบเขตจะนับเมื่อเอเจนต์แก้ไฟล์อย่างน้อยหนึ่งไฟล์ ถ้าไม่แตะอะไรเลย กฎห้ามไม่ถูกนับ และ "งานหลักสำเร็จ" ตัดสินด้วยเทสยอมรับที่เอเจนต์มองไม่เห็น สูตรนี้ออกแบบไม่ให้ได้คะแนนจากการไม่ทำอะไร ผู้วิจัยทดสอบสูตรกับเอเจนต์จำลอง 3 แบบ (ไม่ทำอะไร · ทำแต่ไม่สำเร็จ · ทำสำเร็จ) ก่อนใช้จริง</p>
+        <p>RCRc รวมสองเรื่องไว้ในตัวเลขเดียว คืองานสำเร็จหรือไม่ และเมื่อสำเร็จแล้วทำตามกฎแค่ไหน จึงต้องอ่านคู่กับอัตราทำงานสำเร็จและ RCRc เมื่อสำเร็จเสมอ</p>
+        <div class="tbl-wrap">
+          <table class="bt">
+            <thead><tr><th>ตัวชี้วัด</th><th>วัดอะไร</th><th>สถานะในแผน</th></tr></thead>
+            <tbody>
+              <tr class="hl"><td><b>RCRc</b></td><td>สัดส่วนกฎสำคัญที่ทำตาม (0 ถ้างานไม่สำเร็จ)</td><td>ผลหลัก</td></tr>
+              <tr><td>อัตราทำงานสำเร็จ</td><td>สัดส่วน run ที่ผ่านเทสยอมรับ</td><td>ประกอบ</td></tr>
+              <tr><td>RCRc เมื่อสำเร็จ</td><td>RCRc เฉพาะ run ที่งานสำเร็จ</td><td>ประกอบ</td></tr>
+              <tr><td>CRIT</td><td>สัดส่วน run ที่ผ่านกฎสำคัญครบทุกข้อ</td><td>ประกอบ</td></tr>
+              <tr><td>SCOPE</td><td>สัดส่วน run ที่แก้เฉพาะไฟล์ในขอบเขต</td><td>ประกอบ</td></tr>
+              <tr><td>pass^k</td><td>สัดส่วนโจทย์ที่ผ่านกฎสำคัญครบทุกรอบ</td><td>ประกอบ</td></tr>
+              <tr><td>RCRc1</td><td>RCRc ณ จบรอบแรก ก่อนรอบตอบกลับ</td><td>ผลรอง</td></tr>
+              <tr><td>ต้นทุน</td><td>ราคาเทียบเท่า API, token, เวลา</td><td>ประกอบ</td></tr>
+              <tr><td>Trigger F1</td><td>ความแม่นของการเปิด skill ใน A2</td><td>ประกอบ</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="stats" class="col">
+        <h2>สถิติและเกณฑ์ตัดสิน</h2>
+        <p><b>หน่วยวิเคราะห์คือโจทย์ ไม่ใช่ run</b> run ที่มาจากโจทย์เดียวกันไม่เป็นอิสระต่อกัน รันซ้ำ 10 ครั้งก็ยังเป็นข้อมูลของโจทย์ข้อเดียว ผู้วิจัยจึงเฉลี่ย RCRc ของแต่ละกลุ่มในแต่ละโจทย์ แล้วหาผลต่าง A2 − A1 ได้ {nums.primary.k} ค่า</p>
+        <p><b>Exact paired sign-flip test</b> ถามว่า ถ้าสลับป้าย A2/A1 ของแต่ละโจทย์แบบสุ่มทุกแบบที่เป็นไปได้ จะได้ผลต่างเฉลี่ยมากเท่าที่เห็นบ่อยแค่ไหน ไม่ต้องสมมติรูปแบบการแจกแจง ช่วงความเชื่อมั่นได้จากการกลับด้านการทดสอบเดียวกัน</p>
+        <p><b>TOST</b> ทดสอบความเทียบเท่า ผ่านเมื่อช่วงความเชื่อมั่น 90% อยู่ในขอบเขต ±{(d.margin * 100).toFixed(1)} จุดทั้งช่วง ขอบเขตนี้มาจากความหมายในทางปฏิบัติ: โจทย์หนึ่งข้อมีกฎสำคัญที่เข้าเงื่อนไขราว 8 ข้อ พลาดหนึ่งข้อคือราว 12.5 จุด</p>
+        <div class="tbl-wrap">
+          <table class="bt">
+            <caption><b>ตารางวิธีตัดสิน</b> ใช้ตามลำดับ ล็อกไว้ก่อนเก็บข้อมูล</caption>
+            <thead><tr><th>ลำดับ</th><th>เงื่อนไข</th><th>ข้อสรุป</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>p &lt; 0.05</td><td>ต่างกัน ตามทิศของผลต่าง</td></tr>
+              <tr class="hl"><td>2</td><td>ไม่เข้าข้อ 1 และ CI 90% อยู่ใน ±{(d.margin * 100).toFixed(1)} ทั้งช่วง</td><td><b>เทียบเท่า</b> ← ผลที่ได้ (p = {nums.primary.p.toFixed(3)}, CI 90% [{pts(d.ci90[0])}, {pts(d.ci90[1])}])</td></tr>
+              <tr><td>3</td><td>ไม่เข้าทั้งสองข้อ</td><td>สรุปไม่ได้</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><b>ลำดับตายตัว (fixed-sequence)</b> การเทียบ A2 กับ A5 ทดสอบได้ก็ต่อเมื่อผลหลักพบความต่าง เพื่อคุมโอกาสสรุปผิดรวมไว้ที่ 0.05 ผลหลักเทียบเท่า คู่ A2–A5 จึงรายงานเป็นค่าประมาณเท่านั้น</p>
+      </section>
+
+      <section id="sensitivity" class="col">
+        <h2>การวิเคราะห์ความไว</h2>
+        <p>ระหว่างเก็บข้อมูลพบตัวตรวจที่น่าสงสัย 3 จุด เป็นข้อบกพร่องจริง 2 จุด (S05 GP1, S06 FL1) ผู้วิจัยประกาศการวิเคราะห์ความไวสองแบบไว้ก่อนเปิดดูผลแยกกลุ่ม ผลหลักยังใช้ตัวตรวจเดิมตามแผน</p>
+        <div class="tbl-wrap">
+          <table class="bt">
+            <thead><tr><th>ชุด</th><th>ความหมาย</th><th class="r">k</th><th class="r">ผลต่าง</th><th>CI 90%</th><th>ผล</th></tr></thead>
+            <tbody>
+              {(['MAIN', 'SA-1', 'SA-2'] as const).map((k) => {
+                const r = sens.results[k].primary_A2_vs_A1;
+                const label = { MAIN: 'ตามแผน ตัวตรวจเดิม', 'SA-1': 'แก้ตัวตรวจ S05 S06 + ผ่อนเกณฑ์ S08/S09', 'SA-2': 'ตัดโจทย์ S05 S06 S08 S09' }[k];
+                return <tr class={k === 'MAIN' ? 'hl' : ''}><td><b>{k}</b></td><td>{label}</td><td class="r">{r.k}</td><td class="r">{pts(r.meanDiff)}</td><td>[{pts(r.ci90[0])}, {pts(r.ci90[1])}]</td><td>{r.verdict === 'equivalent' ? 'เทียบเท่า' : r.verdict}</td></tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="instrument" class="col">
+        <h2>การตรวจเครื่องมือวัด</h2>
+        <p>สองชุดแรกสรุปไม่ได้ส่วนหนึ่งเพราะเครื่องมือวัดบกพร่องโดยไม่แสดงอาการ ชุดที่ 3 จึงตรวจเครื่องมือหลายชั้นก่อนเก็บข้อมูลจริง: ทุกโจทย์ต้องผ่านด่านยอมรับ 5 ขั้น ทดลองนำร่อง 4 รอบด้วย A1 กลุ่มเดียว (ห้ามคำนวณผลเปรียบเทียบระหว่างกลุ่ม) และให้ผู้ตรวจภายนอกรีวิวแผน</p>
+        <div class="tbl-wrap">
+          <table class="bt">
+            <caption><b>ข้อบกพร่องของเครื่องมือที่พบในแต่ละด่าน</b></caption>
+            <thead><tr><th>ด่าน</th><th class="r">พบ</th></tr></thead>
+            <tbody>
+              <tr><td>ช่วงพัฒนา</td><td class="r">23</td></tr>
+              <tr><td>รีวิวภายนอก (ยืนยันได้)</td><td class="r">≥ 6</td></tr>
+              <tr><td>รอบนำร่อง 4 รอบ</td><td class="r">8</td></tr>
+              <tr class="hl-x"><td>หลุดถึงช่วงเก็บข้อมูลจริง</td><td class="r">2</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted">ที่มา: บทที่ 4 และ 7 ของเล่มรายงาน · จุดที่หลุด 2 จุดจัดการด้วยการวิเคราะห์ความไวโดยไม่ต้องทิ้งข้อมูล</p>
+      </section>
+
+      <section id="fixed" class="col">
+        <h2>ปัจจัยที่คุม</h2>
+        <ul>
+          <li>โมเดล <span class="mono">{nums.model}</span> ผ่าน Claude Code CLI รุ่นเดียวกันทุก run</li>
+          <li>เครื่องมือ 7 ตัว (Read, Write, Edit, Bash, Glob, Grep, Skill) ปิด MCP · คำสั่งภาษาไทย</li>
+          <li>เพดาน {nums.maxTurns} turn ในรอบแรก และ 40 turn ในรอบตอบกลับ · ไม่มี run ใดชนเพดาน</li>
+          <li>สภาพเริ่มต้นของระบบเหมือนกันทุก run · master seed <span class="mono">{nums.masterSeed}</span></li>
+          <li>หน่วยความจำอัตโนมัติของเอเจนต์ถูกกักแยก ไม่ให้ข้ามระหว่าง run</li>
+        </ul>
+        <p><a href={`${base}protocol/`}>อ่านแผนที่ล็อกไว้ฉบับเต็มและบันทึกส่วนเบี่ยงเบน</a></p>
+      </section>
+    </article>
+  </div>
+</Base>
+<style>
+  .h-first { margin-top: 0; }
+  .steps { list-style: none; counter-reset: s; padding: 0; margin: 0; border-top: 2px solid var(--ink); }
+  .steps li { counter-increment: s; display: grid; grid-template-columns: 2rem 12rem 1fr; gap: 0.5rem 1rem; padding: 0.8rem 0; border-bottom: 1px solid var(--rule); }
+  .steps li::before { content: counter(s); font-family: var(--serif); color: var(--ink-3); }
+  .steps b { font-family: var(--serif); font-weight: 600; }
+  @media (max-width: 640px) { .steps li { grid-template-columns: 1.5rem 1fr; } .steps li span { grid-column: 2; } }
+  .formula { font-family: var(--serif); font-size: 1.2rem; line-height: 1.6; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 1rem 0; margin: 1rem 0 1.5rem; }
+  .formula span { display: block; font-family: var(--sans); font-size: 0.98rem; color: var(--ink-2); }
+</style>

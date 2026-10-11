@@ -1,0 +1,66 @@
+---
+// forest plot ของผลหลัก: ผลต่าง RCRc (A2 − A1) พร้อม CI 90% (เส้นหนา) และ CI 95% (เส้นบาง)
+// เทียบกับแถบเกณฑ์เทียบเท่า ±margin · ข้อมูลจาก results-study3/sensitivity.json
+import { sens, nums, pts } from '../lib/data';
+const margin = sens.margin as number;
+const rows = [
+  { key: 'MAIN', label: 'ผลหลักตามแผน', sub: '22 โจทย์ · ตัวตรวจเดิม', r: sens.results.MAIN.primary_A2_vs_A1 },
+  { key: 'SA-1', label: 'SA-1', sub: 'แก้ตัวตรวจ S05 S06 + ผ่อนเกณฑ์ S08/S09', r: sens.results['SA-1'].primary_A2_vs_A1 },
+  { key: 'SA-2', label: 'SA-2', sub: 'ตัดโจทย์ที่มีปัญหา 4 ข้อ', r: sens.results['SA-2'].primary_A2_vs_A1 },
+];
+const W = 1000, padL = 340, padR = 30, lo = -0.15, hi = 0.15;
+const X = (v: number) => padL + ((v - lo) / (hi - lo)) * (W - padL - padR);
+const rowH = 92, top = 40;
+const H = top + rows.length * rowH + 70;
+const ceiling = 1 - nums.primary.rateB;
+const ticks = [-15, -10, -5, 0, 5, 10, 15];
+---
+<figure class="fig-wide forest" id="forest">
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`ผลต่าง RCRc A2 ลบ A1 ทุกแบบการวิเคราะห์อยู่ในเกณฑ์เทียบเท่า ±${(margin * 100).toFixed(1)} จุด`}>
+    <rect x={X(-margin)} y={top - 14} width={X(margin) - X(-margin)} height={rows.length * rowH + 4} fill="var(--teal-wash)" />
+    <line x1={X(-margin)} x2={X(-margin)} y1={top - 14} y2={top + rows.length * rowH - 10} stroke="var(--teal)" stroke-width="1.5" />
+    <line x1={X(margin)} x2={X(margin)} y1={top - 14} y2={top + rows.length * rowH - 10} stroke="var(--teal)" stroke-width="1.5" />
+    <text x={X(0)} y={top - 22} text-anchor="middle" class="t-band">เกณฑ์เทียบเท่า ±{(margin * 100).toFixed(1)} จุด · ประกาศก่อนเก็บข้อมูล</text>
+    <line x1={X(0)} x2={X(0)} y1={top - 14} y2={top + rows.length * rowH - 10} stroke="var(--ink-3)" stroke-dasharray="4 5" />
+    <line x1={X(ceiling)} x2={X(ceiling)} y1={top} y2={top + rows.length * rowH - 10} stroke="var(--ink-3)" stroke-dasharray="1 5" stroke-width="2" />
+    <text x={X(ceiling) + 6} y={top + rows.length * rowH - 16} class="t-ceil">เพดาน {pts(ceiling)}</text>
+    {rows.map((row, i) => {
+      const y = top + i * rowH + 26;
+      const main = i === 0;
+      return (
+        <g class={`frow ${main ? 'main' : ''}`} tabindex="0" data-key={row.key}>
+          <text x="0" y={y - 2} class="t-lab">{row.label}</text>
+          <text x="0" y={y + 26} class="t-sub">{row.sub}</text>
+          <line x1={X(row.r.ci95[0])} x2={X(row.r.ci95[1])} y1={y} y2={y} stroke="var(--ink)" stroke-width="1.5" />
+          <line x1={X(row.r.ci90[0])} x2={X(row.r.ci90[1])} y1={y} y2={y} stroke="var(--ink)" stroke-width={main ? 7 : 5} />
+          <rect x={X(row.r.meanDiff) - (main ? 8 : 6)} y={y - (main ? 8 : 6)} width={main ? 16 : 12} height={main ? 16 : 12} fill={main ? 'var(--teal)' : 'var(--paper)'} stroke="var(--ink)" stroke-width="1.5" />
+          <text x={W - padR} y={y + 6} text-anchor="end" class="t-val">{pts(row.r.meanDiff)} [{pts(row.r.ci90[0])}, {pts(row.r.ci90[1])}]</text>
+        </g>
+      );
+    })}
+    {ticks.map((t) => (
+      <g>
+        <line x1={X(t / 100)} x2={X(t / 100)} y1={top + rows.length * rowH - 8} y2={top + rows.length * rowH - 2} stroke="var(--ink)" />
+        <text x={X(t / 100)} y={top + rows.length * rowH + 20} text-anchor="middle" class="t-tick">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>
+      </g>
+    ))}
+    <line x1={X(lo)} x2={X(hi)} y1={top + rows.length * rowH - 8} y2={top + rows.length * rowH - 8} stroke="var(--ink)" />
+    <text x={X(-0.13)} y={H - 12} class="t-dir">← ไฟล์เดียว (A1) ดีกว่า</text>
+    <text x={X(0.13)} y={H - 12} text-anchor="end" class="t-dir">Agent Skills (A2) ดีกว่า →</text>
+  </svg>
+  <figcaption><b>รูปที่ 2</b> ผลต่าง RCRc เฉลี่ยรายโจทย์ระหว่าง A2 กับ A1 (จุด) · สี่เหลี่ยมคือค่าประมาณ เส้นหนาคือช่วงความเชื่อมั่น 90% ที่ใช้ตัดสินความเทียบเท่า (TOST) เส้นบางคือ 95% · ทุกแถวอยู่ในแถบเกณฑ์ทั้งเส้น · เส้นประจุดคือเพดาน เพราะ A1 ได้ {(nums.primary.rateB * 100).toFixed(1)}% อยู่แล้ว A2 จึงนำได้ไม่เกินระยะนี้ ขอบบนของเกณฑ์จึงไม่เคยถูกทดสอบจริง</figcaption>
+</figure>
+<style>
+  .forest svg { width: 100%; font-family: var(--sans); overflow: visible; }
+  .t-band { font-size: 19px; fill: var(--teal); font-weight: 600; }
+  .t-ceil { font-size: 16px; fill: var(--ink-3); }
+  .t-lab { font-size: 23px; font-family: var(--serif); font-weight: 600; fill: var(--ink); }
+  .frow:not(.main) .t-lab { font-weight: 500; }
+  .t-sub { font-size: 17px; fill: var(--ink-3); }
+  .t-val { font-size: 18px; fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .t-tick { font-size: 18px; fill: var(--ink-2); }
+  .t-dir { font-size: 17px; fill: var(--ink-3); }
+  .frow { outline: none; transition: opacity 0.2s; }
+  .forest svg:has(.frow:hover) .frow:not(:hover), .forest svg:has(.frow:focus-visible) .frow:not(:focus-visible) { opacity: 0.35; }
+  @media (max-width: 640px) { .t-val { display: none; } }
+</style>

@@ -1,0 +1,184 @@
+@import '@fontsource/noto-serif-thai/500.css';
+@import '@fontsource/noto-serif-thai/600.css';
+@import '@fontsource/noto-serif-thai/700.css';
+@import '@fontsource/sarabun/400.css';
+@import '@fontsource/sarabun/600.css';
+@import '@fontsource/sarabun/700.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+/* โลกของหน้า: รายงานการทดลองแบบวารสารการแพทย์
+   กระดาษขาว หมึกดำ เส้นตารางแบบ booktabs · สีเขียวหัวเป็ด = ผลหลัก/เกณฑ์เทียบเท่า
+   สีส้มอิฐ = เชิงสำรวจ/ข้อควรระวัง · สีประจำกลุ่มใช้เมื่อเทียบกลุ่มเท่านั้น */
+:root {
+  --paper: #fdfdfb;
+  --paper-2: #f4f4f0;
+  --ink: #161b26;
+  --ink-2: #3f4756;
+  --ink-3: #6a7180;
+  --rule: #d6d8dd;
+  --rule-strong: #161b26;
+  --teal: #0b6e69;
+  --teal-wash: #e3f0ee;
+  --brick: #b4561c;
+  --brick-wash: #f8ebe0;
+  --a0: #8a929e;
+  --a1: #2f4f86;
+  --a2: #0b6e69;
+  --a5: #b7791f;
+  --serif: 'Noto Serif Thai', 'Sarabun', serif;
+  --sans: 'Sarabun', 'Noto Serif Thai', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --measure: 44rem;
+  --wide: 70rem;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 5rem; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 1.125rem/1.75 var(--sans);
+  font-variant-numeric: tabular-nums;
+  text-rendering: optimizeLegibility;
+}
+::selection { background: var(--teal); color: #fff; }
+:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 2px; }
+a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 0.22em; }
+a:hover { text-decoration-thickness: 2px; }
+img, svg { max-width: 100%; height: auto; }
+code, kbd, .mono { font-family: var(--mono); font-size: 0.86em; }
+code { background: var(--paper-2); padding: 0.08em 0.35em; border-radius: 3px; }
+html { scrollbar-color: var(--rule) transparent; }
+
+h1, h2, h3, h4 { font-family: var(--serif); color: var(--ink); text-wrap: balance; margin: 0; }
+h1 { font-weight: 700; font-size: clamp(2rem, 4.6vw, 3.25rem); line-height: 1.3; }
+h2 { font-weight: 600; font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.4; margin-top: 4.5rem; margin-bottom: 1rem; }
+h3 { font-weight: 600; font-size: 1.25rem; line-height: 1.5; margin-top: 2.5rem; margin-bottom: 0.5rem; }
+p { margin: 0 0 1.1em; }
+.lede { font-size: 1.25rem; line-height: 1.7; color: var(--ink-2); }
+.muted { color: var(--ink-3); }
+.small { font-size: 0.92rem; }
+
+/* ---------- โครงหน้า ---------- */
+.masthead { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
+.masthead-in { max-width: var(--wide); margin: 0 auto; padding: 0.7rem 1.25rem; display: flex; align-items: center; gap: 1.5rem; }
+.brand { font-family: var(--serif); font-weight: 700; color: var(--ink); text-decoration: none; white-space: nowrap; font-size: 1.05rem; }
+.brand span { color: var(--ink-3); font-weight: 500; }
+.nav { display: flex; gap: 0.25rem; overflow-x: auto; scrollbar-width: none; margin-left: auto; }
+.nav::-webkit-scrollbar { display: none; }
+.nav a { color: var(--ink-2); text-decoration: none; padding: 0.35rem 0.7rem; border-radius: 4px; white-space: nowrap; font-size: 0.98rem; }
+.nav a:hover { background: var(--paper-2); color: var(--ink); }
+.nav a[aria-current='page'] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--teal); border-radius: 0; }
+
+.page { max-width: var(--wide); margin: 0 auto; padding: 0 1.25rem 6rem; }
+.col { max-width: var(--measure); }
+.wide { max-width: var(--wide); }
+
+.article-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3rem; }
+@media (min-width: 1100px) {
+  .article-grid { grid-template-columns: 13rem minmax(0, 1fr); }
+  .toc { position: sticky; top: 5.5rem; align-self: start; max-height: calc(100vh - 7rem); overflow: auto; }
+}
+.toc { font-size: 0.92rem; }
+.toc p { font-family: var(--serif); font-weight: 600; margin-bottom: 0.5rem; }
+.toc ol { list-style: none; padding: 0; margin: 0; border-left: 1px solid var(--rule); }
+.toc a { display: block; padding: 0.22rem 0 0.22rem 0.85rem; color: var(--ink-3); text-decoration: none; margin-left: -1px; border-left: 2px solid transparent; line-height: 1.5; }
+.toc a:hover { color: var(--ink); }
+.toc a.on { color: var(--ink); border-left-color: var(--teal); }
+@media (max-width: 1099px) { .toc { display: none; } }
+
+/* ---------- ส่วนหัวบทความ ---------- */
+.title-block { padding: 3.5rem 0 2.5rem; border-bottom: 1px solid var(--rule); margin-bottom: 2.5rem; }
+.title-block .journal { font-family: var(--serif); color: var(--teal); font-weight: 600; font-size: 1rem; margin-bottom: 1.25rem; }
+.byline { margin-top: 1.5rem; color: var(--ink-2); line-height: 1.6; }
+.byline strong { color: var(--ink); font-weight: 600; }
+.reg { margin-top: 1rem; font-size: 0.95rem; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; }
+
+/* บทคัดย่อแบบมีโครงสร้าง (structured abstract) */
+.abstract { border-top: 3px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 1.5rem 0 0.5rem; display: grid; gap: 0.25rem 2rem; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .abstract { grid-template-columns: 9rem 1fr; } }
+.abstract dt { font-family: var(--serif); font-weight: 700; font-size: 1rem; padding-top: 0.15rem; }
+.abstract dd { margin: 0 0 1rem; }
+.verdict { display: inline-block; font-family: var(--serif); font-weight: 700; color: var(--teal); border: 1.5px solid var(--teal); padding: 0 0.5em; border-radius: 3px; margin: 0 0.15em; }
+.note-x { color: var(--brick); font-weight: 600; }
+
+/* ---------- รูปและตาราง ---------- */
+figure { margin: 2.25rem 0; }
+figcaption { font-size: 0.95rem; color: var(--ink-2); margin-top: 0.75rem; line-height: 1.6; max-width: var(--measure); }
+figcaption b { font-family: var(--serif); color: var(--ink); }
+.fig-wide { max-width: var(--wide); }
+
+.tbl-wrap { overflow-x: auto; margin: 1.75rem 0; position: relative; }
+table.bt { border-collapse: collapse; width: 100%; font-size: 1rem; }
+table.bt caption { caption-side: top; text-align: left; font-size: 0.95rem; color: var(--ink-2); padding-bottom: 0.6rem; }
+table.bt caption b { font-family: var(--serif); color: var(--ink); }
+table.bt thead th { border-top: 2px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); font-weight: 600; text-align: left; padding: 0.55rem 0.75rem; font-size: 0.94rem; vertical-align: bottom; }
+table.bt tbody td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.bt tbody tr:last-child td { border-bottom: 2px solid var(--rule-strong); }
+table.bt .r { text-align: right; }
+table.bt tr.hl td { background: var(--teal-wash); }
+table.bt tr.hl-x td { background: var(--brick-wash); }
+.arm { display: inline-flex; align-items: center; gap: 0.4em; white-space: nowrap; }
+.arm::before { content: ''; width: 0.62em; height: 0.62em; border-radius: 50%; background: var(--c, var(--ink-3)); }
+.arm-A0 { --c: var(--a0); } .arm-A1 { --c: var(--a1); } .arm-A2 { --c: var(--a2); } .arm-A5 { --c: var(--a5); }
+
+.flag { display: inline-block; font-size: 0.82rem; font-weight: 600; color: var(--brick); border-bottom: 1px dashed var(--brick); line-height: 1.4; }
+.qual { color: var(--brick); }
+
+/* กล่องหมายเหตุแบบวารสาร: เส้นบนเส้นเดียว ไม่ใช่การ์ด */
+.aside { border-top: 1px solid var(--ink); padding-top: 0.75rem; margin: 2rem 0; font-size: 1rem; color: var(--ink-2); }
+.aside > b:first-child { font-family: var(--serif); color: var(--ink); display: block; margin-bottom: 0.25rem; }
+
+/* ---------- เอกสาร markdown ---------- */
+.doc { max-width: var(--measure); }
+.doc h1 { font-size: 1.8rem; margin: 2.5rem 0 1rem; }
+.doc h2 { font-size: 1.45rem; margin-top: 2.75rem; }
+.doc h3 { font-size: 1.15rem; }
+.doc table { border-collapse: collapse; width: 100%; font-size: 0.95rem; margin: 1.25rem 0; display: block; overflow-x: auto; }
+.doc th { border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); text-align: left; padding: 0.45rem 0.6rem; font-weight: 600; }
+.doc td { border-bottom: 1px solid var(--rule); padding: 0.45rem 0.6rem; vertical-align: top; }
+.doc blockquote { margin: 1.25rem 0; padding: 0.25rem 0 0.25rem 1rem; border-left: 1px solid var(--ink-3); color: var(--ink-2); }
+.doc pre { background: var(--paper-2); padding: 1rem; overflow-x: auto; font-size: 0.85rem; line-height: 1.6; border-radius: 4px; }
+.doc pre code { background: none; padding: 0; }
+.doc hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+.doc ul, .doc ol { padding-left: 1.4rem; }
+.doc li { margin: 0.25rem 0; }
+
+/* ไฟล์กฎที่ส่งให้เอเจนต์ แสดงเป็นแผ่นเอกสาร */
+.sheet { background: #fff; border: 1px solid var(--rule); box-shadow: 0 1px 2px rgba(22, 27, 38, 0.06), 0 8px 24px -12px rgba(22, 27, 38, 0.14); }
+.sheet-head { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; align-items: baseline; justify-content: space-between; padding: 0.7rem 1.1rem; border-bottom: 1px solid var(--rule); font-size: 0.92rem; }
+.sheet-head .mono { color: var(--ink); }
+.sheet-body { padding: 0.5rem 1.4rem 1.2rem; max-height: 34rem; overflow: auto; }
+.sheet-body.open { max-height: none; }
+.sheet-body h1 { font-size: 1.35rem; margin: 1rem 0 0.5rem; }
+.sheet-body h2 { font-size: 1.15rem; margin: 1.5rem 0 0.4rem; }
+.sheet-body h3 { font-size: 1.02rem; margin: 1.2rem 0 0.3rem; }
+.sheet-body p, .sheet-body li { font-size: 1rem; }
+.load { font-size: 0.86rem; font-weight: 600; white-space: nowrap; }
+.load.always { color: var(--a1); }
+.load.ondemand { color: var(--a2); }
+
+/* ---------- ปุ่มกรอง ---------- */
+.seg { display: inline-flex; flex-wrap: wrap; gap: 0.35rem; }
+.seg button { font: inherit; font-size: 0.95rem; color: var(--ink-2); background: transparent; border: 1px solid var(--rule); border-radius: 999px; padding: 0.25rem 0.85rem; cursor: pointer; }
+.seg button:hover { border-color: var(--ink-3); color: var(--ink); }
+.seg button[aria-pressed='true'] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.footer { border-top: 1px solid var(--rule); margin-top: 5rem; padding: 2rem 1.25rem 3rem; color: var(--ink-3); font-size: 0.92rem; }
+.footer-in { max-width: var(--wide); margin: 0 auto; display: grid; gap: 1rem; }
+@media (min-width: 760px) { .footer-in { grid-template-columns: 2fr 1fr; } }
+
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 1rem; top: 1rem; z-index: 99; background: var(--ink); color: var(--paper); padding: 0.5rem 1rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .reveal { animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes rise { from { opacity: 0.001; transform: translateY(6px); } }
+}
+
+/* ป้องกันสตริงยาว (path, คำสั่ง, URL) ดันหน้ากว้างเกินจอมือถือ */
+.doc, .aside, .side, .reqs, .sheet-body { overflow-wrap: anywhere; }
+.doc :is(pre, table) { overflow-wrap: normal; }
+article, section { min-width: 0; }

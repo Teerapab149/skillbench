@@ -1,0 +1,123 @@
+---
+import Base from '../../layouts/Base.astro';
+import { scenarios, reqs, ARMS, ARM_INFO, DIFFICULTY, pct, pts } from '../../lib/data';
+export function getStaticPaths() {
+  return scenarios.map((s, i) => ({ params: { id: s.id }, props: { s, prev: scenarios[i - 1] ?? null, next: scenarios[i + 1] ?? null } }));
+}
+const { s, prev, next } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const sev: Record<string, string> = { critical: 'สำคัญ', major: 'รอง', minor: 'ย่อย' };
+const cell = (ok: boolean | null, app: boolean) => (!app ? 'na' : ok === true ? 'ok' : ok === false ? 'no' : 'na');
+const cellLabel: Record<string, string> = { ok: 'ผ่าน', no: 'ตก', na: 'ไม่เข้าเงื่อนไข' };
+const tie = (v: number) => Math.abs(v) < 1e-9;
+---
+<Base title={`${s.code} · ${s.familyName} · SkillBench`} current="scenarios/">
+  <nav class="crumbs small"><a href={`${base}scenarios/`}>โจทย์ทั้งหมด</a> / <span class="mono">{s.id}</span></nav>
+  <header class="title-block col">
+    <blockquote class="ask">
+      <p>{s.prompt}</p>
+      <footer class="who">คำสั่งของผู้ใช้ในโจทย์ <b>{s.code}</b> · ตระกูล{s.familyName} · ความยาก{DIFFICULTY[s.difficulty] ?? s.difficulty}</footer>
+    </blockquote>
+  </header>
+
+  <div class="grid2">
+    <section class="col">
+      <h2 class="h-first">กับดักของโจทย์นี้</h2>
+      <p class="lede">{s.trap}</p>
+      {s.note && <div class="aside"><b>บันทึกของผู้ออกแบบโจทย์</b>{s.note}</div>}
+
+      <h3>ข้อกำหนดที่เกี่ยวข้อง</h3>
+      <dl class="reqs">
+        {s.reqs.map((r: string) => (
+          <><dt class="mono">{r}</dt><dd>{reqs[r]?.text ?? '—'}{reqs[r]?.ac && <span class="ac small">เกณฑ์ยอมรับ: {reqs[r].ac.split(String.fromCharCode(96)).join('')}</span>}</dd></>
+        ))}
+      </dl>
+      <p class="small muted">จาก <code>REQUIREMENTS.md</code> ของระบบจำลอง · <a href={`${base}protocol/#requirements`}>ดูข้อกำหนดทั้งหมด</a></p>
+    </section>
+
+    <aside class="side">
+      <h3 class="h-first">ผลเฉลี่ยรายกลุ่ม (RCRc)</h3>
+      <table class="bt">
+        <tbody>
+          {ARMS.map((a) => (
+            <tr><td><span class={`arm arm-${a}`}>{a} {ARM_INFO[a].short}</span></td><td class="r"><b>{pct(s.byArm[a].mean)}%</b></td></tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="small">A2 − A1 = <b>{tie(s.diff) ? 'เท่ากัน' : pts(s.diff) + ' จุด'}</b></p>
+      <h3>skill ที่ควรถูกเปิด</h3>
+      <p class="mono small">{s.expectedSkills.length ? s.expectedSkills.join(' · ') : 'ไม่มี'}</p>
+      {s.probes.length > 0 && <><h3>คำสั่งวัดก่อน–หลัง</h3>{s.probes.map((p: any) => <p class="mono small">{p.command}</p>)}</>}
+      {s.verify && <><h3>เทสยอมรับ (AI มองไม่เห็น)</h3><p class="mono small">{s.verify}</p></>}
+    </aside>
+  </div>
+
+  <section class="wide">
+    <h2>กฎที่ใช้ให้คะแนน และผลทีละ run</h2>
+    <p class="col">แต่ละแถวคือกฎหนึ่งข้อของโจทย์นี้ ตัวตรวจเป็นโปรแกรมที่อ่านร่องรอยการทำงานจริงของ AI กฎระดับ <b>สำคัญ</b> เท่านั้นที่นับใน RCRc · ช่องสีเขียว = ผ่าน ส้ม = ตก เส้นประ = ไม่เข้าเงื่อนไข · RCRc เป็น 0 เมื่องานหลักไม่สำเร็จ</p>
+    <div class="tbl-wrap">
+      <table class="bt matrix">
+        <thead>
+          <tr><th rowspan="2">กฎ</th><th rowspan="2">ระดับ</th>{ARMS.map((a) => <th colspan="3" class="armh"><span class={`arm arm-${a}`}>{a}</span></th>)}</tr>
+          <tr>{ARMS.map(() => [1, 2, 3].map((r) => <th class="rep">{r}</th>))}</tr>
+        </thead>
+        <tbody>
+          {s.rules.map((rule: any) => (
+            <tr class={rule.sev === 'critical' ? '' : 'minor'}>
+              <td><span class="mono rid">{rule.id}</span> {rule.desc}</td>
+              <td class="small">{sev[rule.sev] ?? rule.sev}</td>
+              {ARMS.map((a) => s.byArm[a].runs.map((run: any) => {
+                const x = run.rules.find((y: any) => y.id === rule.id);
+                const c = x ? cell(x.ok, x.app) : 'na';
+                return <td class="c"><a class={`m ${c}`} href={`${base}runs/#${run.id}`} title={`${run.id}: ${cellLabel[c]}`}><span class="sr">{cellLabel[c]}</span></a></td>;
+              }))}
+            </tr>
+          ))}
+          <tr class="sum"><td colspan="2"><b>งานหลักสำเร็จ</b></td>{ARMS.map((a) => s.byArm[a].runs.map((run: any) => <td class="c small">{run.done ? 'ใช่' : <b class="qual">ไม่</b>}</td>))}</tr>
+          <tr class="sum"><td colspan="2"><b>RCRc ของ run</b></td>{ARMS.map((a) => s.byArm[a].runs.map((run: any) => <td class="c small">{run.rcrc.toFixed(2)}</td>))}</tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <nav class="pn">
+    {prev ? <a href={`${base}scenarios/${prev.id}/`}><span class="small muted">ก่อนหน้า</span><b>{prev.code}</b> {prev.familyName}</a> : <span></span>}
+    {next ? <a class="nx" href={`${base}scenarios/${next.id}/`}><span class="small muted">ถัดไป</span><b>{next.code}</b> {next.familyName}</a> : <span></span>}
+  </nav>
+</Base>
+<style>
+  .crumbs { padding-top: 1.25rem; color: var(--ink-3); }
+  .crumbs a { color: var(--ink-3); }
+  .title-block { padding-top: 1.5rem; }
+  .ask { margin: 0.5rem 0 0; padding: 0; }
+  .ask .who { font-size: 0.95rem; color: var(--ink-3); margin-top: 0.75rem; }
+  .ask p { font-family: var(--serif); font-size: clamp(1.4rem, 3vw, 2rem); line-height: 1.55; font-weight: 500; margin: 0.25rem 0 0; }
+  .ask p::before { content: '“'; } .ask p::after { content: '”'; }
+  .h-first { margin-top: 0; }
+  .grid2 { display: grid; gap: 2rem 4rem; grid-template-columns: minmax(0, 1fr); }
+  .grid2 > * { min-width: 0; }
+  @media (min-width: 980px) { .grid2 { grid-template-columns: minmax(0, 1fr) 20rem; } }
+  .side { border-top: 2px solid var(--ink); padding-top: 1rem; align-self: start; }
+  .side h3 { font-size: 1rem; margin-top: 1.5rem; }
+  .side .bt td { padding: 0.35rem 0.25rem; }
+  .reqs dt { font-weight: 500; margin-top: 0.75rem; }
+  .reqs dd { margin: 0.1rem 0 0; }
+  .ac { display: block; color: var(--ink-3); }
+  .matrix { font-size: 0.95rem; }
+  .matrix th.armh { text-align: center; border-bottom: 0; }
+  .matrix th.rep { text-align: center; font-weight: 400; color: var(--ink-3); font-size: 0.8rem; border-top: 0; }
+  .matrix td.c { text-align: center; padding: 0.4rem 0.2rem; width: 2.2rem; }
+  .matrix tr.minor td:first-child { color: var(--ink-3); }
+  .rid { color: var(--ink-3); margin-right: 0.35rem; }
+  .m { display: inline-block; width: 1.15rem; height: 1.15rem; border-radius: 2px; vertical-align: middle; }
+  .m.ok { background: var(--teal); }
+  .m.no { background: var(--brick); }
+  .m.na { border: 1px dashed var(--ink-3); }
+  .m:hover { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .sum td { background: var(--paper-2); }
+  .pn { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--rule); margin-top: 4rem; padding-top: 1rem; }
+  .pn a { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); }
+  .pn a b { font-family: var(--serif); }
+  .pn .nx { text-align: right; }
+</style>
