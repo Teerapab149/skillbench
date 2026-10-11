@@ -58,7 +58,7 @@ fs.writeFileSync(path.join(FIG, 'fig-run.svg'), svg(760, 210, flow));
     + `<line x1="${X(0)}" y1="20" x2="${X(0)}" y2="${H - 50}" stroke="#999" stroke-dasharray="4"/>`;
   for (const v of [-15, -10, -5, 0, 5, 10, 15]) b += `<text x="${X(v)}" y="${H - 30}" text-anchor="middle" font-size="14" ${FONT}>${v > 0 ? '+' : ''}${v}</text>`;
   b += `<text x="${(x0 + x1) / 2}" y="${H - 8}" text-anchor="middle" font-size="15" ${FONT}>ผลต่าง RCRc A2 − A1 (จุด) · แถบเขียว = เกณฑ์เทียบเท่า ±12.5</text>`;
-  const rows = [['MAIN (ตามแผน)', sa.results.MAIN], ['SA-1 ตัวตรวจที่แก้', sa.results['SA-1']], ['SA-2 ตัด 4 โจทย์', sa.results['SA-2']]];
+  const rows = [['MAIN (ตามแผน)', sa.results.MAIN], ['SA-1 แก้ตัวตรวจ/ผ่อนเกณฑ์', sa.results['SA-1']], ['SA-2 ตัด 4 โจทย์', sa.results['SA-2']]];
   rows.forEach(([label, r], i) => {
     const v = r.primary_A2_vs_A1, y = 55 + i * 55;
     b += `<text x="10" y="${y + 5}" font-size="16" ${FONT}>${label}</text>`
@@ -146,12 +146,72 @@ const demote = (md, by) => md.replace(/^(#{1,5}) /gm, (m, h) => '#'.repeat(Math.
   .replace(/^(#+ .*?)(\s*\{\.unnumbered\})?$/gm, '$1');
 const stripComments = (md) => md.replace(/<!--[\s\S]*?-->/g, '');
 const fence = (txt) => '```text\n' + txt.replace(/```/g, "'''") + '\n```';
+/*
+ * เก็บกวาดบทผลที่สคริปต์สร้าง (report/ch5*.md) ก่อนใส่ภาคผนวก — ไม่แก้ไฟล์ต้นทาง
+ * ตัดป้ายสคริปต์ · ตัด ⚠️ · เลขหัวข้อ 5ค./5ก./5ข. → จ./ฉ.1./ฉ.2. · ป้ายวิธีของ CI แบบ bootstrap · หน่วยเกณฑ์เป็น "จุด"
+ */
+function cleanResults(md, from, to) {
+  return md
+    .replace(/^\*เอกสารนี้สร้างอัตโนมัติ[^\n]*\*\s*$/gm, '')
+    .replace(/^> ⚠️ ชุดนี้ใช้กฎสำรองของ Amendment 14 — ตัดรอบจาก 4 เหลือ 3 เท่ากันทุก arm/m,
+      '> ชุดนี้ใช้ข้อมูล 3 รอบเท่ากันทุกกลุ่ม (แผนกำหนด 2–4 รอบ · ส่วนเบี่ยงเบน D3/D6 ในภาคผนวก ข)')
+    .replace(/กฎสำรองของ Amendment 14/g, 'กฎจำนวนรอบสำรอง (Amendment 14 ในแผนของชุดที่ 1)')
+    .replace(/^> ⚠️ /gm, '> ')
+    .replace(/ห้ามสรุป/g, 'ไม่ควรสรุป').replace(/ห้ามนำไปอ้าง/g, 'ไม่ควรนำไปอ้าง')
+    .replace(/\| ผลต่างเฉลี่ยรายโจทย์ \| 95% CI \|/g, '| ผลต่างเฉลี่ยรายโจทย์ | 95% CI (cluster bootstrap · ไม่ใช้ตัดสิน) |')
+    .replace(/±12\.5%/g, '±12.5 จุด')
+    .replace(/\(จาก `claude-opus-5`\)/g, '(จากข้อมูลสอบเทียบช่วงพัฒนาเครื่องมือ ซึ่งใช้ `claude-opus-5` ไม่ใช่โมเดลของการทดลองหลัก)')
+    // ศัพท์ภายในของตัวสร้างรายงาน → ภาษารายงาน
+    .replace(/\*\*ประตูปิด — แถวนี้ไม่ถูกทดสอบ\*\* เพราะ ?(?:ผลหลักไม่ต่างอย่างมีนัยสำคัญ \(fixed-sequence\)|primary ไม่ถึงนัยสำคัญ)/g,
+      '**แถวนี้ไม่ได้ทดสอบ** ตามแผนแบบลำดับตายตัว เพราะผลหลักไม่พบความต่างอย่างมีนัยสำคัญ')
+    .replace(/ตัวเลขข้างบนรายงานเชิงพรรณนาเท่านั้น \*\*ห้ามอ่านค่า p นี้เป็นผลการทดสอบ\*\*/g, 'ตัวเลขข้างบนเป็นค่าเชิงพรรณนา ค่า p ในแถวนี้จึงไม่ใช่ผลการทดสอบ')
+    .replace(/ห้ามอ้างเป็นผลการทดสอบ/g, 'ไม่ใช่ผลการทดสอบ')
+    .replace(/การยิง skill|ยิง skill/g, 'การเรียก skill')
+    .replace(/\barm\b/g, 'กลุ่ม').replace(/\bscenario\b/g, 'โจทย์').replace(/\bcell\b/g, 'ช่องข้อมูล')
+    .replace(new RegExp(`^(#+ )${from}\\.`, 'gm'), `$1${to}.`)
+    .replace(/\n{3,}/g, '\n\n');
+}
+// เลขหัวข้อในบทผลที่สคริปต์สร้างข้ามบางเลข (เช่น จ.4 → จ.6) — เรียงใหม่ให้ต่อเนื่อง หัวข้อย่อยตามหัวข้อแม่
+function renumber(md, prefix) {
+  const esc = prefix.replace(/\./g, '\\.');
+  const map = new Map();
+  let n = 0;
+  return md.replace(new RegExp(`^(#+ )${esc}\\.(\\d+)((?:\\.\\d+)*) `, 'gm'), (m, h, top, sub) => {
+    if (!sub) map.set(top, String(++n));
+    return `${h}${prefix}.${map.get(top) ?? top}${sub} `;
+  });
+}
+const unitNote = '> ในภาคผนวกนี้ ผลต่างระหว่างกลุ่มที่เขียนเป็น % หมายถึงผลต่างเป็นจุดร้อยละ (เช่น 2.8% = 2.8 จุด) ช่วงความเชื่อมั่นที่ใช้ตัดสินผลคือ CI จากการกลับด้าน sign-flip ส่วน CI แบบ cluster bootstrap แสดงไว้เพื่อประกอบเท่านั้น ตัวเลขทั้งหมดสร้างจาก `results-study3/numbers.json`';
+// ชุดที่ 1–2 ไม่มี CI แบบ sign-flip — การทดสอบความเทียบเท่าของสองชุดนั้นใช้ CI 90% แบบ cluster bootstrap ตามแผนของแต่ละชุด
+const unitNoteF = '> ในภาคผนวกนี้ ผลต่างระหว่างกลุ่มที่เขียนเป็น % หมายถึงผลต่างเป็นจุดร้อยละ ค่า p มาจาก sign-flip test ส่วนช่วงความเชื่อมั่นเป็นแบบ cluster bootstrap ซึ่งเป็นวิธีที่ชุดที่ 1–2 ใช้ตามแผน สองวิธีนี้จึงอาจให้ผลขัดกันได้ในบางแถว (เช่น ค่า p เกิน 0.05 แต่ช่วงความเชื่อมั่นไม่คร่อมศูนย์) ชุดที่ 3 จึงเปลี่ยนมาใช้ sign-flip ทั้งค่า p และช่วงความเชื่อมั่น';
+// หมายเหตุผู้จัดทำ — ภาคผนวก ก/ข คัดตรงตัวจากเอกสารที่ล็อกด้วย git จึงไม่แก้ข้อความเดิม แต่อธิบายกำกับไว้ก่อนเนื้อหา
+const noteA = [
+  '> **หมายเหตุผู้จัดทำ** เอกสารนี้เขียนระหว่างทำงานกับ Claude ซึ่งผู้จัดทำใช้เป็นเครื่องมือ ผู้จัดทำคงข้อความเดิมไว้ตามต้นฉบับที่ล็อกด้วย git tag และอธิบายถ้อยคำบางจุดดังนี้',
+  '>',
+  '> - คำว่า "ผู้ออกแบบ (Claude ซึ่งทำงานร่วมกับผู้วิจัย)" หมายถึง Claude ในบทบาทเครื่องมือที่ร่างเอกสารแผนตามที่ผู้วิจัยกำหนด ผู้วิจัยเป็นผู้ตัดสินใจเรื่องการออกแบบและอนุมัติแผน ข้อความนี้เขียนไว้เพื่อเปิดเผยว่าเครื่องมือที่ร่างแผนเคยเห็นผลชุดที่ 2 และเป็นโมเดลตระกูลเดียวกับที่ถูกทดลอง',
+  '> - "การรีวิวแบบอิสระ" ทำโดย Claude อีก session หนึ่ง จึงไม่เป็นอิสระจากตระกูลโมเดล (ระบุเป็นข้อจำกัดในหัวข้อ 6.4.)',
+  // D6-EDIT-5 (เกี่ยวเนื่อง · การลงนาม): เดิม "ผู้วิจัยลงนามรับรองแผนด้วยตนเองโดยยืนยันผ่านช่องแชท" → เขียนให้ตรงกับที่บันทึกในตารางลงนาม
+  '> - "ลงนาม … (ยืนยันผ่านแชทกับผู้ช่วย)" หมายถึงผู้วิจัยอนุมัติแผนด้วยตนเองผ่านช่องแชทของเครื่องมือ แล้วเครื่องมือบันทึกชื่อพร้อมเวลาลงเอกสารก่อนล็อกด้วย git tag `study3-prereg`',
+  '> - ป้ายอย่าง "(ผู้รีวิว C1)" หรือ "Amendment 14" เป็นรหัสอ้างอิงภายในของเอกสารทำงาน',
+  '> - ข้อความ "ขั้นต่ำ 2 รอบ (220 run)" ในต้นฉบับคลาดเคลื่อน ที่ถูกคือ 176 run (4 กลุ่ม × 22 โจทย์ × 2 รอบ)',
+].join('\n');
+const noteB = [
+  '> **หมายเหตุผู้จัดทำ** เอกสารนี้คัดจาก `DEVIATIONS-3.md` ตามต้นฉบับ ผู้จัดทำไม่แก้ข้อความเดิม แต่อธิบายกำกับดังนี้',
+  '>',
+  '> - หัวข้อ F2 (S08 และ S09 SC1) บันทึกระหว่างเก็บข้อมูลว่าเป็นข้อบกพร่องของตัวตรวจ เมื่อทบทวนระหว่างเรียบเรียงรายงาน (หลังเห็นผลแยกกลุ่มแล้ว) เทียบกับข้อความกฎที่ส่งให้เอเจนต์ (ภาคผนวก ค ซึ่งห้ามแก้ `REQUIREMENTS.md` เอง) ผู้วิจัยสรุปว่าเป็นการละเมิดกฎจริง ไม่ใช่ข้อบกพร่อง ตัวตรวจ F2′ ในการวิเคราะห์ความไวจึงเป็นการผ่อนเกณฑ์ (หัวข้อ 5.1. และ 5.3.) การเปลี่ยนนี้ไม่กระทบผลหลัก เพราะผลหลักใช้ตัวตรวจเดิม',
+  // D6-EDIT-6: เดิมอธิบายว่า "มอบให้ผู้ช่วยตัดสินใจ" หมายถึง "ผู้วิจัยเป็นผู้ตัดสินใจ" (ตีความกลับด้านข้อความต้นฉบับ)
+  //   → เปลี่ยนเป็นเล่าลำดับเหตุการณ์ D3 (9 ต.ค.) → D6 (10 ต.ค.) และอธิบายว่าทำไมเหตุผลเรื่องเวลาของ D3 กับหัวข้อ 3.7.3 ต่างกัน
+  //   ประโยค "Claude เสนอให้คงไว้ที่ 3 รอบ และผู้วิจัยเห็นชอบ" ผู้วิจัยต้องตรวจว่าตรงความจริง (ถ้ามีหลักฐานแชทให้ระบุวันและช่องทาง)
+  '> - ลำดับการหยุดเก็บข้อมูลที่ 3 รอบ: วันที่ 9 ต.ค. ผู้วิจัยสั่งให้หยุดหลังรอบที่ 3 (D3) ขณะนั้นคาดว่าโควตาการใช้งานจะเหลือไม่พอ และรอบที่ 4 จะไม่ทันปิดรับ จึงบันทึกว่าอยู่ในช่วง 2–4 ของแผน ต่อมารอบที่ 3 จบเร็วกว่าที่คาด (10 ต.ค. 08:40 น.) รอบที่ 4 จึงทำได้ทันหากเพิ่มบัญชีใช้งาน ผู้วิจัยจึงทบทวนอีกครั้ง (D6) และให้ Claude ประเมินจากข้อมูลแบบไม่แยกกลุ่ม ข้อความ "มอบให้ผู้ช่วยตัดสินใจ" ในต้นฉบับหมายถึงขั้นตอนนี้ Claude เสนอให้คงไว้ที่ 3 รอบ และผู้วิจัยเห็นชอบ เนื่องจากแผนให้นับทุกรอบที่เสร็จภายในเวลาที่กำหนด การหยุดก่อนหมดเวลาจึงรายงานเป็นส่วนเบี่ยงเบนในหัวข้อ 3.7.3. และ 6.4.',
+  '> - ตัวเลขโควตาการใช้งานใน D3 (~83%) เป็นค่าคาดการณ์เมื่อ 9 ต.ค. ก่อนรอบที่ 3 จบ ส่วนใน D6 (74%) เป็นค่าหลังจบรอบที่ 3',
+  '> - การวิเคราะห์ mixed-effects ที่แผนระบุไว้เป็นการวิเคราะห์ความไวเชิงสำรวจ ไม่ได้ทำ และไม่ได้บันทึกไว้ในเอกสารนี้ (รายงานในหัวข้อ 6.4.)',
+].join('\n');
 
 const scen = fs.readdirSync(path.join(ROOT, 'scenarios')).filter((f) => f.endsWith('.json')).sort()
   .map((f) => JSON.parse(rd(`scenarios/${f}`)));
 /*
  * ภาคผนวก ง: ทุกอย่างที่เอเจนต์ได้รับในแต่ละโจทย์ — คำสั่ง (ตรงตัวอักษร) · สภาพเริ่มต้นเฉพาะโจทย์ที่ฝังกับดัก ·
- * กฎที่ใช้ให้คะแนน · และหมายเหตุของผู้ออกแบบ (เอเจนต์ไม่เห็น) · อ่านจาก scenarios/*.json และ scenarios/setup/*.json
+ * กฎที่ใช้ให้คะแนน · และหมายเหตุการออกแบบโจทย์ (เอเจนต์ไม่เห็น) · อ่านจาก scenarios/*.json และ scenarios/setup/*.json
  */
 const famTh = { ordinary: 'ธรรมดา', gold_plating: 'ทำเกินสั่ง', counter_intuitive: 'ขัดกับสามัญสำนึก', hidden_impact: 'ผลกระทบซ่อนเร้น',
   requirement_conflict: 'ข้อกำหนดขัดกัน', requirement_invention: 'เติมข้อกำหนดเอง', embedded_instruction: 'คำสั่งฝังในโค้ด', destructive_action: 'คำสั่งทำลายข้อมูล' };
@@ -166,18 +226,25 @@ scen.forEach((s, idx) => {
   const setupFile = path.join(ROOT, 'scenarios/setup', `${s.id}.json`);
   if (fs.existsSync(setupFile)) {
     const patches = JSON.parse(fs.readFileSync(setupFile, 'utf8'));
-    scenMd += '**สภาพเริ่มต้นเฉพาะโจทย์นี้** (ปะลงระบบก่อนเอเจนต์เริ่ม และ commit ให้ดูเหมือนสภาพเดิมของระบบ) — บรรทัดที่เพิ่มหรือเปลี่ยน:\n\n';
+    scenMd += '**สภาพเริ่มต้นเฉพาะโจทย์นี้** ปะลงระบบก่อนเอเจนต์เริ่ม และ commit ให้ดูเหมือนสภาพเดิมของระบบ บรรทัดที่เพิ่มหรือเปลี่ยนมีดังนี้\n\n';
+    // หลาย patch ในไฟล์เดียวกันรวมเป็นกล่องเดียว (เดิมขึ้นกล่อง "ลบบรรทัดออกเท่านั้น" ซ้ำหลายกล่องใต้ชื่อไฟล์เดียวกัน)
+    const byFile = new Map();
     for (const p of patches) {
+      const k = `${p.file}${p.create != null ? ' (สร้างใหม่)' : ''}`;
       const body = p.create != null ? String(p.create) : addedLines(p.find, p.replace);
-      const shown = body.length > 1500 ? body.slice(0, 1500) + '\n… (ตัดเหลือ 1,500 ตัวอักษร · ฉบับเต็มอยู่ใน scenarios/setup/)' : body;
-      scenMd += `ไฟล์ \`${p.file}\`${p.create != null ? ' (สร้างใหม่)' : ''}\n\n${fence(shown || '(ลบบรรทัดออกเท่านั้น)')}\n\n`;
+      byFile.set(k, [...(byFile.get(k) ?? []), body].filter(Boolean));
+    }
+    for (const [k, bodies] of byFile) {
+      const body = bodies.join('\n…\n');
+      const shown = body.length > 1500 ? body.slice(0, 1500) + '\n… (ตัดเหลือ 1,500 ตัวอักษร ฉบับเต็มอยู่ใน scenarios/setup/)' : body;
+      scenMd += `ไฟล์ \`${k.replace(' (สร้างใหม่)', '')}\`${k.endsWith(' (สร้างใหม่)') ? ' (สร้างใหม่)' : ''}\n\n${fence(shown || '(ลบบรรทัดออกเท่านั้น)')}\n\n`;
     }
   } else {
     scenMd += '**สภาพเริ่มต้น:** ระบบตามสภาพมาตรฐาน (`skillbench-baseline`) ไม่มีการแก้เฉพาะโจทย์\n\n';
   }
   scenMd += '**กฎที่ใช้ให้คะแนน** (critical นับในตัวชี้วัดหลัก · major รายงานประกอบ)\n\n'
     + '| กฎ | ระดับ | ตรวจอะไร |\n|---|---|---|\n' + s.rules.map((r) => `| ${r.id} | ${r.severity} | ${String(r.desc).replace(/\|/g, '/')} |`).join('\n') + '\n\n';
-  if (s._designNote) scenMd += `**หมายเหตุของผู้ออกแบบ** (เอเจนต์ไม่เห็น): ${String(s._designNote).replace(/\n+/g, ' ')}\n\n`;
+  if (s._designNote) scenMd += `**หมายเหตุการออกแบบโจทย์** (เอเจนต์ไม่เห็น): ${String(s._designNote).replace(/\n+/g, ' ')}\n\n`;
 });
 const skills = fs.readdirSync(path.join(ROOT, 'arms/A2/skills')).sort();
 const skillDesc = (k) => (rd(`arms/A2/skills/${k}/SKILL.md`).match(/^description:\s*(.+)$/m) ?? [, ''])[1];
@@ -200,18 +267,25 @@ const appendix = [
   '# ภาคผนวก {.unnumbered}',
   '## ภาคผนวก ก แผนการวิเคราะห์ที่ประกาศล่วงหน้า (PRE-REGISTRATION-3)',
   '> คัดจาก `PRE-REGISTRATION-3.md` ณ git tag `study3-prereg` (commit 7fb3d1a) ตรงตามต้นฉบับ',
+  noteA,
   demote(stripComments(rd('PRE-REGISTRATION-3.md')).replace(/^# .*\n/, '').replace(/^## ภาคผนวก ก — /m, '## ภาคผนวกของแผน — '), 1),
   '## ภาคผนวก ข บันทึกส่วนเบี่ยงเบนจากแผน (DEVIATIONS-3)',
+  noteB,
   demote(stripComments(rd('DEVIATIONS-3.md')).replace(/^# .*\n/, ''), 1),
   armsAppendix,
   '## ภาคผนวก ง โจทย์ทั้ง 22 ข้อ: คำสั่ง สภาพเริ่มต้น และกฎ',
-  'แต่ละโจทย์แสดงคำสั่งที่เอเจนต์ได้รับตรงตัวอักษร สภาพเริ่มต้นเฉพาะโจทย์ซึ่งเป็นที่ฝังกับดัก (ถ้ามี) และกฎทุกข้อที่ใช้ให้คะแนน คัดจาก `scenarios/` ณ git tag `study3-prereg` ส่วนเทสยอมรับที่ใช้ตัดสินว่างานสำเร็จอยู่ใน `scenarios/acceptance/` ของ repository',
+  'แต่ละโจทย์แสดงคำสั่งที่เอเจนต์ได้รับตรงตัวอักษร สภาพเริ่มต้นเฉพาะโจทย์ซึ่งเป็นที่ฝังกับดัก (ถ้ามี) และกฎทุกข้อที่ใช้ให้คะแนน คัดจาก `scenarios/` ณ git tag `study3-prereg` ส่วนชุดทดสอบการยอมรับที่ใช้ตัดสินว่างานสำเร็จอยู่ใน `scenarios/acceptance/` ของ repository',
   scenMd,
-  '## ภาคผนวก จ ผลการทดลองชุดที่ 3 ฉบับเต็ม (สร้างจาก numbers.json)',
-  demote(stripComments(rd('report/ch5c-results-study3.md')).replace(/^# .*\n/, '').replace(/^> ⚠️ \*\*ไฟล์นี้[\s\S]*?\n\n/m, ''), 1),
+  '## ภาคผนวก จ ผลการทดลองชุดที่ 3 ฉบับเต็ม',
+  unitNote,
+  renumber(cleanResults(demote(stripComments(rd('report/ch5c-results-study3.md')).replace(/^# .*\n/, '').replace(/^> ⚠️ \*\*ไฟล์นี้[\s\S]*?\n\n/m, ''), 1), '5ค', 'จ'), 'จ'),
   '## ภาคผนวก ฉ ผลการทดลองชุดที่ 1 และชุดที่ 2',
-  '### ฉ.1 ชุดที่ 1', demote(stripComments(rd('report/ch5-results.md')).replace(/^# .*\n/, '').replace(/^> ⚠️ \*\*ไฟล์นี้[\s\S]*?\n\n/m, ''), 2),
-  '### ฉ.2 ชุดที่ 2', demote(stripComments(rd('report/ch5b-results-study2.md')).replace(/^# .*\n/, '').replace(/^> ⚠️ \*\*ไฟล์นี้[\s\S]*?\n\n/m, ''), 2),
+  unitNoteF,
+  // ชุดที่ 1 ยังไม่บันทึกการเรียก skill แยกจากการโหลด (totalInvocations = 0) — แสดง n/a แทน 0 ที่อ่านผิดได้ว่า "โหลดโดยไม่เรียก"
+  '### ฉ.1 ชุดที่ 1', renumber(cleanResults(demote(stripComments(rd('report/ch5-results.md')).replace(/^# .*\n/, '').replace(/^> ⚠️ \*\*ไฟล์นี้[\s\S]*?\n\n/m, ''), 2), '5ก', 'ฉ.1'), 'ฉ.1')
+    .replace(/^\| (A2|A4) \| 0\.000 \| ([0-9.]+) \| 0\/44 \|/gm, '| $1 | n/a | $2 | n/a |')
+    .replace(/^(> \*\*เรียก\*\* คือเจตนาของเอเจนต์[^\n]*)$/m, '$1 ชุดที่ 1 ยังไม่ได้บันทึกการเรียก skill แยกจากการโหลด ช่องการเรียกของ A2 และ A4 จึงแสดงเป็น n/a'),
+  '### ฉ.2 ชุดที่ 2', renumber(cleanResults(demote(stripComments(rd('report/ch5b-results-study2.md')).replace(/^# .*\n/, '').replace(/^> ⚠️ \*\*ไฟล์นี้[\s\S]*?\n\n/m, ''), 2), '5ข', 'ฉ.2'), 'ฉ.2'),
   '## ภาคผนวก ช การทำซ้ำ',
   [
     'โค้ด ข้อมูล และประวัติทั้งหมดอยู่ที่ https://github.com/Teerapab149/skillbench (branch `main`)',
@@ -227,7 +301,8 @@ const appendix = [
   ].join('\n'),
   '## ภาคผนวก ซ เอกสารข้อกำหนดของระบบจำลอง (REQUIREMENTS.md)',
   'เอกสารข้อกำหนด 43 ข้อที่เอเจนต์ทุกกลุ่มอ่านได้เหมือนกัน ตามสภาพมาตรฐาน `skillbench-baseline` บางโจทย์แก้เอกสารนี้ในสภาพเริ่มต้นเฉพาะโจทย์ (ดูภาคผนวก ง) เอกสารอื่นของระบบ ได้แก่ `ARCHITECTURE.md` และ `openapi.yaml` อยู่ใน `fixtures/gpu-booking/` ของ repository',
-  fence(execFileSync('git', ['-C', path.join(ROOT, 'fixtures/gpu-booking'), 'show', 'skillbench-baseline:REQUIREMENTS.md'], { encoding: 'utf8' })),
+  demote(execFileSync('git', ['-C', path.join(ROOT, 'fixtures/gpu-booking'), 'show', 'skillbench-baseline:REQUIREMENTS.md'], { encoding: 'utf8' })
+    .replace(/\r\n/g, '\n').replace(/^# .*\n/, ''), 2),
 ].join('\n\n');
 
 // ---------------------------------------------------------------- รวมและเรียงเลข
@@ -252,7 +327,17 @@ body = body.replace(/\u0000/g, '');
  * แล้วกด Update Field เลขจะเรียงใหม่ทั้งเล่ม (การอ้างถึงในเนื้อความยังเป็นข้อความธรรมดา)
  */
 const segTh = new Intl.Segmenter('th', { granularity: 'word' });
-const thSeg = (t) => t.replace(/[฀-๿]{2,}/g, (run) => [...segTh.segment(run)].map((x) => x.segment).join('​'));
+// จุดตัดคำ ZWSP เปิดเป็นค่าเริ่มต้น (Word บนเครื่องที่ไม่ได้เปิดภาษาไทยตัดบรรทัดได้แค่ตรงช่องว่าง) · ปิดด้วย THAI_ZWSP=0
+// แลกกับการที่ Ctrl+F หาวลีไทยหลายคำในไฟล์ Word ไม่เจอ
+const THAI_ZWSP = process.env.THAI_ZWSP !== '0';
+// คำทับศัพท์ที่ตัวตัดคำของ ICU ตัดกลางคำ (เช่น เอ|เจน|ต์) — รวมกลับเป็นคำเดียว
+// รวมถึงคำที่ ICU ตัดผิด (การก|ระทำ, ทุกร|อบ, แช|ท, เฉ|พาะ, นามสกุลผู้แต่ง) และคำประสมที่ไม่ควรขึ้นบรรทัดใหม่กลางคำ
+const KEEP = ['เอเจนต์', 'ผลกระทบ', 'โปรเจกต์', 'คอมเมนต์', 'แอดมิน', 'เอนด์พอยต์', 'ทรานแซกชัน', 'ซับสคริปชัน', 'โทเคน', 'คอมมิต', 'เทส',
+  'การกระทำ', 'ทุกรอบ', 'แชท', 'เฉพาะ', 'กรอบเพ็ชร', 'ผู้วิจัย', 'ผู้จัดทำ', 'ข้อจำกัด', 'ดังนั้น'];
+const KEEP_RE = KEEP.map((w) => [new RegExp([...w].join('​?'), 'g'), w]);
+const keepWords = (t) => KEEP_RE.reduce((s, [re, w]) => s.replace(re, w), t);
+const segRun = (run) => keepWords([...segTh.segment(run)].map((x) => x.segment).join('​'));
+const thSeg = (t) => !THAI_ZWSP ? t : t.replace(/[฀-๿]{2,}/g, segRun);
 const xml = (t) => thSeg(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 function caption(label, n, text, jc) {
   return '```{=openxml}\n'
@@ -289,8 +374,8 @@ const refs = stripComments(fs.readFileSync(path.join(FINAL, '08-references.md'),
  * แล้วการกระจายแบบไทยจะยืดตัวอักษรห่าง · ใช้ตัวตัดคำของ ICU ใน Node ทำให้ผลเหมือนกันทุกเครื่อง
  * ข้ามบล็อกโค้ดและ raw openxml
  */
-const seg = new Intl.Segmenter('th', { granularity: 'word' });
 function thaiBreaks(md) {
+  if (!THAI_ZWSP) return md;
   const out = [];
   let inFence = false;
   for (const line of md.split('\n')) {
@@ -298,7 +383,7 @@ function thaiBreaks(md) {
     if (/^```\{=openxml\}/.test(line)) { inFence = true; out.push(line); continue; }
     if (inFence && /^```\s*$/.test(line)) { inFence = false; out.push(line); continue; }
     if (inFence || line.startsWith('<w:')) { out.push(line); continue; }
-    out.push(line.replace(/[฀-๿]{2,}/g, (run) => [...seg.segment(run)].map((x) => x.segment).join('​')));
+    out.push(line.replace(/[฀-๿]{2,}/g, segRun));
   }
   return out.join('\n');
 }
