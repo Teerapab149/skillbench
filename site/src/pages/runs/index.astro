@@ -73,6 +73,7 @@ const total = studies.reduce((s, st) => s + st.usable, 0);
   .cell.fail { background-image: linear-gradient(to top right, transparent 45%, #fdfdfb 45%, #fdfdfb 55%, transparent 55%); }
   .cell.demo { display: inline-block; width: 1rem; height: 1rem; background-color: var(--brick); margin-left: 1rem; cursor: default; }
   .cell:hover { transform: scale(1.18); }
+  @media (max-width: 640px) { .cell { width: 1.15rem; height: 1.15rem; } .reg { border-spacing: 2px; } .reg td.first { padding-left: 0.35rem; } .reg .as { display: none; } }
   .cell.on { outline: 2.5px solid var(--ink); outline-offset: 1px; }
   .panel { border-top: 2px solid var(--ink); padding-top: 1rem; min-width: 0; }
   .pt { font-family: var(--serif); font-weight: 600; font-size: 1.15rem; margin: 0 0 0.25rem; }

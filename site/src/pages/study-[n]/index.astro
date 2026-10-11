@@ -79,7 +79,7 @@ const nf = () => ++fig;
             <tbody>
               <tr class={isS3 ? 'hl' : ''}>
                 <td class="r">{pct(p.rateA)}%</td><td class="r">{pct(p.rateB)}%</td><td class="r"><b>{pts(p.diff)} จุด</b></td>
-                <td>[{pts(st.ci95[0])}, {pts(st.ci95[1])}]</td>{st.ci90 && <td>[{pts(st.ci90[0])}, {pts(st.ci90[1])}]</td>}
+                <td class="nw">[{pts(st.ci95[0])}, {pts(st.ci95[1])}]</td>{st.ci90 && <td class="nw">[{pts(st.ci90[0])}, {pts(st.ci90[1])}]</td>}
                 <td class="r">{p.wins} / {p.losses} / {p.ties}</td><td class="r">{fmtP(p.p)}</td><td><b>{st.verdict}</b></td>
               </tr>
             </tbody>

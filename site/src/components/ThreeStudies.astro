@@ -9,6 +9,8 @@ const W = 1000, padL = 250, padR = 150, lo = -0.3, hi = 0.3;
 const X = (v: number) => padL + ((v - lo) / (hi - lo)) * (W - padL - padR);
 const rowH = 96, top = 30, H = top + studies.length * rowH + 50;
 const margin = studies[2].primary.decision.margin as number;
+// ผังแนวตั้งสำหรับจอแคบ: ป้ายอยู่เหนือเส้น แกนกว้างเต็มจอ ตัวหนังสือไม่ถูกย่อจนอ่านไม่ออก
+const N = { W: 360, rowH: 84, H: 10 + 3 * 84 + 34, X: (v: number) => 14 + ((v - lo) / (hi - lo)) * 332 };
 ---
 <figure class="fig-wide three">
   <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="ผลหลักของการทดลองสามชุด ชุดที่ 1 และ 2 สรุปไม่ได้ ชุดที่ 3 เทียบเท่า">
@@ -34,10 +36,34 @@ const margin = studies[2].primary.decision.margin as number;
       <text x={X(t / 100)} y={H - 18} text-anchor="middle" class="t-tick">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>
     ))}
   </svg>
+  <svg class="narrow" viewBox={`0 0 ${N.W} ${N.H}`} role="img" aria-label="ผลหลักของการทดลองสามชุด ชุดที่ 1 และ 2 สรุปไม่ได้ ชุดที่ 3 เทียบเท่า">
+    <line x1={N.X(0)} x2={N.X(0)} y1="8" y2={N.H - 30} stroke="var(--ink-3)" stroke-dasharray="3 4" />
+    {studies.map((st, i) => {
+      const y = 10 + i * N.rowH;
+      const last = i === studies.length - 1;
+      return (
+        <a href={`${base}study-${st.n}/`}>
+          {last && <rect x={N.X(-margin)} y={y + 30} width={N.X(margin) - N.X(-margin)} height="26" fill="var(--teal-wash)" />}
+          <text x="4" y={y + 18} class="n-lab">ชุดที่ {st.n} <tspan class="n-sub">{st.metricName}</tspan></text>
+          <text x={N.W - 4} y={y + 18} text-anchor="end" class={`n-ver ${last ? 'ok' : ''}`}>{st.verdict}</text>
+          <line x1={N.X(st.ci95[0])} x2={N.X(st.ci95[1])} y1={y + 43} y2={y + 43} stroke="var(--ink)" stroke-width="2.5" />
+          <rect x={N.X(st.primary.diff) - 6} y={y + 37} width="12" height="12" fill={last ? 'var(--teal)' : 'var(--paper)'} stroke="var(--ink)" stroke-width="1.5" />
+          <text x={N.W - 4} y={y + 70} text-anchor="end" class="n-sub">{pts(st.primary.diff)} จุด, p = {fmtP(st.primary.p)}</text>
+        </a>
+      );
+    })}
+    {[-30, -15, 0, 15, 30].map((t) => <text x={N.X(t / 100)} y={N.H - 10} text-anchor="middle" class="n-sub">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>)}
+  </svg>
   <figcaption><b>รูปที่ {n}</b> ผลต่าง A2 ลบ A1 ของการทดลองแต่ละชุด สี่เหลี่ยมคือค่าประมาณ เส้นคือช่วงความเชื่อมั่น 95% แถบเขียวในชุดที่ 3 คือเกณฑ์เทียบเท่า ±{(margin * 100).toFixed(1)} จุดที่ประกาศไว้ก่อนเก็บข้อมูล ทั้งสามชุดชี้ไปทาง Skills เล็กน้อย แต่แต่ละชุดใช้ตัวชี้วัดและชุดโจทย์ต่างกัน จึงเทียบขนาดของตัวเลขข้ามชุดกันตรง ๆ ไม่ได้ คลิกแต่ละแถวเพื่อเปิดหน้าของชุดนั้น</figcaption>
 </figure>
 <style>
   .three svg { width: 100%; font-family: var(--sans); overflow: visible; }
+  .three svg.narrow { display: none; }
+  @media (max-width: 640px) { .three svg:not(.narrow) { display: none; } .three svg.narrow { display: block; } }
+  .n-lab { font-size: 16px; font-family: var(--serif); font-weight: 600; fill: var(--ink); }
+  .n-sub { font-size: 12.5px; fill: var(--ink-3); font-family: var(--sans); font-weight: 400; }
+  .n-ver { font-size: 15px; font-family: var(--serif); font-weight: 600; fill: var(--ink-2); }
+  .n-ver.ok { fill: var(--teal); }
   .t-lab { font-size: 26px; font-family: var(--serif); font-weight: 600; fill: var(--ink); }
   .t-sub { font-size: 18px; fill: var(--ink-3); }
   .t-ver { font-size: 22px; font-family: var(--serif); font-weight: 600; fill: var(--ink-2); }

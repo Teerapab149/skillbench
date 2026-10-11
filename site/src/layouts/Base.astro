@@ -41,6 +41,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <nav class="nav" aria-label="หัวข้อหลัก">
       {nav.map(([href, label]) => <a href={base + href} aria-current={current === href ? 'page' : undefined}>{label}</a>)}
     </nav>
+    <details class="mnav">
+      <summary>{nav.find(([h]) => h === current)?.[1] ?? 'เมนู'}<span class="mnav-ico" aria-hidden="true"></span></summary>
+      <nav aria-label="หัวข้อหลัก">
+        {nav.map(([href, label]) => <a href={base + href} aria-current={current === href ? 'page' : undefined}>{label}</a>)}
+      </nav>
+    </details>
   </div>
 </header>
 <main id="main" class="page">

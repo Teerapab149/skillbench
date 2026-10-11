@@ -113,14 +113,16 @@ figcaption { font-size: 0.95rem; color: var(--ink-2); margin-top: 0.75rem; line-
 figcaption b { font-family: var(--serif); color: var(--ink); }
 .fig-wide { max-width: var(--wide); }
 
-.tbl-wrap { overflow-x: auto; margin: 1.75rem 0; position: relative; }
+.tbl-wrap { overflow-x: auto; margin: 1.75rem 0; position: relative; container-type: inline-size; }
 table.bt { border-collapse: collapse; width: 100%; font-size: 1rem; }
 table.bt caption { caption-side: top; text-align: left; font-size: 0.95rem; color: var(--ink-2); padding-bottom: 0.6rem; }
+table.bt caption { position: sticky; left: 0; max-width: 100cqw; box-sizing: border-box; }
+table.bt .nw { white-space: nowrap; }
 table.bt caption b { font-family: var(--serif); color: var(--ink); }
 table.bt thead th { border-top: 2px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); font-weight: 600; text-align: left; padding: 0.55rem 0.75rem; font-size: 0.94rem; vertical-align: bottom; }
 table.bt tbody td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
 table.bt tbody tr:last-child td { border-bottom: 2px solid var(--rule-strong); }
-table.bt .r { text-align: right; }
+table.bt .r { text-align: right; white-space: nowrap; }
 table.bt tr.hl td { background: var(--teal-wash); }
 table.bt tr.hl-x td { background: var(--brick-wash); }
 .arm { display: inline-flex; align-items: center; gap: 0.4em; white-space: nowrap; }
@@ -185,3 +187,26 @@ table.bt tr.hl-x td { background: var(--brick-wash); }
 .doc, .aside, .side, .reqs, .sheet-body { overflow-wrap: anywhere; }
 .doc :is(pre, table) { overflow-wrap: normal; }
 article, section { min-width: 0; }
+
+/* ---------- เมนูบนมือถือ: ปุ่มเดียว เปิดเป็นรายการเต็มความกว้าง ---------- */
+.mnav { display: none; margin-left: auto; position: static; }
+.mnav summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.85rem; border: 1px solid var(--rule); border-radius: 4px; font-size: 0.98rem; color: var(--ink); background: var(--paper); min-height: 44px; }
+.mnav summary::-webkit-details-marker { display: none; }
+.mnav-ico { width: 14px; height: 10px; background: linear-gradient(var(--ink), var(--ink)) 0 0 / 100% 2px no-repeat, linear-gradient(var(--ink), var(--ink)) 0 50% / 100% 2px no-repeat, linear-gradient(var(--ink), var(--ink)) 0 100% / 100% 2px no-repeat; }
+.mnav[open] summary { border-color: var(--ink); }
+.mnav nav { position: absolute; left: 0; right: 0; top: 100%; background: var(--paper); border-bottom: 2px solid var(--ink); box-shadow: 0 12px 24px -12px rgba(22, 27, 38, 0.25); display: flex; flex-direction: column; padding: 0.25rem 1.25rem 0.75rem; }
+.mnav nav a { padding: 0.8rem 0; border-bottom: 1px solid var(--rule); color: var(--ink); text-decoration: none; font-size: 1.05rem; }
+.mnav nav a:last-child { border-bottom: 0; }
+.mnav nav a[aria-current='page'] { color: var(--teal); font-weight: 600; }
+@media (max-width: 860px) {
+  .nav { display: none; }
+  .mnav { display: block; }
+  .masthead-in { position: relative; }
+}
+/* ช่องเล็กในทะเบียนให้พอดีจอโทรศัพท์ */
+@media (max-width: 640px) {
+  body { font-size: 1.06rem; }
+  h2 { margin-top: 3.25rem; }
+  table.bt { font-size: 0.94rem; }
+  table.bt thead th, table.bt tbody td { padding: 0.5rem 0.5rem; }
+}
