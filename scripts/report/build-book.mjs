@@ -168,6 +168,13 @@ function cleanResults(md, from, to) {
     .replace(/ห้ามอ้างเป็นผลการทดสอบ/g, 'ไม่ใช่ผลการทดสอบ')
     .replace(/การยิง skill|ยิง skill/g, 'การเรียก skill')
     .replace(/\barm\b/g, 'กลุ่ม').replace(/\bscenario\b/g, 'โจทย์').replace(/\bcell\b/g, 'ช่องข้อมูล')
+    // ศัพท์อังกฤษและเครื่องหมายแบบเอกสารทำงานที่ยังหลงเหลือ → ภาษารายงาน (ไม่แตะโค้ดใน backtick)
+    .replace(/ \(primary endpoint\)/g, '')
+    .replace(/sensitivity ให้ผลเหมือน primary ทุกประการ/g, 'การวิเคราะห์ความไวให้ผลเหมือนผลหลักทุกประการ')
+    .replace(/(?<![`._\w])primary(?![`._\w])/g, 'ผลหลัก')
+    .replace(/(?<![`._\w])sensitivity(?![`._\w])/g, 'การวิเคราะห์ความไว')
+    .replace(/(?<=\S) · (?=\S)/g, ' ')
+    .replace(/(?<=\S) — (?=\S)/g, ' ')
     .replace(new RegExp(`^(#+ )${from}\\.`, 'gm'), `$1${to}.`)
     .replace(/\n{3,}/g, '\n\n');
 }
