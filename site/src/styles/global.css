@@ -26,6 +26,8 @@
   --a1: #2f4f86;
   --a2: #0b6e69;
   --a5: #b7791f;
+  --a3: #7a5c99;
+  --a4: #a8506f;
   --serif: 'Noto Serif Thai', 'Sarabun', serif;
   --sans: 'Sarabun', 'Noto Serif Thai', sans-serif;
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -34,7 +36,8 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; scroll-padding-top: 5rem; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 5rem; overflow-x: clip; }
+body { overflow-x: clip; }
 body {
   margin: 0;
   background: var(--paper);
@@ -122,7 +125,7 @@ table.bt tr.hl td { background: var(--teal-wash); }
 table.bt tr.hl-x td { background: var(--brick-wash); }
 .arm { display: inline-flex; align-items: center; gap: 0.4em; white-space: nowrap; }
 .arm::before { content: ''; width: 0.62em; height: 0.62em; border-radius: 50%; background: var(--c, var(--ink-3)); }
-.arm-A0 { --c: var(--a0); } .arm-A1 { --c: var(--a1); } .arm-A2 { --c: var(--a2); } .arm-A5 { --c: var(--a5); }
+.arm-A0 { --c: var(--a0); } .arm-A1 { --c: var(--a1); } .arm-A2 { --c: var(--a2); } .arm-A3 { --c: var(--a3); } .arm-A4 { --c: var(--a4); } .arm-A5 { --c: var(--a5); }
 
 .flag { display: inline-block; font-size: 0.82rem; font-weight: 600; color: var(--brick); border-bottom: 1px dashed var(--brick); line-height: 1.4; }
 .qual { color: var(--brick); }

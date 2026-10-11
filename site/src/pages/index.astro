@@ -1,151 +1,250 @@
 ---
 import Base from '../layouts/Base.astro';
-import Toc from '../components/Toc.astro';
 import ThreeStudies from '../components/ThreeStudies.astro';
-import { studies, s3, scenarios, pct, pts, fmtP } from '../lib/data';
+import RunField from '../components/RunField.astro';
+import { studies, s3, scenarios, arms, pct, pts, fmtP } from '../lib/data';
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const p = s3.primary;
 const d = p.decision;
 const s09 = scenarios.find((s) => s.code === 'S09')!;
 const totalRuns = studies.reduce((s, st) => s + st.usable, 0);
-const toc: [string, string][] = [
-  ['answer', 'คำตอบโดยย่อ'],
-  ['problem', 'ปัญหา'],
-  ['two-ways', 'สองวิธีบอกกฎ'],
-  ['studies', 'การทดลองสามชุด'],
-  ['final', 'ผลสุดท้าย'],
-  ['contrib', 'สิ่งที่งานนี้ให้ไว้'],
-  ['explore', 'สำรวจข้อมูล'],
-];
+const allArms = new Set(studies.flatMap((st) => st.armIds)).size;
+const outcomes = ['ต่างกัน', 'เทียบเท่า', 'สรุปไม่ได้'];
+// อัตราในโจทย์ S09 มาจากคำสั่งจริง (20 → 25 บาท) ส่วนจำนวนชั่วโมงเป็นตัวอย่าง
+const [, rateFrom, rateTo] = (s09.prompt.match(/(\d+)\s*บาทเป็น\s*(\d+)/) ?? ['', '20', '25']).map(Number);
+const hours = 10;
+// ข้อความจริงจากไฟล์กฎ
+const a1 = arms.find((a) => a.id === 'A1')!.files[0];
+const a1Lines = a1.body.split(/\r?\n/).filter((l) => l.trim()).slice(0, 6);
+const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'impact-analysis')!;
 ---
 <Base title="SkillBench เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม" current="">
-  <header class="hero col reveal">
-    <h1>เขียนกฎให้ AI แบบไหน <br />AI ถึงจะทำตาม</h1>
-    <p class="q">เราทดลองว่าการบอกกฎให้เอเจนต์เขียนโค้ดแบบ <b>Agent Skills</b> ทำให้เอเจนต์ทำตามกฎต่างจากการเขียนกฎไว้ใน<b>ไฟล์เดียว</b>หรือไม่ ทดลองสามชุด รวม {totalRuns} run</p>
-    <p class="byline"><strong>ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์</strong><br />อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด<br />รายวิชา 477-401 สัมมนาระบบสารสนเทศทางธุรกิจ มหาวิทยาลัยสงขลานครินทร์</p>
-  </header>
-
-  <div class="article-grid">
-    <Toc items={toc} />
-    <article>
-      <section id="answer" class="col">
-        <h2 class="h-first">คำตอบโดยย่อ</h2>
-        <p class="answer">สองแบบให้ผล<span class="verdict">เทียบเท่า</span>กันตามเกณฑ์ที่ประกาศไว้ล่วงหน้า และ Skills ไม่ด้อยกว่าไฟล์เดียว แต่การ<b>มีกฎ</b>สำคัญกว่ารูปแบบของกฎ</p>
-        <p>ได้คำตอบนี้ในการทดลองชุดที่ 3 สองชุดแรกให้ผลไปทางเดียวกันแต่สรุปไม่ได้ และแต่ละครั้งเผยข้อบกพร่องของเครื่องมือวัดที่ต้องแก้ก่อน</p>
-      </section>
-
-      <ThreeStudies n={1} />
-
-      <section id="problem" class="col">
-        <h2>ปัญหา</h2>
-        <p class="lede">AI เขียนโค้ดเก่งขึ้นมาก ปัญหาที่ทีมพัฒนาเจอจริงไม่ใช่ว่ามันเขียนไม่เป็น แต่คือมันทำสิ่งที่ไม่ได้สั่งโดยไม่บอก</p>
-        <p>ตัวอย่างจากโจทย์ {s09.code} ในงานนี้ ผู้ใช้สั่งว่า <q>{s09.prompt}</q> การแก้ตัวเลขนี้ดูปลอดภัยที่สุด แต่ระบบคำนวณใบแจ้งหนี้ใหม่จากประวัติการใช้งานทุกครั้งที่เรียกดู ใบแจ้งหนี้ของเดือนที่ออกไปแล้วจึงแพงขึ้นตามทันที โดยไม่มี error และเทสเดิมยังผ่านหมด</p>
-        <p>ทีมจึงต้องบอกกฎให้ AI เช่น แก้เฉพาะที่สั่ง ห้ามแก้ไฟล์ข้อมูล และต้องวัดผลกระทบก่อนแก้ส่วนที่คิดเงิน การเตรียมข้อมูลที่ AI จะเห็นแบบนี้เรียกว่า <em>Context Engineering</em></p>
-      </section>
-
-      <section id="two-ways" class="col">
-        <h2>สองวิธีบอกกฎ</h2>
-        <div class="two">
-          <div>
-            <h3>ไฟล์เดียว</h3>
-            <p>เขียนกฎทุกข้อไว้ในไฟล์อย่าง <code>CLAUDE.md</code> ซึ่งถูกโหลดเข้าบริบททุกครั้งที่ AI เริ่มงาน ง่าย และเป็นวิธีที่ใช้กันมากที่สุด</p>
-          </div>
-          <div>
-            <h3>Agent Skills</h3>
-            <p>แยกกฎเป็นชุดย่อย แต่ละชุดมีคำอธิบายสั้นว่าใช้เมื่อใด AI เห็นแค่คำอธิบายตอนเริ่มงาน และเปิดเนื้อหาเต็มเมื่องานตรงกับคำอธิบาย</p>
-          </div>
+  <section class="hero">
+    <div class="hero-in">
+      <div class="hero-text">
+        <h1>เขียนกฎให้ AI แบบไหน <br />AI ถึงจะทำตาม</h1>
+        <p class="hero-lede">งานวิจัยที่ปล่อยเอเจนต์เขียนโค้ดทำงานจริง {totalRuns} ครั้ง ในการทดลองสามชุด เพื่อตอบว่า <b>Agent Skills</b> ทำให้เอเจนต์ทำตามกฎต่างจาก<b>ไฟล์กฎไฟล์เดียว</b>หรือไม่</p>
+        <div class="hero-cta">
+          <a class="btn" href="#answer">อ่านคำตอบ</a>
+          <a class="btn ghost" href={`${base}study-3/`}>ผลชุดสุดท้าย</a>
         </div>
-        <p>แนวคิดของ Skills คือกฎที่ไม่เกี่ยวไม่ควรรกบริบท AI จึงน่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น ฟังมีเหตุผล แต่เท่าที่ผู้วิจัยค้นถึงเดือนตุลาคม 2569 ยังไม่มีงานที่วัดเทียบสองแบบนี้ตรง ๆ เมื่อข้อผูกพันของกฎเท่ากัน งานนี้จึงสร้างระบบวัดผลชื่อ SkillBench ขึ้นมาวัด</p>
-        <p><a href={`${base}arms/`}>ดูข้อความกฎจริงที่ส่งให้ AI ทุกกลุ่ม</a></p>
-      </section>
+        <p class="hero-by">ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ <span>อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด</span><span>สัมมนาระบบสารสนเทศทางธุรกิจ มหาวิทยาลัยสงขลานครินทร์</span></p>
+      </div>
+      <div class="hero-field">
+        <RunField />
+        <p class="field-note">แต่ละช่องคือหนึ่ง run สีเขียวคือทำตามกฎได้ครบ สีส้มคือพลาด คลิกช่องใดก็ได้เพื่อดูว่า AI ทำอะไรใน run นั้น</p>
+      </div>
+    </div>
+  </section>
 
-      <section id="studies" class="wide">
-        <div class="col">
-          <h2>การทดลองสามชุด</h2>
-          <p>ทั้งสามชุดใช้เอเจนต์ Claude Code กับโมเดล <span class="mono">{s3.model}</span> บนระบบจองเครื่อง GPU ที่ผู้วิจัยสร้างขึ้น ให้คะแนนด้วยโปรแกรมจากร่องรอยการทำงานจริง ไม่มีคนหรือ AI ตัวอื่นตัดสิน และประกาศแผนวิเคราะห์ไว้ก่อนเก็บข้อมูลทุกครั้ง</p>
-        </div>
-        <ol class="timeline">
-          {studies.map((st) => (
-            <li class={st.n === 3 ? 'last' : ''}>
-              <div class="tl-n">ชุดที่ {st.n}</div>
-              <div class="tl-body">
-                <h3><a href={`${base}study-${st.n}/`}>{st.role}</a></h3>
-                <p>{st.summary}</p>
-                <dl>
-                  <dt>กลุ่ม</dt><dd>{st.armIds.map((a, i) => <>{i ? ', ' : ''}<span class={`arm arm-${a}`}>{a}</span></>)}</dd>
-                  <dt>ขนาด</dt><dd>{st.k} โจทย์ × {st.reps} รอบ = {st.usable} run</dd>
-                  <dt>ตัวชี้วัด</dt><dd>{st.metricName}</dd>
-                  <dt>ผล A2 − A1</dt><dd>{pts(st.primary.diff)} จุด, p = {fmtP(st.primary.p)}, <b>{st.verdict}</b></dd>
-                </dl>
-                {st.changed && <p class="tl-next"><b>นำไปสู่ชุดถัดไป</b> {st.changed}</p>}
-                <p><a href={`${base}study-${st.n}/`}>อ่านรายละเอียดชุดที่ {st.n}</a></p>
-              </div>
-            </li>
+  <section class="facts-line">
+    <p><b>{studies.length}</b> ชุดการทดลอง <b>{totalRuns}</b> run <b>{scenarios.length}</b> โจทย์ที่มีกับดัก <b>{allArms}</b> กลุ่มทดลอง ให้คะแนนด้วยโปรแกรมทั้งหมด ไม่มีคนหรือ AI ตัดสิน</p>
+  </section>
+
+  <section id="answer" class="band">
+    <h2>คำตอบ</h2>
+    <p class="answer">Skills กับไฟล์เดียวให้ผล<span class="verdict">เทียบเท่า</span>กันตามเกณฑ์ที่ประกาศไว้ล่วงหน้า แต่การ<b>มีกฎ</b>สำคัญกว่ารูปแบบของกฎ</p>
+    <p class="answer-sub">กว่าจะได้คำตอบนี้ต้องทดลองสามครั้ง ก่อนเก็บข้อมูลแต่ละชุด ผู้วิจัยประกาศไว้ว่าผลออกได้สามทาง ตารางนี้คือสิ่งที่เกิดขึ้นจริง</p>
+    <div class="vm" role="table" aria-label="ผลที่เป็นไปได้และผลที่เกิดจริงของแต่ละชุด">
+      <div class="vm-row head" role="row"><span role="columnheader"></span>{outcomes.map((o) => <span role="columnheader">{o}</span>)}</div>
+      {studies.map((st) => (
+        <a class="vm-row" role="row" href={`${base}study-${st.n}/`}>
+          <span role="rowheader" class="vm-st"><b>ชุดที่ {st.n}</b><small>{st.metricName}, {st.usable} run</small></span>
+          {outcomes.map((o) => (
+            <span role="cell" class={`vm-c ${st.verdict === o ? (o === 'เทียบเท่า' ? 'hit ok' : 'hit') : ''}`}>
+              {st.verdict === o ? <><b>{o}</b><small>{pts(st.primary.diff)} จุด, p = {fmtP(st.primary.p)}</small></> : <i aria-hidden="true"></i>}
+            </span>
           ))}
-        </ol>
-      </section>
+        </a>
+      ))}
+    </div>
+  </section>
 
-      <section id="final" class="col">
-        <h2>ผลสุดท้ายจากชุดที่ 3</h2>
-        <p>Agent Skills ได้ RCRc {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน {pts(p.diff)} จุด ช่วงความเชื่อมั่น 90% อยู่ระหว่าง {pts(d.ci90[0])} ถึง {pts(d.ci90[1])} จุด อยู่ในเกณฑ์เทียบเท่า ±{(d.margin * 100).toFixed(1)} จุดทั้งช่วง จึงสรุปว่าเทียบเท่า เพราะคะแนนใกล้เพดาน สิ่งที่ยืนยันได้ชัดคือ Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</p>
-        <p><span class="qual">เชิงสำรวจ</span> ความต่างที่ใหญ่กว่าอยู่ระหว่างมีกฎกับไม่มีกฎ AI ที่ไม่มีกฎผ่านกฎสำคัญครบ {pct(s3.nums.perArm.A0.CRIT)}% ของ run เทียบกับ {pct(s3.nums.perArm.A1.CRIT)} ถึง {pct(s3.nums.perArm.A5.CRIT)}% เมื่อมีกฎ</p>
-        <h3>ข้อเสนอแนะสำหรับทีมพัฒนา</h3>
-        <ul>
-          <li>เลือกรูปแบบกฎจากความสะดวกในการดูแลและต้นทุน ไม่ใช่เพราะเชื่อว่าแบบหนึ่งทำให้ AI เชื่อฟังกว่า</li>
-          <li>ให้ AI มีกฎ โดยเฉพาะเรื่องขอบเขตงานและการตรวจผลกระทบต่อข้อมูลเดิม</li>
-          <li>ถ้าใช้ Skills ให้ตรวจว่าคำอธิบายทำให้ skill ถูกเปิดในงานที่ควรเปิด และเปิดช่องให้ AI ถามได้</li>
-        </ul>
-        <p><a href={`${base}study-3/`}>อ่านผลชุดที่ 3 ฉบับเต็ม พร้อมข้อจำกัด</a></p>
-      </section>
+  <ThreeStudies n={1} />
 
-      <section id="contrib" class="col">
-        <h2>สิ่งที่งานนี้ให้ไว้</h2>
-        <p><b>ระบบวัดผลที่ตรวจตัวเองได้</b> SkillBench ตรวจการทำตามกฎจากร่องรอยจริงด้วยโปรแกรมทั้งหมด คุมเนื้อหากฎให้เท่ากันและตรวจได้ด้วยเครื่อง และมีด่านตรวจความถูกต้องของตัวเองหลายชั้น</p>
-        <p><b>บทเรียนเรื่องการวัด AI</b> สองชุดแรกสรุปไม่ได้ส่วนหนึ่งเพราะเครื่องมือวัดบกพร่องโดยไม่แสดงอาการ การวัดเอเจนต์ต้องลงทุนกับการตรวจเครื่องมือวัดไม่น้อยกว่าการเก็บข้อมูล</p>
-        <p><b>ความโปร่งใส</b> แผนทุกชุดประกาศก่อนเก็บข้อมูล ส่วนเบี่ยงเบนบันทึกครบ และโค้ด ข้อมูล กับประวัติการแก้ไขทั้งหมดเปิดอยู่บน GitHub</p>
-      </section>
+  <section id="problem" class="split">
+    <div class="split-text">
+      <h2>ปัญหา: AI แก้ถูก แต่ทำสิ่งที่ไม่ได้สั่งโดยไม่บอก</h2>
+      <p>ในโจทย์ {s09.code} ผู้ใช้สั่งว่า <q>{s09.prompt}</q> การแก้ตัวเลขนี้ดูปลอดภัยที่สุด แต่ระบบคำนวณใบแจ้งหนี้ใหม่จากประวัติการใช้งานทุกครั้งที่เรียกดู ใบแจ้งหนี้ที่ออกไปแล้วจึงแพงขึ้นตามทันที โดยไม่มี error และเทสเดิมยังผ่านหมด</p>
+      <p>ทีมพัฒนาจึงต้องบอกกฎให้ AI เช่น แก้เฉพาะที่สั่ง ห้ามแก้ไฟล์ข้อมูล และต้องวัดผลกระทบก่อนแก้ส่วนที่คิดเงิน</p>
+      <p><a href={`${base}scenarios/${s09.id}/`}>ดูโจทย์ {s09.code} และผลของทุกกลุ่ม</a></p>
+    </div>
+    <figure class="invoices">
+      <div class="inv">
+        <p class="inv-h">ใบแจ้งหนี้เดือนที่แล้ว <span>ออกให้ลูกค้าแล้ว</span></p>
+        <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd>{rateFrom} บาท/ชม.</dd></dl>
+        <p class="inv-t">ยอดรวม <b>{hours * rateFrom} บาท</b></p>
+      </div>
+      <div class="inv changed">
+        <p class="inv-h">ใบเดิม หลัง AI แก้อัตรา <span>ไม่มีใครถูกแจ้ง</span></p>
+        <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd><b>{rateTo} บาท/ชม.</b></dd></dl>
+        <p class="inv-t">ยอดรวม <b>{hours * rateTo} บาท</b></p>
+      </div>
+      <figcaption><b>รูปที่ 2</b> อัตรา {rateFrom} เป็น {rateTo} บาทมาจากโจทย์จริง จำนวนชั่วโมงเป็นตัวอย่างประกอบ</figcaption>
+    </figure>
+  </section>
 
-      <section id="explore" class="col">
-        <h2>สำรวจข้อมูล</h2>
-        <ul class="explore">
-          <li><a href={`${base}arms/`}><b>กลุ่มทดลองและกฎ</b></a><span>กลุ่ม A0 ถึง A5 บทบาทของแต่ละกลุ่ม และข้อความกฎเต็มทุกไฟล์</span></li>
-          <li><a href={`${base}scenarios/`}><b>โจทย์ทั้ง {scenarios.length} ข้อ</b></a><span>คำสั่ง กับดัก กฎที่ใช้ให้คะแนน และผลในแต่ละชุด</span></li>
-          <li><a href={`${base}runs/`}><b>ทะเบียน run ทั้ง {totalRuns} ตัว</b></a><span>ผลตรวจกฎทีละข้อของทุก run ในทั้งสามชุด</span></li>
-          <li><a href={`${base}method/`}><b>วิธีวัด</b></a><span>ขั้นตอนของหนึ่ง run ตัวชี้วัด สถิติ และการตรวจเครื่องมือวัด</span></li>
-          <li><a href={`${base}protocol/`}><b>เอกสารแผน</b></a><span>แผนที่ประกาศล่วงหน้าทั้งสามชุด และบันทึกส่วนเบี่ยงเบน</span></li>
-        </ul>
-      </section>
-    </article>
-  </div>
+  <section id="two-ways" class="wide">
+    <h2>สองวิธีบอกกฎที่นำมาเทียบ</h2>
+    <p class="col">ทั้งสองแบบมีข้อผูกพันของกฎเท่ากัน 47 ข้อ ต่างกันที่วิธีจัดเก็บและจังหวะที่กฎเข้าบริบทของ AI ข้อความด้านล่างตัดมาจากไฟล์จริงที่ส่งให้ AI ในการทดลอง</p>
+    <div class="files">
+      <figure class="file">
+        <p class="file-h"><span class="mono">{a1.path}</span><span class="load always">อ่านทุกครั้งที่เริ่มงาน</span></p>
+        <div class="file-b">{a1Lines.map((l) => <p class={l.startsWith('#') ? 'fh' : ''}>{l.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</p>)}<p class="more">กฎทุกข้ออยู่ในไฟล์นี้ {a1.body.length.toLocaleString('en-US')} ตัวอักษร</p></div>
+        <figcaption><b>ไฟล์เดียว</b> วิธีที่ทีมใช้กันมากที่สุด ง่าย แต่ AI อ่านกฎทุกข้อแม้ข้อที่ไม่เกี่ยวกับงาน</figcaption>
+      </figure>
+      <figure class="file">
+        <p class="file-h"><span class="mono">{skill.path}</span><span class="load ondemand">เปิดเมื่องานเกี่ยว</span></p>
+        <div class="file-b"><p class="fh">description</p><p>{skill.description}</p><p class="more">AI เห็นแค่บรรทัดนี้ตอนเริ่มงาน เนื้อหาเต็ม {skill.body.length.toLocaleString('en-US')} ตัวอักษรจะถูกเปิดเมื่องานตรงกับคำอธิบาย</p></div>
+        <figcaption><b>Agent Skills</b> แยกกฎเป็นชุดย่อย กฎที่ไม่เกี่ยวไม่รกบริบท แนวคิดคือ AI น่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น แต่ยังไม่มีใครวัด</figcaption>
+      </figure>
+    </div>
+    <p class="col"><a href={`${base}arms/`}>ดูกลุ่มทดลองทั้ง 6 และข้อความกฎเต็มทุกไฟล์</a></p>
+  </section>
+
+  <section id="studies" class="wide">
+    <h2>การทดลองสามชุด</h2>
+    <p class="col">ทั้งสามชุดใช้ Claude Code กับโมเดล <span class="mono">{s3.model}</span> บนระบบจองเครื่อง GPU ที่ผู้วิจัยสร้างขึ้น แต่ละชุดเผยข้อบกพร่องของเครื่องมือวัดที่นำไปแก้ในชุดถัดไป</p>
+    <ol class="timeline">
+      {studies.map((st) => (
+        <li class={st.n === 3 ? 'last' : ''}>
+          <div class="tl-n">ชุดที่ {st.n}</div>
+          <div class="tl-body">
+            <h3><a href={`${base}study-${st.n}/`}>{st.role}</a></h3>
+            <p>{st.summary}</p>
+            <dl>
+              <dt>กลุ่ม</dt><dd>{st.armIds.map((a, i) => <>{i ? ', ' : ''}<span class={`arm arm-${a}`}>{a}</span></>)}</dd>
+              <dt>ขนาด</dt><dd>{st.k} โจทย์ × {st.reps} รอบ = {st.usable} run</dd>
+              <dt>ตัวชี้วัด</dt><dd>{st.metricName}</dd>
+              <dt>ผล A2 − A1</dt><dd>{pts(st.primary.diff)} จุด, p = {fmtP(st.primary.p)}, <b>{st.verdict}</b></dd>
+            </dl>
+            {st.changed && <p class="tl-next"><b>นำไปสู่ชุดถัดไป</b> {st.changed}</p>}
+            <p><a href={`${base}study-${st.n}/`}>อ่านรายละเอียดชุดที่ {st.n}</a></p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section id="final" class="col">
+    <h2>ผลสุดท้ายและข้อเสนอแนะ</h2>
+    <p>ในชุดที่ 3 Agent Skills ได้ RCRc {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน {pts(p.diff)} จุด ช่วงความเชื่อมั่น 90% อยู่ระหว่าง {pts(d.ci90[0])} ถึง {pts(d.ci90[1])} จุด อยู่ในเกณฑ์เทียบเท่า ±{(d.margin * 100).toFixed(1)} จุดทั้งช่วง เพราะคะแนนใกล้เพดาน สิ่งที่ยืนยันได้ชัดคือ Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</p>
+    <p><span class="qual">เชิงสำรวจ</span> ความต่างที่ใหญ่กว่าอยู่ระหว่างมีกฎกับไม่มีกฎ AI ที่ไม่มีกฎผ่านกฎสำคัญครบ {pct(s3.nums.perArm.A0.CRIT)}% ของ run เทียบกับ {pct(s3.nums.perArm.A1.CRIT)} ถึง {pct(s3.nums.perArm.A5.CRIT)}% เมื่อมีกฎ</p>
+    <ol class="recs">
+      <li><b>เลือกรูปแบบจากความสะดวกและต้นทุน</b> ไม่ใช่เพราะเชื่อว่าแบบหนึ่งทำให้ AI เชื่อฟังกว่า</li>
+      <li><b>แต่ต้องมีกฎ</b> โดยเฉพาะเรื่องขอบเขตงานและการตรวจผลกระทบต่อข้อมูลเดิม</li>
+      <li><b>ถ้าใช้ Skills ให้ตรวจคำอธิบาย</b> ว่าทำให้ skill ถูกเปิดในงานที่ควรเปิด และเปิดช่องให้ AI ถามได้</li>
+    </ol>
+  </section>
+
+  <section id="explore" class="wide">
+    <h2>สำรวจข้อมูลทั้งหมด</h2>
+    <div class="explore">
+      <a href={`${base}runs/`}><b>ทะเบียน {totalRuns} run</b><span>ผลตรวจกฎทีละข้อ ไฟล์ที่แก้ skill ที่เปิด และต้นทุนของทุก run</span></a>
+      <a href={`${base}scenarios/`}><b>โจทย์ {scenarios.length} ข้อ</b><span>คำสั่ง กับดัก กฎที่ใช้ให้คะแนน และผลในแต่ละชุด</span></a>
+      <a href={`${base}arms/`}><b>กลุ่มทดลองและกฎ</b><span>กลุ่ม A0 ถึง A5 และข้อความกฎเต็มที่ AI ได้รับ</span></a>
+      <a href={`${base}method/`}><b>วิธีวัด</b><span>ขั้นตอนของหนึ่ง run ตัวชี้วัด และสถิติ</span></a>
+      <a href={`${base}protocol/`}><b>เอกสารแผน</b><span>แผนที่ประกาศล่วงหน้าทั้งสามชุดและบันทึกส่วนเบี่ยงเบน</span></a>
+      <a href="https://github.com/Teerapab149/skillbench"><b>โค้ดและข้อมูลดิบ</b><span>repository บน GitHub</span></a>
+    </div>
+  </section>
 </Base>
 <style>
-  .hero { padding: 4rem 0 2.5rem; border-bottom: 1px solid var(--rule); margin-bottom: 2.5rem; }
-  .hero h1 { font-size: clamp(2.2rem, 5.5vw, 3.75rem); word-break: keep-all; }
-  .q { font-size: 1.3rem; line-height: 1.7; color: var(--ink-2); margin-top: 1.25rem; }
-  .q b { color: var(--ink); }
-  .h-first { margin-top: 0; }
-  .answer { font-family: var(--serif); font-size: clamp(1.35rem, 2.6vw, 1.7rem); line-height: 1.6; font-weight: 500; }
+  /* ---------- hero เต็มจอ พื้นหมึก ---------- */
+  .hero { margin-inline: calc(50% - 50vw); background: #121722; color: #e8eaee; padding: clamp(3rem, 7vw, 6rem) 1.25rem clamp(3rem, 6vw, 5rem); }
+  .hero-in { max-width: var(--wide); margin: 0 auto; display: grid; gap: 3rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
+  @media (min-width: 1100px) { .hero-in { grid-template-columns: minmax(0, 1fr) auto; } }
+  .hero h1 { color: #fff; font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1.22; word-break: keep-all; }
+  .hero-lede { font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.75; color: #b9c0cc; margin-top: 1.5rem; max-width: 34rem; }
+  .hero-lede b { color: #fff; font-weight: 600; }
+  .hero-cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0; }
+  .btn { display: inline-block; padding: 0.65rem 1.4rem; background: #3fb3a6; color: #0d1118; font-weight: 600; text-decoration: none; border-radius: 3px; transition: background 0.2s; }
+  .btn:hover { background: #5cc8bb; }
+  .btn.ghost { background: transparent; color: #e8eaee; box-shadow: inset 0 0 0 1px #4a5366; }
+  .btn.ghost:hover { box-shadow: inset 0 0 0 1px #e8eaee; }
+  .hero-by { font-size: 0.95rem; color: #e8eaee; line-height: 1.7; }
+  .hero-by span { display: block; color: #8a93a4; }
+  .field-note { font-size: 0.88rem; color: #8a93a4; margin-top: 1.25rem; max-width: 30rem; }
+  .hero :global(a:focus-visible) { outline-color: #3fb3a6; }
+
+  .facts-line { border-bottom: 1px solid var(--rule); padding: 1.5rem 0; }
+  .facts-line p { margin: 0; font-size: 1.1rem; color: var(--ink-2); line-height: 1.9; }
+  .facts-line b { font-family: var(--serif); font-size: 1.9rem; color: var(--ink); margin: 0 0.15rem 0 0.6rem; }
+  .facts-line b:first-child { margin-left: 0; }
+
+  /* ---------- คำตอบ และตารางผลที่เป็นไปได้ ---------- */
+  .band { padding: 4rem 0 1rem; }
+  .band h2 { margin-top: 0; }
+  .answer { font-family: var(--serif); font-size: clamp(1.5rem, 3.2vw, 2.25rem); line-height: 1.55; font-weight: 500; max-width: 46rem; }
+  .answer-sub { color: var(--ink-2); max-width: 44rem; margin-top: 1rem; }
+  .vm { margin-top: 2rem; border-top: 2px solid var(--ink); max-width: 56rem; }
+  .vm-row { display: grid; grid-template-columns: 10rem repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--rule); text-decoration: none; color: var(--ink); }
+  a.vm-row:hover { background: var(--paper-2); }
+  .vm-row.head span { font-size: 0.92rem; color: var(--ink-3); padding: 0.6rem 0.75rem; }
+  .vm-st { padding: 0.9rem 0.75rem; display: flex; flex-direction: column; }
+  .vm-st b { font-family: var(--serif); }
+  .vm-st small { color: var(--ink-3); }
+  .vm-c { display: flex; flex-direction: column; justify-content: center; padding: 0.9rem 0.75rem; border-left: 1px solid var(--rule); }
+  .vm-c i { width: 1.1rem; height: 1.1rem; border: 1.5px dashed var(--rule); border-radius: 50%; }
+  .vm-c.hit { background: var(--paper-2); }
+  .vm-c.hit b { font-family: var(--serif); font-size: 1.15rem; }
+  .vm-c.hit small { color: var(--ink-3); }
+  .vm-c.ok { background: var(--teal-wash); box-shadow: inset 0 0 0 2px var(--teal); }
+  .vm-c.ok b { color: var(--teal); }
+  @media (max-width: 640px) { .vm-row { grid-template-columns: 5.5rem repeat(3, minmax(0, 1fr)); font-size: 0.9rem; } .vm-c small { display: none; } }
+
+  /* ---------- ปัญหา ---------- */
+  .split { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; margin-top: 2rem; }
+  @media (min-width: 980px) { .split { grid-template-columns: minmax(0, 1fr) 26rem; } }
   q { quotes: '“' '”'; color: var(--ink); }
-  .two { display: grid; gap: 0 2.5rem; grid-template-columns: 1fr; margin: 0.5rem 0 1rem; }
-  @media (min-width: 700px) { .two { grid-template-columns: 1fr 1fr; } }
-  .two h3 { margin-top: 0.5rem; }
+  .invoices { margin: 0; display: grid; gap: 1rem; }
+  .inv { background: #fff; border: 1px solid var(--rule); padding: 1.1rem 1.4rem; box-shadow: 0 1px 2px rgba(22, 27, 38, 0.05), 0 10px 30px -18px rgba(22, 27, 38, 0.25); }
+  .inv.changed { border-color: var(--brick); transform: translateX(1.5rem); }
+  .inv-h { font-family: var(--serif); font-weight: 600; margin: 0 0 0.5rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .inv-h span { font-family: var(--sans); font-weight: 400; font-size: 0.85rem; color: var(--ink-3); }
+  .changed .inv-h span { color: var(--brick); font-weight: 600; }
+  .inv dl { display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 1rem; margin: 0; border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; }
+  .inv dd { margin: 0; text-align: right; }
+  .changed dd b { color: var(--brick); }
+  .inv-t { margin: 0.5rem 0 0; display: flex; justify-content: space-between; }
+  .inv-t b { font-family: var(--serif); font-size: 1.5rem; }
+  .changed .inv-t b { color: var(--brick); }
+  @media (max-width: 640px) { .inv.changed { transform: none; } }
+
+  /* ---------- สองวิธี ---------- */
+  .files { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); margin: 1.5rem 0; }
+  @media (min-width: 900px) { .files { grid-template-columns: 1fr 1fr; } }
+  .file { margin: 0; }
+  .file-h { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.88rem; margin: 0; padding: 0.6rem 1rem; background: #fff; border: 1px solid var(--rule); border-bottom: 0; overflow-wrap: anywhere; }
+  .file-b { background: #fff; border: 1px solid var(--rule); padding: 1rem 1.25rem; min-height: 15rem; }
+  .file-b p { margin: 0 0 0.35rem; font-size: 0.98rem; line-height: 1.6; }
+  .file-b .fh { font-family: var(--serif); font-weight: 600; margin-top: 0.4rem; }
+  .file-b .more { color: var(--ink-3); font-size: 0.9rem; margin-top: 0.8rem; border-top: 1px dashed var(--rule); padding-top: 0.6rem; }
+
+  /* ---------- เส้นเวลา ---------- */
   .timeline { list-style: none; padding: 0; margin: 2rem 0 0; }
   .timeline li { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 1.5rem; padding: 1.75rem 0; border-top: 1px solid var(--rule); }
   .timeline li:first-child { border-top: 2px solid var(--ink); }
   .timeline li.last { border-bottom: 2px solid var(--ink); }
   .tl-n { font-family: var(--serif); font-weight: 700; font-size: 1.5rem; color: var(--ink-3); }
   .last .tl-n { color: var(--teal); }
+  .tl-body { max-width: var(--measure); }
   .tl-body h3 { margin-top: 0; font-size: 1.35rem; }
   .tl-body h3 a { color: var(--ink); text-decoration: none; }
   .tl-body h3 a:hover { color: var(--teal); }
-  .tl-body dl { display: grid; grid-template-columns: 7rem 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 1rem; font-size: 1rem; }
+  .tl-body dl { display: grid; grid-template-columns: 7rem 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 1rem; }
   .tl-body dt { color: var(--ink-3); }
   .tl-body dd { margin: 0; }
   .tl-next { color: var(--ink-2); }
   @media (max-width: 640px) { .timeline li { grid-template-columns: 1fr; gap: 0.25rem; } }
-  .explore { list-style: none; padding: 0; border-top: 2px solid var(--ink); }
-  .explore li { display: flex; flex-direction: column; padding: 0.9rem 0; border-bottom: 1px solid var(--rule); }
-  .explore b { font-family: var(--serif); }
-  .explore span { color: var(--ink-3); font-size: 0.98rem; }
+
+  .recs { padding-left: 1.3rem; }
+  .recs li { margin-bottom: 0.6rem; }
+  .explore { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 2px solid var(--ink); }
+  @media (min-width: 760px) { .explore { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .explore a { display: flex; flex-direction: column; gap: 0.25rem; padding: 1.25rem 1rem 1.25rem 0; border-bottom: 1px solid var(--rule); text-decoration: none; color: var(--ink); }
+  .explore b { font-family: var(--serif); font-size: 1.1rem; }
+  .explore span { color: var(--ink-3); font-size: 0.95rem; }
+  .explore a:hover b { color: var(--teal); }
 </style>

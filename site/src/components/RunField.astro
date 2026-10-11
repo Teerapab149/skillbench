@@ -1,0 +1,36 @@
+---
+// ทุก run ของทั้งสามชุดเป็นช่องเล็กหนึ่งช่อง แถวคือโจทย์ คอลัมน์คือกลุ่มและรอบ สีคือคะแนนหลักของ run
+// เป็นหลักฐานจริง ไม่ใช่ภาพประดับ คลิกช่องเพื่อเปิดบันทึก run นั้น
+import { studies } from '../lib/data';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const shade = (v: number) => `color-mix(in oklab, #3fb3a6 ${Math.round(v * 100)}%, #d9733a)`;
+---
+<div class="field" aria-label="ทุก run ของการทดลองสามชุด">
+  {studies.map((st, si) => (
+    <figure class="block" style={`--d:${si}`}>
+      <figcaption><b>ชุดที่ {st.n}</b><span>{st.usable} run</span></figcaption>
+      <div class="grid" style={`--cols:${st.armIds.length * st.reps}`}>
+        {st.perScenario.map((ps) => st.armIds.map((a, ai) => ps.byArm[a].runs.map((r, ri) => (
+          <a class={`c ${ri === 0 && ai > 0 ? 'gap' : ''} ${r.done === false ? 'x' : ''}`} href={`${base}runs/?study=${st.n}#${r.id}`} style={`background:${shade(r.score)}`} title={`${r.id} ${st.metricName} ${r.score.toFixed(2)}`}></a>
+        ))))}
+      </div>
+      <div class="grid labels" style={`--cols:${st.armIds.length * st.reps}`}>{st.armIds.map((a, ai) => <span class={ai > 0 ? 'gap' : ''} style={`grid-column: span ${st.reps}`}>{a}</span>)}</div>
+    </figure>
+  ))}
+</div>
+<style>
+  .field { display: flex; gap: 1.75rem; align-items: flex-end; flex-wrap: wrap; }
+  .block { margin: 0; animation: arrive 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--d) * 0.18s); }
+  .block figcaption { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; color: #9aa4b5; margin: 0 0 0.45rem; max-width: none; }
+  .block figcaption b { font-family: var(--serif); color: #e8eaee; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(var(--cols), 0.62rem); gap: 2px; }
+  .c { display: block; width: 0.62rem; height: 0.62rem; border-radius: 1px; transition: transform 0.15s; }
+  .c.gap { margin-left: 3px; }
+  .c:hover, .c:focus-visible { transform: scale(1.8); outline: 1px solid #fff; z-index: 1; position: relative; }
+  .labels { margin-top: 0.4rem; }
+  .labels span { font-family: var(--mono); font-size: 0.7rem; color: #7d8799; }
+  .labels span.gap { margin-left: 3px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: repeat(var(--cols), 0.42rem); } .c { width: 0.42rem; height: 0.42rem; } .field { gap: 1rem; } }
+  @keyframes arrive { from { opacity: 0.001; transform: translateY(10px); filter: blur(4px); } }
+  @media (prefers-reduced-motion: reduce) { .block { animation: none; } }
+</style>

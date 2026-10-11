@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/publish.mjs",
-    "preview": "astro preview"
+    "build": "node scripts/verify-data.mjs && astro build && node scripts/publish.mjs",
+    "preview": "astro preview",
+    "verify": "node scripts/verify-data.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
