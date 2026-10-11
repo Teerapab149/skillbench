@@ -30,6 +30,7 @@ const shade = (v: number) => `color-mix(in oklab, #3fb3a6 ${Math.round(v * 100)}
   .labels { margin-top: 0.4rem; }
   .labels span { font-family: var(--mono); font-size: 0.7rem; color: #7d8799; }
   .labels span.gap { margin-left: 3px; }
+  @media (min-width: 1100px) and (max-width: 1440px) { .grid { grid-template-columns: repeat(var(--cols), 0.5rem); } .c { width: 0.5rem; height: 0.5rem; } }
   @media (max-width: 640px) { .grid { grid-template-columns: repeat(var(--cols), 0.42rem); } .c { width: 0.42rem; height: 0.42rem; } .field { gap: 1rem; } }
   @keyframes arrive { from { opacity: 0.001; transform: translateY(10px); filter: blur(4px); } }
   @media (prefers-reduced-motion: reduce) { .block { animation: none; } }

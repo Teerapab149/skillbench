@@ -23,7 +23,7 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
   <section class="hero">
     <div class="hero-in">
       <div class="hero-text">
-        <h1>เขียนกฎให้ AI แบบไหน <br />AI ถึงจะทำตาม</h1>
+        <h1><span class="nw">เขียนกฎให้ AI</span> <span class="nw">แบบไหน</span> <span class="nw">AI ถึงจะทำตาม</span></h1>
         <p class="hero-lede">งานวิจัยที่ปล่อยเอเจนต์เขียนโค้ดทำงานจริง {totalRuns} ครั้ง ในการทดลองสามชุด เพื่อตอบว่า <b>Agent Skills</b> ทำให้เอเจนต์ทำตามกฎต่างจาก<b>ไฟล์กฎไฟล์เดียว</b>หรือไม่</p>
         <div class="hero-cta">
           <a class="btn" href="#answer">อ่านคำตอบ</a>
@@ -154,8 +154,10 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
   /* ---------- hero เต็มจอ พื้นหมึก ---------- */
   .hero { margin-inline: calc(50% - 50vw); background: #121722; color: #e8eaee; padding: clamp(3rem, 7vw, 6rem) 1.25rem clamp(3rem, 6vw, 5rem); }
   .hero-in { max-width: var(--wide); margin: 0 auto; display: grid; gap: 3rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
-  @media (min-width: 1100px) { .hero-in { grid-template-columns: minmax(0, 1fr) auto; } }
-  .hero h1 { color: #fff; font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1.22; word-break: keep-all; }
+  @media (min-width: 1100px) { .hero-in { grid-template-columns: minmax(34rem, 1fr) auto; } .hero h1 { font-size: clamp(2.4rem, 3.3vw, 3.6rem); } }
+  .hero h1 { color: #fff; font-size: clamp(2rem, 7vw, 4.4rem); line-height: 1.25; }
+  .nw { white-space: nowrap; }
+  @media (max-width: 420px) { .nw { white-space: normal; } }
   .hero-lede { font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.75; color: #b9c0cc; margin-top: 1.5rem; max-width: 34rem; }
   .hero-lede b { color: #fff; font-weight: 600; }
   .hero-cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0; }
