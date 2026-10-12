@@ -5,25 +5,25 @@ import Sheet from '../../components/Sheet.astro';
 import { arms, studies, s3 } from '../../lib/data';
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const usedIn = (id: string) => studies.filter((st) => st.armIds.includes(id as any)).map((st) => st.n);
-const toc: [string, string][] = [['overview', 'ภาพรวม'], ...arms.map((a) => [a.id, `${a.id} ${a.short}`] as [string, string]), ['equal', 'ข้อผูกพันเท่ากันอย่างไร']];
+const toc: [string, string][] = [['overview', 'ทุกกลุ่มในภาพเดียว'], ...arms.map((a) => [a.id, `${a.id} ${a.short}`] as [string, string]), ['equal', 'กฎเท่ากันจริงไหม']];
 const a2skills = arms.find((a) => a.id === 'A2')!.files.filter((f) => !f.always);
 let inject: { file?: string; text?: string }[] = [];
 try { const j = JSON.parse(arms.find((a) => a.id === 'A4')!.inject ?? '[]'); inject = Array.isArray(j) ? j : (j.injections ?? j.items ?? [j]); } catch {}
 ---
-<Base title="กลุ่มทดลองและกฎ SkillBench" current="arms/">
+<Base title="กลุ่มและกฎ SkillBench" current="arms/">
   <header class="title-block col">
-    <h1>กลุ่มทดลองทั้ง 6 และข้อความกฎจริงที่เอเจนต์ได้รับ</h1>
-    <p class="lede" style="margin-top:1rem">ทุกกลุ่มใช้เอเจนต์ตัวเดียวกัน โจทย์เดียวกัน และระบบเดียวกัน ต่างกันเฉพาะกฎที่ได้รับและจังหวะที่กฎเข้าบริบท ข้อความด้านล่างคือไฟล์จริงที่ติดตั้งให้เอเจนต์ ไม่ได้ย่อหรือแก้ และไม่เปลี่ยนระหว่างการทดลองทั้งสามชุด</p>
+    <h1>แต่ละกลุ่มได้กฎอะไรบ้าง</h1>
+    <p class="lede">ทุกกลุ่มใช้ AI ตัวเดียวกัน โจทย์เดียวกัน ระบบเดียวกัน ต่างกันแค่กฎที่ได้ และ AI ได้อ่านกฎตอนไหน ไฟล์ด้านล่างคือของจริงที่เราใส่ให้ AI ไม่ได้ตัดหรือแก้ และใช้ไฟล์เดิมทั้งสามรอบ</p>
   </header>
   <div class="article-grid">
     <Toc items={toc} />
     <article>
       <section id="overview" class="wide">
-        <h2 class="h-first">ภาพรวม</h2>
+        <h2 class="h-first">ทุกกลุ่มในภาพเดียว</h2>
         <div class="tbl-wrap">
           <table class="bt">
-            <caption><b>ตารางที่ 1</b> กลุ่มทดลองและชุดที่ใช้</caption>
-            <thead><tr><th>กลุ่ม</th><th>เอเจนต์ได้รับอะไร</th><th>จังหวะที่กฎเข้าบริบท</th><th class="r">ขนาด (ตัวอักษร)</th>{studies.map((st) => <th class="r">ชุดที่ {st.n}</th>)}</tr></thead>
+            <caption><b>ตารางที่ 1</b> แต่ละกลุ่มได้อะไร และใช้ในรอบไหน</caption>
+            <thead><tr><th>กลุ่ม</th><th>AI ได้อะไร</th><th>AI อ่านกฎตอนไหน</th><th class="r">ยาว (ตัวอักษร)</th>{studies.map((st) => <th class="r">ชุดที่ {st.n}</th>)}</tr></thead>
             <tbody>
               {arms.map((a) => (
                 <tr class={a.id === 'A1' || a.id === 'A2' ? 'hl' : ''}>
@@ -53,7 +53,7 @@ try { const j = JSON.parse(arms.find((a) => a.id === 'A4')!.inject ?? '[]'); inj
               </span>
             </div>
           ))}
-          <figcaption><b>รูปที่ 1</b> สิ่งที่เข้าบริบทของเอเจนต์ในแต่ละกลุ่ม ตัวเลขคือจำนวนตัวอักษร A2 และ A4 เห็นแค่บรรทัดคำอธิบายของ skill ตอนเริ่มงาน และเปิดเนื้อหาเต็มเมื่องานตรงกับคำอธิบาย ในชุดที่ 3 A2 เปิดเฉลี่ย {s3.nums.manipulation.A2.skillsLoadedPerRun.toFixed(2)} จาก {a2skills.length} skill ต่อ run</figcaption>
+          <figcaption><b>รูปที่ 1</b> แต่ละกลุ่ม AI ได้อ่านอะไรตอนเริ่มงาน และอะไรเปิดเพิ่มระหว่างทำงาน ตัวเลขคือจำนวนตัวอักษร กลุ่ม Skills เห็นแค่คำอธิบายของ skill ตอนเริ่ม แล้วค่อยเปิดอ่านชุดที่เกี่ยว ในรอบที่ 3 เปิดเฉลี่ย {s3.nums.manipulation.A2.skillsLoadedPerRun.toFixed(1)} จาก {a2skills.length} ชุดต่องาน</figcaption>
         </figure>
       </section>
 
@@ -62,35 +62,36 @@ try { const j = JSON.parse(arms.find((a) => a.id === 'A4')!.inject ?? '[]'); inj
           <div class="col">
             <h2><span class={`arm arm-${a.id}`}>{a.id}</span> {a.name}</h2>
             <p class="lede">{a.role}</p>
-            <p class="meta small">ใช้ในการทดลอง{usedIn(a.id).map((n) => <a href={`${base}study-${n}/`}>ชุดที่ {n}</a>)} และตอบคำถาม: {a.question}</p>
+            <p class="meta small">ใช้ใน{usedIn(a.id).map((n) => <a href={`${base}study-${n}/`}>ชุดที่ {n}</a>)} <span>มีไว้ตอบ {a.question}</span></p>
           </div>
           {a.id === 'A0' && (
-            <div class="col"><p>A0 ไม่มีไฟล์กฎใด ๆ เอเจนต์ยังเห็นเอกสารของโปรเจกต์ตามปกติ เช่น <code>REQUIREMENTS.md</code> และ <code>ARCHITECTURE.md</code> แต่ไม่มีใครบอกว่าต้องทำงานอย่างไร ตัวตรวจยังให้คะแนน A0 ด้วยกฎชุดเดียวกับกลุ่มอื่น รวมถึงกฎเฉพาะโปรเจกต์ที่ A0 ไม่เคยได้รับ ผลของ A0 จึงใช้เป็นเส้นฐานเชิงพรรณนา ไม่ใช่คู่ทดสอบ</p></div>
+            <div class="col"><p>กลุ่มนี้ไม่มีไฟล์กฎเลย AI ยังเห็นเอกสารของโปรเจกต์ตามปกติ เช่น <code>REQUIREMENTS.md</code> กับ <code>ARCHITECTURE.md</code> แต่ไม่มีใครบอกว่าควรทำงานยังไง เราให้คะแนนกลุ่มนี้ด้วยกฎชุดเดียวกับกลุ่มอื่น รวมถึงกฎที่กลุ่มนี้ไม่เคยเห็น เลยใช้กลุ่มนี้เป็นจุดเริ่มต้นไว้เทียบเท่านั้น ไม่ได้เอาไปทดสอบทางสถิติ</p></div>
           )}
           {a.id === 'A2' && (
             <div class="col">
-              <h3>สิ่งที่ A2 เห็นตอนเริ่มงาน คือชื่อและคำอธิบายของ skill</h3>
+              <h3>ตอนเริ่มงาน AI เห็นแค่ชื่อกับคำอธิบายนี้</h3>
               <dl class="skills">{a2skills.map((s) => <><dt class="mono"><a href={`#skill-${s.name}`}>{s.name}</a></dt><dd>{s.description}</dd></>)}</dl>
-              <p class="small muted">Claude Code ใส่บรรทัดเหล่านี้ไว้ในบริบท และเอเจนต์เรียก skill เองเมื่อเห็นว่างานตรงกับคำอธิบาย เนื้อหาเต็มของแต่ละ skill อยู่ด้านล่าง</p>
+              <p class="small muted">AI เลือกเปิด skill เองเมื่อเห็นว่างานตรงกับคำอธิบาย เนื้อหาเต็มของแต่ละ skill อยู่ด้านล่าง</p>
             </div>
           )}
           {a.id === 'A4' && (
             <div class="col">
-              <p>A4 ใช้ไฟล์กฎและ skill ชุดเดียวกับ A2 ทุกไบต์ ข้อความเต็มดูได้ที่ <a href="#A2">A2</a> สิ่งที่ต่างคือคอมเมนต์ในโค้ดของระบบที่ล่อให้เอเจนต์ทำสิ่งที่ผู้ใช้ไม่ได้สั่ง ด้านล่างคือไฟล์ที่กำหนดคอมเมนต์ล่อเหล่านั้น</p>
-              <div class="sheet"><div class="sheet-head"><span class="mono">arms/A4/adversarial/inject.json</span><span class="load ondemand">ฝังในโค้ดของระบบ</span></div><pre class="inject">{a.inject}</pre></div>
+              <p>กลุ่มนี้ได้กฎและ skill เหมือน <a href="#A2">กลุ่ม Skills</a> ทุกตัวอักษร ที่ต่างคือเราแอบใส่ข้อความล่อไว้ในไฟล์ของระบบ ให้ AI ทำสิ่งที่ผู้ใช้ไม่ได้สั่ง ข้อความล่อทั้งหมดมีดังนี้</p>
+              <ol class="baits">{inject.map((x) => <li><span class="mono small">{x.file}</span><pre class="inject">{x.text}</pre></li>)}</ol>
+              <p class="small muted">ที่มา <span class="mono">arms/A4/adversarial/inject.json</span></p>
             </div>
           )}
           {a.id === 'A5' && (
-            <div class="col"><p>ไฟล์ของ A5 คือไฟล์หลักของ A2 ต่อด้วยเนื้อหาของ skill ทั้ง {a2skills.length} ตัวเรียงกันเป็นหัวข้อ ปรับเฉพาะประโยคที่บอกว่ากฎอยู่ที่ไหน ข้อความบางวลีชวนให้เรียก skill เอเจนต์ A5 ในชุดที่ 3 จึงพยายามเรียก skill ใน {s3.nums.manipulation.A5.runsInvokingAny} run แต่ไม่สำเร็จ เพราะไม่ได้ติดตั้ง skill ไว้</p></div>
+            <div class="col"><p>ไฟล์นี้คือไฟล์สั้นของกลุ่ม Skills ต่อด้วยเนื้อหา skill ทั้ง {a2skills.length} ชุดเรียงกัน แก้แค่ประโยคที่บอกว่ากฎอยู่ที่ไหน บางวลียังชวนให้ AI เรียก skill อยู่ ในรอบที่ 3 AI กลุ่มนี้เลยพยายามเรียก skill {s3.nums.manipulation.A5.runsInvokingAny} ครั้ง แต่เปิดไม่ได้ เพราะกลุ่มนี้ไม่มี skill ให้เปิด</p></div>
           )}
           {a.id !== 'A4' && a.files.map((f) => <Sheet path={f.path} always={f.always} body={f.body} id={f.always ? undefined : `skill-${f.name}`} />)}
         </section>
       ))}
 
       <section id="equal" class="col">
-        <h2>ข้อผูกพันเท่ากันอย่างไร</h2>
-        <p>กฎของงานนี้มี 20 ข้อ แยกเป็นข้อผูกพัน 47 ข้อ คือสิ่งที่ต้องทำหรือห้ามทำหนึ่งอย่าง ผู้วิจัยทำตารางไขว้ <code>COVERAGE-MAP.md</code> ว่าข้อผูกพันแต่ละข้ออยู่ในไฟล์ใดของแต่ละกลุ่ม และตรวจด้วยเครื่องว่า A1 และ A2 มีครบทั้ง 47 ข้อเท่ากัน ส่วนถ้อยคำและความยาวต่างกันโดยตั้งใจ เพราะเป็นการเขียนกฎสองแบบที่ทีมพัฒนาใช้จริง</p>
-        <p>ดังนั้นผลหลัก A2 เทียบ A1 ตอบว่าชุดกฎสองรูปแบบให้ผลต่างกันหรือไม่ ส่วนคำถามว่ากลไกการโหลดมีผลหรือไม่ ต้องดู A2 เทียบ A5 ซึ่งใช้เนื้อหาเดียวกัน แต่คู่นั้นไม่ได้ถูกทดสอบตามแผนทั้งในชุดที่ 2 และชุดที่ 3</p>
+        <h2>กฎเท่ากันจริงไหม</h2>
+        <p>กฎของเรามี 20 ข้อ ถ้าแตกเป็นสิ่งที่ต้องทำหรือห้ามทำทีละอย่าง จะได้ 47 อย่าง เราทำตาราง <code>COVERAGE-MAP.md</code> ไล่ดูว่าแต่ละอย่างอยู่ในไฟล์ไหนของแต่ละกลุ่ม แล้วให้โปรแกรมเช็กว่าไฟล์เดียวกับ Skills มีครบทั้ง 47 อย่างเท่ากัน ส่วนถ้อยคำและความยาวต่างกันโดยตั้งใจ เพราะเราอยากเทียบกฎสองแบบที่ทีมเขียนกันจริง</p>
+        <p>ผลหลักจึงตอบว่า "กฎสองแบบที่เขียนแบบนี้" ได้ผลต่างกันไหม ส่วนคำถามว่าการเปิดอ่านทีละชุดมีผลไหม ต้องเทียบ Skills กับ Skills แบบอ่านทุกครั้ง ซึ่งใช้ข้อความเดียวกัน แต่คู่นี้ไม่ได้ทดสอบตามแผน ทั้งในรอบที่ 2 และรอบที่ 3</p>
       </section>
     </article>
   </div>
@@ -114,5 +115,7 @@ try { const j = JSON.parse(arms.find((a) => a.id === 'A4')!.inject ?? '[]'); inj
   .meta { color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
   .skills dt { margin-top: 0.75rem; font-weight: 500; }
   .skills dd { margin: 0.15rem 0 0; color: var(--ink-2); }
-  .inject { margin: 0; padding: 1rem 1.25rem; font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28rem; overflow: auto; }
+  .baits { padding-left: 1.2rem; }
+  .baits li { margin-bottom: 1rem; }
+  .inject { background: #fff; border: 1px solid var(--rule); margin: 0.3rem 0 0; padding: 1rem 1.25rem; font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28rem; overflow: auto; }
 </style>

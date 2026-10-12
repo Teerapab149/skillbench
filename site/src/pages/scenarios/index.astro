@@ -7,8 +7,8 @@ const old = scenarios.filter((s) => s.usedIn.length === 3).length;
 ---
 <Base title="โจทย์ทั้งหมด SkillBench" current="scenarios/">
   <header class="title-block col">
-    <h1>โจทย์ {scenarios.length} ข้อ: งานที่สั่ง กับดักที่ซ่อนอยู่ และผลในแต่ละชุด</h1>
-    <p class="lede" style="margin-top:1rem">ทุกโจทย์เป็นคำขอภาษาไทยสั้น ๆ บนระบบจองเครื่อง GPU จำลอง มีงานที่ต้องทำให้สำเร็จ และเกือบทุกข้อมีกับดักที่ AI ที่ทำตามกฎต้องไม่ติด โจทย์ {old} ข้อแรกใช้ในทั้งสามชุด (ชุดที่ 3 แก้ตัวตรวจบางข้อ) ส่วนอีก {scenarios.length - old} ข้อเพิ่มในชุดที่ 3</p>
+    <h1>โจทย์ทั้ง {scenarios.length} ข้อ</h1>
+    <p class="lede">ทุกโจทย์เป็นคำขอสั้น ๆ แบบที่ผู้ใช้พิมพ์สั่ง AI จริง บนระบบจองเครื่อง GPU ที่เราสร้างขึ้น แต่ละข้อมีงานที่ต้องทำให้เสร็จ และเกือบทุกข้อมีกับดักซ่อนอยู่ {old} ข้อแรกใช้ทั้งสามรอบ อีก {scenarios.length - old} ข้อเพิ่มเข้ามาในรอบที่ 3 กดที่โจทย์เพื่อดูว่าแต่ละกลุ่มทำได้แค่ไหน</p>
   </header>
 
   <div class="filters" role="group" aria-label="กรองตามตระกูลกับดัก">
@@ -20,7 +20,7 @@ const old = scenarios.filter((s) => s.usedIn.length === 3).length;
 
   <div class="tbl-wrap">
     <table class="bt sc-table">
-      <caption>ตัวเลขทางขวาคือผลต่าง A2 ลบ A1 ของโจทย์นั้นในแต่ละชุด ชุดที่ 1 วัดด้วย CRIT ชุดที่ 2 และ 3 วัดด้วย RCRc ช่องว่างคือชุดที่ไม่ได้ใช้โจทย์นั้น</caption>
+      <caption>ตัวเลขทางขวาคือ Skills ได้มากกว่าไฟล์เดียวกี่จุดในโจทย์นั้น (ติดลบคือไฟล์เดียวได้มากกว่า) ช่องว่างคือรอบที่ไม่ได้ใช้โจทย์นี้</caption>
       <thead><tr><th>โจทย์</th><th>คำสั่งของผู้ใช้</th>{studies.map((st) => <th class="r st">ชุดที่ {st.n}</th>)}</tr></thead>
       <tbody>
         {scenarios.map((s) => (

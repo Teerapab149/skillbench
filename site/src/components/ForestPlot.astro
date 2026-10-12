@@ -6,8 +6,8 @@ interface Props { n: number }
 const { n } = Astro.props;
 const margin = sens.margin as number;
 const rows = [
-  { key: 'MAIN', label: 'ผลหลักตามแผน', sub: '22 โจทย์ ตัวตรวจเดิม', r: sens.results.MAIN.primary_A2_vs_A1 },
-  { key: 'SA-1', label: 'SA-1', sub: 'แก้ตัวตรวจ S05 S06 + ผ่อนเกณฑ์ S08/S09', r: sens.results['SA-1'].primary_A2_vs_A1 },
+  { key: 'MAIN', label: 'ผลหลักตามแผน', sub: '22 โจทย์ ตัวตรวจตามแผนเดิม', r: sens.results.MAIN.primary_A2_vs_A1 },
+  { key: 'SA-1', label: 'SA-1', sub: 'แก้ตัวตรวจที่ผิด และผ่อนเกณฑ์ S08 S09', r: sens.results['SA-1'].primary_A2_vs_A1 },
   { key: 'SA-2', label: 'SA-2', sub: 'ตัดโจทย์ที่มีปัญหา 4 ข้อ', r: sens.results['SA-2'].primary_A2_vs_A1 },
 ];
 const W = 1000, padL = 340, padR = 30, lo = -0.15, hi = 0.15;
@@ -74,7 +74,7 @@ const tickLabel = (t: number) => (t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0');
     })}
     {[-15, -10, -5, 0, 5, 10, 15].map((t) => <text x={N.X(t / 100)} y={NH - 8} text-anchor="middle" class="n-sub">{tickLabel(t)}</text>)}
   </svg>
-  <figcaption><b>รูปที่ {n}</b> ผลต่าง RCRc เฉลี่ยรายโจทย์ระหว่าง A2 กับ A1 (จุด) สี่เหลี่ยมคือค่าประมาณ เส้นหนาคือช่วงความเชื่อมั่น 90% ที่ใช้ตัดสินความเทียบเท่า (TOST) เส้นบางคือ 95% ทุกแถวอยู่ในแถบเกณฑ์ทั้งเส้น เส้นประจุดคือเพดาน เพราะ A1 ได้ {(s3.primary.rateB * 100).toFixed(1)}% อยู่แล้ว A2 จึงนำได้ไม่เกินระยะนี้ ขอบบนของเกณฑ์จึงไม่เคยถูกทดสอบจริง</figcaption>
+  <figcaption><b>รูปที่ {n}</b> ทุกเส้นอยู่ในแถบเขียว แปลว่าไม่ว่าจะนับแบบไหน Skills กับไฟล์เดียวก็ต่างกันไม่เกินเกณฑ์ ±{(margin * 100).toFixed(1)} จุด สี่เหลี่ยมคือผลต่างที่วัดได้ เส้นหนาคือช่วงที่ค่าจริงน่าจะอยู่ (ความเชื่อมั่น 90% ใช้ตัดสินตามแผน) เส้นบางคือ 95% เส้นจุดคือเพดาน เพราะไฟล์เดียวได้ {(s3.primary.rateB * 100).toFixed(1)}% อยู่แล้ว Skills จึงนำได้ไม่เกินระยะนั้น</figcaption>
 </figure>
 <style>
   .forest svg { width: 100%; font-family: var(--sans); overflow: visible; }

@@ -2,16 +2,14 @@
 import Base from '../layouts/Base.astro';
 import ThreeStudies from '../components/ThreeStudies.astro';
 import RunField from '../components/RunField.astro';
-import { studies, s3, scenarios, arms, pct, pts, fmtP } from '../lib/data';
+import { studies, s3, scenarios, arms, failsByCat, pct, pts } from '../lib/data';
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const p = s3.primary;
 const d = p.decision;
 const s09 = scenarios.find((s) => s.code === 'S09')!;
 const totalRuns = studies.reduce((s, st) => s + st.usable, 0);
-const allArms = new Set(studies.flatMap((st) => st.armIds)).size;
-const trapped = scenarios.filter((s) => s.family !== 'ordinary').length;
-const outcomes = ['ต่างกัน', 'เทียบเท่า', 'สรุปไม่ได้'];
+const im = failsByCat.IM;
 // อัตราในโจทย์ S09 มาจากคำสั่งจริง (20 → 25 บาท) ส่วนจำนวนชั่วโมงเป็นตัวอย่าง
 const [, rateFrom, rateTo] = (s09.prompt.match(/(\d+)\s*บาทเป็น\s*(\d+)/) ?? ['', '20', '25']).map(Number);
 const hours = 10;
@@ -25,130 +23,105 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
     <div class="hero-in">
       <div class="hero-text">
         <h1><span class="nw">เขียนกฎให้ AI</span> <span class="nw">แบบไหน</span> <span class="nw">AI ถึงจะทำตาม</span></h1>
-        <p class="hero-lede">งานวิจัยที่ปล่อยเอเจนต์เขียนโค้ดทำงานจริง {totalRuns} ครั้ง ในการทดลองสามชุด เพื่อตอบว่า <b>Agent Skills</b> ทำให้เอเจนต์ทำตามกฎต่างจาก<b class="nw">ไฟล์กฎไฟล์เดียว</b>หรือไม่</p>
+        <p class="hero-lede">เราให้ AI เขียนโค้ดทำงานจริง {totalRuns} ครั้ง เพื่อหาคำตอบว่า ถ้าเขียนกฎแบบ <b>Agent Skills</b> AI จะทำตามกฎต่างจากการ<b class="nw">เขียนรวมไว้ไฟล์เดียว</b>ไหม</p>
         <div class="hero-cta">
-          <a class="btn" href="#answer">อ่านคำตอบ</a>
-          <a class="btn ghost" href={`${base}study-3/`}>ผลชุดสุดท้าย</a>
+          <a class="btn" href="#answer">ดูคำตอบ</a>
+          <a class="btn ghost" href={`${base}skillbench-report.pdf`}>อ่านรายงานฉบับเต็ม</a>
         </div>
         <p class="hero-by">ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ <span>อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด</span><span>สัมมนาระบบสารสนเทศทางธุรกิจ <span class="nw">มหาวิทยาลัยสงขลานครินทร์</span></span></p>
       </div>
       <div class="hero-field">
         <RunField />
-        <p class="field-note">แต่ละช่องคือหนึ่ง run สีคือคะแนนหลักของ run นั้น เขียวคือคะแนนเต็ม ส้มคือศูนย์ สีระหว่างกลางคือได้บางส่วน คลิกช่องใดก็ได้เพื่อดูว่า AI ทำอะไรใน run นั้น</p>
+        <p class="field-note">หนึ่งช่องคือการทำงานหนึ่งครั้ง ยิ่งเขียวยิ่งทำตามกฎได้มาก กดช่องไหนก็ได้เพื่อดูว่า AI ทำอะไรไปบ้าง</p>
       </div>
     </div>
   </section>
 
-  <section class="facts-line">
-    <p><b>{studies.length}</b> ชุดการทดลอง <b>{totalRuns}</b> run <b>{scenarios.length}</b> โจทย์ (มีกับดัก {trapped} ข้อ) <b>{allArms}</b> กลุ่มทดลอง ให้คะแนนด้วยโปรแกรมทั้งหมด ไม่มีคนหรือ AI ตัดสิน</p>
-  </section>
-
   <section id="answer" class="band">
-    <h2>คำตอบ</h2>
-    <p class="answer">Skills กับไฟล์เดียวให้ผล<span class="verdict">เทียบเท่า</span>กันตามเกณฑ์ที่ประกาศไว้ล่วงหน้า และข้อมูลเชิงสำรวจชี้ว่าการ<b>มีกฎ</b>สำคัญกว่ารูปแบบของกฎ</p>
-    <p class="answer-sub">กว่าจะได้คำตอบนี้ต้องทดลองสามครั้ง ก่อนเก็บข้อมูลแต่ละชุด ผู้วิจัยประกาศไว้ว่าผลออกได้สามทาง ตารางนี้คือสิ่งที่เกิดขึ้นจริง</p>
-    <div class="vm" role="table" aria-label="ผลที่เป็นไปได้และผลที่เกิดจริงของแต่ละชุด">
-      <div class="vm-row head" role="row"><span role="columnheader"></span>{outcomes.map((o) => <span role="columnheader">{o}</span>)}</div>
-      {studies.map((st) => (
-        <a class="vm-row" role="row" href={`${base}study-${st.n}/`}>
-          <span role="rowheader" class="vm-st"><b>ชุดที่ {st.n}</b><small>{st.metricName}, {st.usable} run</small></span>
-          {outcomes.map((o) => (
-            <span role="cell" class={`vm-c ${st.verdict === o ? (o === 'เทียบเท่า' ? 'hit ok' : 'hit') : ''}`}>
-              {st.verdict === o ? <><b>{o}</b><small>{pts(st.primary.diff)} จุด, p = {fmtP(st.primary.p)}</small></> : <i aria-hidden="true"></i>}
-            </span>
-          ))}
-        </a>
-      ))}
-    </div>
+    <h2>คำตอบสั้น ๆ</h2>
+    <p class="answer">ใช้แบบไหนก็ได้ผล<span class="verdict">เทียบเท่า</span>กัน แต่ AI ที่<b>ไม่มีกฎ</b>พลาดบ่อยกว่ามาก</p>
+    <p class="answer-sub">ครึ่งแรกคือสิ่งที่เราทดสอบตามแผนที่ตั้งไว้ก่อนเริ่ม ครึ่งหลังเป็นสิ่งที่เราสังเกตเห็นเพิ่ม ยังไม่ได้ทดสอบยืนยัน กว่าจะได้คำตอบนี้เราทดลองสามรอบ สองรอบแรกยังสรุปไม่ได้</p>
   </section>
 
   <ThreeStudies n={1} />
 
   <section id="problem" class="split">
     <div class="split-text">
-      <h2>ปัญหา: AI แก้ถูก แต่ทำสิ่งที่ไม่ได้สั่งโดยไม่บอก</h2>
-      <p>ในโจทย์ {s09.code} ผู้ใช้สั่งว่า <q>{s09.prompt}</q> การแก้ตัวเลขนี้ดูปลอดภัยที่สุด แต่ระบบคำนวณใบแจ้งหนี้ใหม่จากประวัติการใช้งานทุกครั้งที่เรียกดู ใบแจ้งหนี้ที่ออกไปแล้วจึงแพงขึ้นตามทันที โดยไม่มี error และเทสเดิมยังผ่านหมด</p>
-      <p>ทีมพัฒนาจึงต้องบอกกฎให้ AI เช่น แก้เฉพาะที่สั่ง ห้ามแก้ไฟล์ข้อมูล และต้องวัดผลกระทบก่อนแก้ส่วนที่คิดเงิน</p>
-      <p><a href={`${base}scenarios/${s09.id}/`}>ดูโจทย์ {s09.code} และผลของทุกกลุ่ม</a></p>
+      <h2>ทำไมต้องมีกฎ</h2>
+      <p>ลองดูโจทย์ {s09.code} ผู้ใช้สั่งว่า <q>{s09.prompt}</q> AI แก้ตัวเลขได้ถูกต้อง แต่ระบบนี้คิดใบแจ้งหนี้ใหม่ทุกครั้งที่เปิดดู ใบแจ้งหนี้ที่ส่งให้ลูกค้าไปแล้วเลยแพงขึ้นตามไปด้วย ไม่มี error ขึ้น และเทสเดิมก็ยังผ่านหมด</p>
+      <p>ปัญหาแบบนี้ไม่ได้เกิดเพราะ AI เขียนโค้ดไม่เป็น แต่เพราะมันทำเกินกว่าที่ขอโดยไม่บอกใคร ทีมพัฒนาเลยต้องเขียนกฎให้ AI เช่น แก้เฉพาะที่สั่ง ห้ามแตะไฟล์ข้อมูล และต้องเช็กผลกระทบก่อนแก้ส่วนที่คิดเงิน</p>
+      <p><a href={`${base}scenarios/${s09.id}/`}>ดูว่าแต่ละกลุ่มทำโจทย์นี้ได้แค่ไหน</a></p>
     </div>
     <figure class="invoices">
       <div class="inv">
-        <p class="inv-h">ใบแจ้งหนี้เดือนที่แล้ว <span>ออกให้ลูกค้าแล้ว</span></p>
+        <p class="inv-h">ใบแจ้งหนี้เดือนที่แล้ว <span>ส่งให้ลูกค้าแล้ว</span></p>
         <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd>{rateFrom} บาท/ชม.</dd></dl>
         <p class="inv-t">ยอดรวม <b>{hours * rateFrom} บาท</b></p>
       </div>
       <div class="inv changed">
-        <p class="inv-h">ใบเดิม หลัง AI แก้อัตรา <span>ไม่มีใครถูกแจ้ง</span></p>
+        <p class="inv-h">ใบเดิม หลัง AI แก้อัตรา <span>ไม่มีใครรู้</span></p>
         <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd><b>{rateTo} บาท/ชม.</b></dd></dl>
         <p class="inv-t">ยอดรวม <b>{hours * rateTo} บาท</b></p>
       </div>
-      <figcaption><b>รูปที่ 2</b> อัตรา {rateFrom} เป็น {rateTo} บาทมาจากโจทย์จริง จำนวนชั่วโมงเป็นตัวอย่างประกอบ</figcaption>
+      <figcaption><b>รูปที่ 2</b> อัตรา {rateFrom} เป็น {rateTo} บาทมาจากโจทย์จริง ส่วนจำนวนชั่วโมงเป็นตัวอย่าง</figcaption>
     </figure>
   </section>
 
   <section id="two-ways" class="wide">
-    <h2>สองวิธีบอกกฎที่นำมาเทียบ</h2>
-    <p class="col">ทั้งสองแบบมีข้อผูกพันของกฎเท่ากัน 47 ข้อ ต่างกันที่วิธีจัดเก็บและจังหวะที่กฎเข้าบริบทของ AI ข้อความด้านล่างตัดมาจากไฟล์จริงที่ส่งให้ AI ในการทดลอง</p>
+    <h2>กฎชุดเดียวกัน เขียนได้สองแบบ</h2>
+    <p class="col">กฎทั้งสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่งให้ AI แบบแรก AI อ่านกฎทั้งหมดตั้งแต่เริ่มงาน แบบที่สอง AI เห็นแค่หัวข้อ แล้วค่อยเปิดอ่านเฉพาะเรื่องที่เกี่ยวกับงานตรงหน้า ด้านล่างคือไฟล์จริงที่เราใช้</p>
     <div class="files">
       <figure class="file">
         <p class="file-h"><span class="mono">{a1.path}</span><span class="load always">อ่านทุกครั้งที่เริ่มงาน</span></p>
-        <div class="file-b">{a1Lines.map((l) => <p class={l.startsWith('#') ? 'fh' : ''}>{l.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</p>)}<p class="more">กฎทุกข้ออยู่ในไฟล์นี้ {a1.body.length.toLocaleString('en-US')} ตัวอักษร</p></div>
-        <figcaption><b>ไฟล์เดียว</b> เขียนและดูแลง่าย แต่ AI อ่านกฎทุกข้อแม้ข้อที่ไม่เกี่ยวกับงาน</figcaption>
+        <div class="file-b">{a1Lines.map((l) => <p class={l.startsWith('#') ? 'fh' : ''}>{l.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</p>)}<p class="more">ไฟล์นี้มีกฎครบทุกข้อ ยาว {a1.body.length.toLocaleString('en-US')} ตัวอักษร</p></div>
+        <figcaption><b>ไฟล์เดียว</b> เขียนง่าย ดูแลง่าย แต่ AI ต้องอ่านกฎทุกข้อ แม้ข้อที่ไม่เกี่ยวกับงาน</figcaption>
       </figure>
       <figure class="file">
         <p class="file-h"><span class="mono">{skill.path}</span><span class="load ondemand">เปิดเมื่องานเกี่ยว</span></p>
-        <div class="file-b"><p class="fh">description</p><p>{skill.description}</p><p class="more">AI เห็นแค่บรรทัดนี้ตอนเริ่มงาน เนื้อหาเต็ม {skill.body.length.toLocaleString('en-US')} ตัวอักษรจะถูกเปิดเมื่องานตรงกับคำอธิบาย</p></div>
-        <figcaption><b>Agent Skills</b> แยกกฎเป็นชุดย่อย กฎที่ไม่เกี่ยวไม่รกบริบท แนวคิดคือ AI น่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น แต่เท่าที่ผู้วิจัยค้น ยังไม่มีงานที่วัดเทียบสองแบบนี้ตรง ๆ</figcaption>
+        <div class="file-b"><p class="fh">คำอธิบายที่ AI เห็นตอนเริ่มงาน</p><p>{skill.description}</p><p class="more">ถ้างานตรงกับคำอธิบายนี้ AI จะเปิดอ่านเนื้อหาเต็มอีก {skill.body.length.toLocaleString('en-US')} ตัวอักษร</p></div>
+        <figcaption><b>Agent Skills</b> แยกกฎเป็นชุดย่อย ๆ ไอเดียคือถ้ากฎที่ไม่เกี่ยวไม่มากวน AI น่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ</figcaption>
       </figure>
     </div>
-    <p class="col"><a href={`${base}arms/`}>ดูกลุ่มทดลองทั้ง 6 และข้อความกฎเต็มทุกไฟล์</a></p>
+    <p class="col"><a href={`${base}arms/`}>ดูไฟล์กฎฉบับเต็มของทุกกลุ่ม</a></p>
+  </section>
+
+  <section id="final" class="col">
+    <h2>สิ่งที่เราพบ</h2>
+    <ol class="finds">
+      <li><b>ใช้แบบไหนก็ได้</b> ในการทดลองรอบสุดท้าย Skills ได้คะแนน {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน {pts(p.diff)} จุด ซึ่งอยู่ในเกณฑ์ ±{(d.margin * 100).toFixed(1)} จุดที่เราตั้งไว้ก่อนเริ่ม และเพราะไฟล์เดียวได้คะแนนสูงอยู่แล้ว สิ่งที่มั่นใจได้จริง ๆ คือ Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</li>
+      <li><b>แต่ต้องมีกฎ</b> AI ที่ไม่มีกฎทำตามกฎสำคัญได้ครบแค่ {pct(s3.nums.perArm.A0.CRIT)}% ของครั้ง ส่วนกลุ่มที่มีกฎทำได้ {pct(s3.nums.perArm.A1.CRIT)} ถึง {pct(s3.nums.perArm.A5.CRIT)}% และในโจทย์ที่ต้องเช็กผลกระทบต่อใบแจ้งหนี้เก่า AI ที่ไม่มีกฎไม่เช็กหรือไม่บอก {im.A0.fail} จาก {im.A0.app} ครั้ง (ข้อนี้เราสังเกตเพิ่ม ยังไม่ได้ทดสอบยืนยัน)</li>
+      <li><b>ถ้าใช้ Skills ให้เขียนคำอธิบายดี ๆ</b> AI เปิด skill เฉลี่ย {s3.nums.manipulation.A2.skillsLoadedPerRun.toFixed(1)} จาก 4 ชุดต่องาน บางชุดถูกเปิดเกินจำเป็น บางชุดไม่ถูกเปิดตอนที่ควรเปิด และควรปล่อยให้ AI ถามได้เมื่อเจอข้อกำหนดที่ไม่ชัด</li>
+    </ol>
   </section>
 
   <section id="studies" class="wide">
-    <h2>การทดลองสามชุด</h2>
-    <p class="col">ทั้งสามชุดใช้ Claude Code กับโมเดล <span class="mono">{s3.model}</span> บนระบบจองเครื่อง GPU ที่ผู้วิจัยสร้างขึ้น แต่ละชุดเผยข้อบกพร่องของเครื่องมือวัดที่นำไปแก้ในชุดถัดไป</p>
+    <h2>ทำไมต้องทดลองสามรอบ</h2>
+    <p class="col">ทุกรอบใช้ Claude Code กับโมเดล <span class="mono">{s3.model}</span> บนระบบจองเครื่อง GPU ที่เราสร้างขึ้นเอง แต่ละรอบทำให้เราเจอจุดที่เครื่องมือวัดยังไม่ดี แล้วแก้ในรอบถัดไป</p>
     <ol class="timeline">
       {studies.map((st) => (
         <li class={st.n === 3 ? 'last' : ''}>
-          <div class="tl-n">ชุดที่ {st.n}</div>
+          <div class="tl-n">ชุดที่ {st.n}<small>{st.verdict}</small></div>
           <div class="tl-body">
             <h3><a href={`${base}study-${st.n}/`}>{st.role}</a></h3>
             <p>{st.summary}</p>
-            <dl>
-              <dt>กลุ่ม</dt><dd>{st.armIds.map((a, i) => <>{i ? ', ' : ''}<span class={`arm arm-${a}`}>{a}</span></>)}</dd>
-              <dt>ขนาด</dt><dd>{st.k} โจทย์ × {st.reps} รอบ = {st.usable} run</dd>
-              <dt>ตัวชี้วัด</dt><dd>{st.metricName}</dd>
-              <dt>ผล A2 − A1</dt><dd>{pts(st.primary.diff)} จุด, p = {fmtP(st.primary.p)}, <b>{st.verdict}</b></dd>
-            </dl>
-            {st.changed && <p class="tl-next"><b>นำไปสู่ชุดถัดไป</b> {st.changed}</p>}
-            <p><a href={`${base}study-${st.n}/`}>อ่านรายละเอียดชุดที่ {st.n}</a></p>
+            {st.changed && <p class="tl-next">{st.changed}</p>}
+            <p class="small"><a href={`${base}study-${st.n}/`}>อ่านเรื่องของชุดที่ {st.n}</a></p>
           </div>
         </li>
       ))}
     </ol>
   </section>
 
-  <section id="final" class="col">
-    <h2>ผลสุดท้ายและข้อเสนอแนะ</h2>
-    <p>ในชุดที่ 3 Agent Skills ได้ RCRc {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน {pts(p.diff)} จุด ช่วงความเชื่อมั่น 90% อยู่ระหว่าง {pts(d.ci90[0])} ถึง {pts(d.ci90[1])} จุด อยู่ในเกณฑ์เทียบเท่า ±{(d.margin * 100).toFixed(1)} จุดทั้งช่วง เพราะคะแนนใกล้เพดาน สิ่งที่ยืนยันได้ชัดคือ Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</p>
-    <p><span class="qual">เชิงสำรวจ</span> ความต่างที่ใหญ่กว่าอยู่ระหว่างมีกฎกับไม่มีกฎ AI ที่ไม่มีกฎผ่านกฎสำคัญครบ {pct(s3.nums.perArm.A0.CRIT)}% ของ run เทียบกับ {pct(s3.nums.perArm.A1.CRIT)} ถึง {pct(s3.nums.perArm.A5.CRIT)}% เมื่อมีกฎ</p>
-    <ol class="recs">
-      <li><b>เลือกรูปแบบจากความสะดวกและต้นทุน</b> ไม่ใช่เพราะเชื่อว่าแบบหนึ่งทำให้ AI เชื่อฟังกว่า</li>
-      <li><b>แต่ต้องมีกฎ</b> โดยเฉพาะเรื่องขอบเขตงานและการตรวจผลกระทบต่อข้อมูลเดิม</li>
-      <li><b>ถ้าใช้ Skills ให้ตรวจคำอธิบาย</b> ว่าทำให้ skill ถูกเปิดในงานที่ควรเปิด และเปิดช่องให้ AI ถามได้</li>
-    </ol>
-  </section>
-
   <section id="explore" class="wide">
-    <h2>สำรวจข้อมูลทั้งหมด</h2>
-    <p class="report-dl"><a href={`${base}skillbench-report.pdf`}>อ่านรายงานฉบับสมบูรณ์</a> <span>PDF ภาษาไทย 1.9 MB รายละเอียดวิธีวิจัย ผล และข้อจำกัดของทั้งสามชุด</span></p>
+    <h2>อยากดูเพิ่ม</h2>
+    <p class="report-dl"><a href={`${base}skillbench-report.pdf`}>อ่านรายงานฉบับเต็ม</a> <span>PDF ภาษาไทย ขนาด 1.9 MB มีวิธีวิจัย ผล และข้อจำกัดครบทั้งสามรอบ</span></p>
     <div class="explore">
-      <a href={`${base}runs/`}><b>ทะเบียน {totalRuns} run</b><span>ผลตรวจกฎทีละข้อ ไฟล์ที่แก้ skill ที่เปิด และต้นทุนของทุก run</span></a>
-      <a href={`${base}scenarios/`}><b>โจทย์ {scenarios.length} ข้อ</b><span>คำสั่ง กับดัก กฎที่ใช้ให้คะแนน และผลในแต่ละชุด</span></a>
-      <a href={`${base}arms/`}><b>กลุ่มทดลองและกฎ</b><span>กลุ่ม A0 ถึง A5 และข้อความกฎเต็มที่ AI ได้รับ</span></a>
-      <a href={`${base}method/`}><b>วิธีวัด</b><span>ขั้นตอนของหนึ่ง run ตัวชี้วัด และสถิติ</span></a>
-      <a href={`${base}protocol/`}><b>เอกสารแผน</b><span>แผนที่ประกาศล่วงหน้าทั้งสามชุดและบันทึกส่วนเบี่ยงเบน</span></a>
-      <a href="https://github.com/Teerapab149/skillbench"><b>โค้ดและข้อมูลดิบ</b><span>repository บน GitHub</span></a>
+      <a href={`${base}runs/`}><b>การทำงานทั้ง {totalRuns} ครั้ง</b><span>ดูทีละครั้งว่า AI แก้ไฟล์ไหน เปิด skill อะไร และผ่านกฎข้อไหน</span></a>
+      <a href={`${base}scenarios/`}><b>โจทย์ {scenarios.length} ข้อ</b><span>คำสั่ง กับดัก และผลของแต่ละกลุ่ม</span></a>
+      <a href={`${base}arms/`}><b>กลุ่มทดลองและไฟล์กฎ</b><span>แต่ละกลุ่มได้อะไร และข้อความกฎเต็ม ๆ</span></a>
+      <a href={`${base}method/`}><b>เราวัดยังไง</b><span>หนึ่งครั้งที่ AI ทำงานมีขั้นตอนอะไร และให้คะแนนแบบไหน</span></a>
+      <a href={`${base}protocol/`}><b>แผนที่ตั้งไว้ก่อนเริ่ม</b><span>แผนทั้งสามรอบ และสิ่งที่ไม่เป็นไปตามแผน</span></a>
+      <a href="https://github.com/Teerapab149/skillbench"><b>โค้ดและข้อมูลดิบ</b><span>ทุกอย่างอยู่บน GitHub</span></a>
     </div>
   </section>
 </Base>
@@ -242,8 +215,11 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
   .tl-next { color: var(--ink-2); }
   @media (max-width: 640px) { .timeline li { grid-template-columns: 1fr; gap: 0.25rem; } }
 
-  .recs { padding-left: 1.3rem; }
-  .recs li { margin-bottom: 0.6rem; }
+  .finds { padding-left: 1.3rem; }
+  .finds li { margin-bottom: 1rem; line-height: 1.8; }
+  .finds b { font-family: var(--serif); }
+  .tl-n small { display: block; font-family: var(--sans); font-weight: 400; font-size: 0.9rem; color: var(--ink-3); }
+  .last .tl-n small { color: var(--teal); }
   .explore { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 2px solid var(--ink); }
   @media (min-width: 760px) { .explore { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
   .explore a { display: flex; flex-direction: column; gap: 0.25rem; padding: 1.25rem 1rem 1.25rem 0; border-bottom: 1px solid var(--rule); text-decoration: none; color: var(--ink); }

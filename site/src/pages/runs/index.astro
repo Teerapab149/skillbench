@@ -7,16 +7,16 @@ const promptOf = (id: string) => scenarios.find((s) => s.id === id)?.prompt ?? '
 const payload = studies.flatMap((st) => st.runs.map((r) => ({ ...r, metric: st.metricName, scCode: r.sc.split('-')[0], scPrompt: st.perScenario.find((p) => p.id === r.sc)?.prompt || promptOf(r.sc) })));
 const total = studies.reduce((s, st) => s + st.usable, 0);
 ---
-<Base title="ทะเบียน run SkillBench" current="runs/">
+<Base title="การทำงานทุกครั้ง SkillBench" current="runs/">
   <header class="title-block col">
-    <h1>ทะเบียน run ทั้ง {total} ตัว จากการทดลองสามชุด</h1>
-    <p class="lede" style="margin-top:1rem">หนึ่งช่องคือหนึ่ง run คือโจทย์หนึ่งข้อ กลุ่มหนึ่งกลุ่ม รอบหนึ่งรอบ สีบอกคะแนนหลักของ run นั้น คลิกช่องเพื่อเปิดบันทึก ซึ่งมีผลตรวจกฎทีละข้อ ไฟล์ที่แก้ skill ที่เปิด และต้นทุน</p>
+    <h1>การทำงานทั้ง {total} ครั้ง</h1>
+    <p class="lede">หนึ่งช่องคือ AI ทำโจทย์หนึ่งข้อหนึ่งครั้ง แถวคือโจทย์ คอลัมน์คือกลุ่มและรอบ ยิ่งเขียวยิ่งทำตามกฎได้มาก กดช่องไหนก็ได้เพื่อดูว่าครั้งนั้น AI แก้ไฟล์อะไร เปิด skill ไหน ผ่านกฎข้อไหน และใช้เงินเท่าไหร่</p>
   </header>
 
   <div class="switch" role="tablist" aria-label="เลือกการทดลอง">
     {studies.map((st, i) => (
       <button type="button" role="tab" aria-selected={i === studies.length - 1 ? 'true' : 'false'} data-study={st.n}>
-        <b>ชุดที่ {st.n}</b><span>{st.usable} run, {st.metricName}</span>
+        <b>ชุดที่ {st.n}</b><span>{st.usable} ครั้ง</span>
       </button>
     ))}
   </div>
@@ -25,8 +25,8 @@ const total = studies.reduce((s, st) => s + st.usable, 0);
     <div>
       {studies.map((st, i) => (
         <div class="grid-wrap" data-grid={st.n} hidden={i !== studies.length - 1}>
-          <p class="key small"><span>{st.metricName} ของ run</span><i class="ramp"></i><span>0 ถึง 1</span>{st.n > 1 && <><i class="cell fail demo" aria-hidden="true"></i><span>เส้นทแยงคืองานหลักไม่สำเร็จ</span></>}</p>
-          <table class="reg" aria-label={`ทะเบียน run ชุดที่ ${st.n}`}>
+          <p class="key small"><span>คะแนน ({st.metricName})</span><i class="ramp"></i><span>0 ถึง 1</span>{st.n > 1 && <><i class="cell fail demo" aria-hidden="true"></i><span>เส้นทแยงคืองานไม่เสร็จ</span></>}</p>
+          <table class="reg" aria-label={`การทำงานทุกครั้งของชุดที่ ${st.n}`}>
             <thead><tr><th></th>{st.armIds.map((a) => <th colspan={st.reps} class="ah"><span class={`arm arm-${a}`}>{a}</span><span class="as">{ARM_INFO[a].short}</span></th>)}</tr></thead>
             <tbody>
               {st.perScenario.map((ps) => (
@@ -45,8 +45,8 @@ const total = studies.reduce((s, st) => s + st.usable, 0);
       ))}
     </div>
     <aside class="panel" id="panel" aria-live="polite">
-      <p class="pt">เลือก run จากตาราง</p>
-      <p class="small muted">ลิงก์ของแต่ละ run แชร์ได้ เพราะชื่อ run อยู่ท้าย URL</p>
+      <p class="pt">กดช่องในตารางเพื่อดูรายละเอียด</p>
+      <p class="small muted">ลิงก์ของแต่ละครั้งส่งต่อให้คนอื่นเปิดได้เลย</p>
     </aside>
   </div>
   <script type="application/json" id="runs-data" set:html={JSON.stringify(payload)} />
@@ -93,7 +93,7 @@ const total = studies.reduce((s, st) => s + st.usable, 0);
   const panel = document.getElementById('panel')!;
   const base = (document.querySelector('.brand') as HTMLAnchorElement).getAttribute('href')!;
   const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
-  const armName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A3: 'ข้อความหลอกยาวเท่า A1', A4: 'Skills และคอมเมนต์ล่อ', A5: 'ข้อความ A2 ในไฟล์เดียว' };
+  const armName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A3: 'ข้อความยาวเท่ากันแต่ไม่ใช่กฎ', A4: 'Skills และคอมเมนต์ล่อ', A5: 'ข้อความ A2 ในไฟล์เดียว' };
   const sev: Record<string, string> = { critical: 'สำคัญ', major: 'รอง', minor: 'ย่อย' };
   const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-study]')];
   let study = Number(new URLSearchParams(location.search).get('study')) || Number(tabs[tabs.length - 1].dataset.study);
@@ -110,10 +110,10 @@ const total = studies.reduce((s, st) => s + st.usable, 0);
     document.querySelector(`[data-grid="${study}"] [data-run="${CSS.escape(id)}"]`)?.classList.add('on');
     const rules = r.rules.map((x: any) => {
       const c = !x.app ? 'na' : x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na';
-      const t = c === 'ok' ? 'ผ่าน' : c === 'no' ? 'ตก' : 'ไม่เข้าเงื่อนไข';
+      const t = c === 'ok' ? 'ผ่าน' : c === 'no' ? 'พลาด' : 'ไม่เกี่ยวกับครั้งนี้';
       return `<li class="${x.sev === 'critical' ? '' : 'minor'}"><i class="m ${c}" title="${t}"></i><span class="mono">${esc(x.id)}</span><span>${esc(x.desc)} <span class="muted small">(${sev[x.sev] ?? x.sev}, ${t})</span></span></li>`;
     }).join('');
-    const done = r.done == null ? '' : `<dt>งานหลักสำเร็จ</dt><dd>${r.done ? 'ใช่' : '<b class="qual">ไม่</b>'}${r.done1 === false && r.done ? ' <span class="muted">สำเร็จหลังรอบตอบกลับ</span>' : ''}</dd>`;
+    const done = r.done == null ? '' : `<dt>งานเสร็จไหม</dt><dd>${r.done ? 'ใช่' : '<b class="qual">ไม่</b>'}${r.done1 === false && r.done ? ' <span class="muted">สำเร็จหลังรอบตอบกลับ</span>' : ''}</dd>`;
     panel.innerHTML = `
       <p class="pt"><span class="arm arm-${r.arm}">${r.arm}</span> ${esc(armName[r.arm])}, รอบที่ ${r.rep + 1}</p>
       <p class="small">ชุดที่ ${r.study}, <a href="${base}scenarios/${esc(r.sc)}/#study-${r.study}">${esc(r.scCode)}</a> “${esc(r.scPrompt)}”</p>
@@ -123,12 +123,12 @@ const total = studies.reduce((s, st) => s + st.usable, 0);
         <dt>ไฟล์ที่แก้</dt><dd class="mono">${r.files.length ? r.files.map(esc).join('<br>') : 'ไม่มี'}</dd>
         <dt>skill ที่เปิด</dt><dd class="mono">${r.skills.length ? r.skills.map(esc).join(', ') : 'ไม่ได้เปิด'}</dd>
         <dt>skill ที่ควรเปิด</dt><dd class="mono">${r.expected.length ? r.expected.map(esc).join(', ') : 'ไม่มี'}</dd>
-        <dt>เรียกเครื่องมือ</dt><dd>${r.tools ?? 'ไม่มีข้อมูล'} ครั้ง</dd>
+        <dt>ใช้เครื่องมือ</dt><dd>${r.tools ?? 'ไม่มีข้อมูล'} ครั้ง</dd>
         <dt>เวลา</dt><dd>${r.ms != null ? Math.round(r.ms / 1000) + ' วินาที' : 'ไม่มีข้อมูล'}</dd>
         <dt>ต้นทุน</dt><dd>${r.usd != null ? '$' + r.usd.toFixed(2) : 'ไม่มีข้อมูล'}</dd>
         <dt>token</dt><dd>เข้า ${r.inTok?.toLocaleString('en-US') ?? '-'} ออก ${r.outTok?.toLocaleString('en-US') ?? '-'}</dd>
       </dl>
-      <h3>ผลตรวจกฎ</h3><ul class="rules">${rules}</ul>
+      <h3>ผลตรวจกฎทีละข้อ</h3><ul class="rules">${rules}</ul>
       <p class="small muted mono" style="margin-top:1rem">${esc(r.id)}</p>`;
     if (scroll && window.innerWidth < 1080) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }

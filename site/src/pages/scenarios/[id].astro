@@ -8,7 +8,7 @@ const { s, prev, next } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const sev: Record<string, string> = { critical: 'สำคัญ', major: 'รอง', minor: 'ย่อย' };
 const cell = (x: any) => (!x || !x.app ? 'na' : x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na');
-const cellLabel: Record<string, string> = { ok: 'ผ่าน', no: 'ตก', na: 'ไม่เข้าเงื่อนไข' };
+const cellLabel: Record<string, string> = { ok: 'ทำตาม', no: 'พลาด', na: 'ไม่เกี่ยวกับครั้งนี้' };
 const stripTicks = (t: string) => t.split(String.fromCharCode(96)).join('');
 const sections = s.perStudy.slice().reverse();
 ---
@@ -26,8 +26,8 @@ const sections = s.perStudy.slice().reverse();
     <section class="col">
       <h2 class="h-first">กับดักของโจทย์นี้</h2>
       <p class="lede">{s.trap}</p>
-      {s.note && <div class="aside"><b>บันทึกของผู้ออกแบบโจทย์</b>{s.note}</div>}
-      <h3>ข้อกำหนดที่เกี่ยวข้อง</h3>
+      {s.note && <div class="aside"><b>โน้ตตอนเราออกแบบโจทย์นี้</b>{s.note}</div>}
+      <h3>ข้อกำหนดที่โจทย์นี้อ้างถึง</h3>
       <dl class="reqs">
         {s.reqs.map((r: string) => (
           <><dt class="mono">{r}</dt><dd>{reqs[r]?.text ?? ''}{reqs[r]?.ac && <span class="ac small">เกณฑ์ยอมรับ: {stripTicks(reqs[r].ac)}</span>}</dd></>
@@ -36,14 +36,14 @@ const sections = s.perStudy.slice().reverse();
       <p class="small muted">จาก <code>REQUIREMENTS.md</code> ของระบบจำลอง <a href={`${base}protocol/#requirements`}>ดูข้อกำหนดทั้งหมด</a></p>
     </section>
     <aside class="side">
-      <h3 class="h-first">ใช้ในการทดลอง</h3>
+      <h3 class="h-first">Skills ได้มากกว่าไฟล์เดียว</h3>
       <table class="bt">
-        <thead><tr><th>ชุด</th><th class="r">A2 − A1</th></tr></thead>
+        <thead><tr><th>รอบ</th><th class="r">จุด</th></tr></thead>
         <tbody>{s.perStudy.map(({ study, ps }) => <tr><td><a href={`#study-${study.n}`}>ชุดที่ {study.n}</a> <span class="muted small">{study.metricName}</span></td><td class="r"><b>{tie(ps.diff) ? 'เท่ากัน' : pts(ps.diff)}</b></td></tr>)}</tbody>
       </table>
-      <h3>skill ที่ควรถูกเปิด</h3>
+      <h3>skill ที่ควรถูกเปิดในโจทย์นี้</h3>
       <p class="mono small">{s.expectedSkills.length ? s.expectedSkills.join(', ') : 'ไม่มี'}</p>
-      {s.probes.length > 0 && <><h3>คำสั่งวัดก่อนและหลัง</h3>{s.probes.map((p: any) => <p class="mono small">{p.command}</p>)}</>}
+      {s.probes.length > 0 && <><h3>คำสั่งที่ใช้วัดก่อนและหลัง AI ทำงาน</h3>{s.probes.map((p: any) => <p class="mono small">{p.command}</p>)}</>}
       {s.verify && <><h3>เทสยอมรับที่ AI มองไม่เห็น</h3><p class="mono small">{s.verify}</p></>}
     </aside>
   </div>
@@ -53,9 +53,9 @@ const sections = s.perStudy.slice().reverse();
     const promptChanged = ps.prompt && ps.prompt !== s.prompt;
     return (
       <section class="wide study-sec" id={`study-${study.n}`}>
-        <h2>ผลในชุดที่ {study.n}</h2>
-        <p class="col">วัดด้วย {study.metricName} แต่ละแถวคือกฎหนึ่งข้อของโจทย์นี้ในชุดนั้น ตัวตรวจเป็นโปรแกรมที่อ่านร่องรอยการทำงานจริงของ AI สีเขียวคือผ่าน สีส้มคือตก กรอบเส้นประคือไม่เข้าเงื่อนไข คลิกช่องเพื่อเปิดบันทึก run</p>
-        {promptChanged && <p class="col small">คำสั่งในชุดนี้: <q>{ps.prompt}</q></p>}
+        <h2>ผลในรอบที่ {study.n}</h2>
+        <p class="col">หนึ่งแถวคือกฎหนึ่งข้อ หนึ่งคอลัมน์คือการทำงานหนึ่งครั้ง เขียวคือทำตาม ส้มคือพลาด กรอบเส้นประคือครั้งนั้นกฎข้อนี้ไม่เกี่ยว กดเลขรอบด้านบนเพื่อดูว่า AI ทำอะไรไปบ้าง</p>
+        {promptChanged && <p class="col small">รอบนี้ใช้คำสั่ง <q>{ps.prompt}</q></p>}
         <div class="tbl-wrap">
           <table class="bt matrix">
             <thead>
@@ -73,9 +73,9 @@ const sections = s.perStudy.slice().reverse();
                   }))}
                 </tr>
               ))}
-              {study.n > 1 && <tr class="sum"><td colspan="2"><b>งานหลักสำเร็จ</b></td>{study.armIds.map((a) => ps.byArm[a].runs.map((run) => <td class="c small">{run.done ? 'ใช่' : <b class="qual">ไม่</b>}</td>))}</tr>}
-              <tr class="sum"><td colspan="2"><b>{study.metricName} ของ run</b></td>{study.armIds.map((a) => ps.byArm[a].runs.map((run) => <td class="c small">{run.score.toFixed(2)}</td>))}</tr>
-              <tr class="sum"><td colspan="2"><b>เฉลี่ยของกลุ่ม</b></td>{study.armIds.map((a) => <td class="c small" colspan={study.reps}><b>{pct(ps.byArm[a].mean)}%</b></td>)}</tr>
+              {study.n > 1 && <tr class="sum"><td colspan="2"><b>งานเสร็จไหม</b></td>{study.armIds.map((a) => ps.byArm[a].runs.map((run) => <td class="c small">{run.done ? 'ใช่' : <b class="qual">ไม่</b>}</td>))}</tr>}
+              <tr class="sum"><td colspan="2"><b>คะแนนของครั้งนั้น ({study.metricName})</b></td>{study.armIds.map((a) => ps.byArm[a].runs.map((run) => <td class="c small">{run.score.toFixed(2)}</td>))}</tr>
+              <tr class="sum"><td colspan="2"><b>เฉลี่ยทั้งกลุ่ม</b></td>{study.armIds.map((a) => <td class="c small" colspan={study.reps}><b>{pct(ps.byArm[a].mean)}%</b></td>)}</tr>
             </tbody>
           </table>
         </div>

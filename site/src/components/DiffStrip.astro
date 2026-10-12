@@ -16,7 +16,7 @@ const maxAbs = Math.max(0.25, ...rows.map((r) => Math.abs(r.diff)));
       </a>
     ))}
   </div>
-  <figcaption><b>รูปที่ {n}</b> ผลต่าง {st.metricName} ระหว่าง A2 กับ A1 รายโจทย์ในชุดที่ {st.n} เรียงจากน้อยไปมาก จุดเหนือเส้นกลางคือโจทย์ที่ Skills ได้มากกว่า {ties} จาก {rows.length} โจทย์ได้เท่ากันพอดี (จุดบนเส้น) และไม่ให้ข้อมูลกับการทดสอบ คลิกจุดเพื่อเปิดโจทย์</figcaption>
+  <figcaption><b>รูปที่ {n}</b> ผลทีละโจทย์ จุดเหนือเส้นกลางคือโจทย์ที่ Skills ได้มากกว่าไฟล์เดียว จุดบนเส้นคือได้เท่ากัน ({ties} จาก {rows.length} โจทย์) กดจุดเพื่อเปิดโจทย์นั้น</figcaption>
 </figure>
 <style>
   .plot { position: relative; height: 15rem; display: grid; grid-template-columns: repeat(var(--cols), 1fr); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule);

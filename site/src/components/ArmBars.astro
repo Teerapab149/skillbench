@@ -4,11 +4,11 @@ import { ARM_INFO, type Study } from '../lib/data';
 interface Props { st: Study; n: number }
 const { st, n } = Astro.props;
 const all = [
-  { key: 'taskDoneRate', label: 'ทำงานสำเร็จ' },
-  { key: 'CRIT', label: 'ผ่านกฎสำคัญครบทุกข้อ' },
-  { key: 'SCOPE', label: 'แก้ไฟล์อยู่ในขอบเขต' },
+  { key: 'taskDoneRate', label: 'ทำงานเสร็จ' },
+  { key: 'CRIT', label: 'ทำตามกฎสำคัญครบทุกข้อ' },
+  { key: 'SCOPE', label: 'แก้เฉพาะไฟล์ในงาน' },
   { key: 'RCR', label: 'สัดส่วนกฎที่ทำตาม (RCR)' },
-  { key: 'RCRc', label: 'RCRc' },
+  { key: 'RCRc', label: 'คะแนนหลัก (RCRc)' },
 ];
 const metrics = all.filter((m) => st.armIds.every((a) => typeof st.nums.perArm[a][m.key] === 'number'))
   .filter((m) => st.n === 1 ? m.key !== 'RCRc' : m.key !== 'RCR');
@@ -34,7 +34,7 @@ const metrics = all.filter((m) => st.armIds.every((a) => typeof st.nums.perArm[a
     ))}
   </div>
   <p class="legend">{st.armIds.map((a) => <span class={`arm arm-${a}`}>{a} {ARM_INFO[a].short}</span>)}</p>
-  <figcaption><b>รูปที่ {n}</b> ตัวชี้วัดรายกลุ่มของชุดที่ {st.n} เป็นร้อยละ กลุ่มละ {st.nums.perArm[st.armIds[0]].n} run</figcaption>
+  <figcaption><b>รูปที่ {n}</b> คะแนนของแต่ละกลุ่มในชุดที่ {st.n} เป็นร้อยละ กลุ่มละ {st.nums.perArm[st.armIds[0]].n} ครั้ง</figcaption>
 </figure>
 <style>
   .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 2rem; }

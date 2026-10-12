@@ -2,18 +2,18 @@
 import '../styles/global.css';
 import { studies } from '../lib/data';
 interface Props { title: string; description?: string; current?: string }
-const { title, description = 'งานวิจัยที่ทดลองสามชุดว่าการเขียนกฎให้เอเจนต์เขียนโค้ดแบบ Agent Skills กับแบบไฟล์เดียว ทำให้เอเจนต์ทำตามกฎต่างกันหรือไม่', current = '' } = Astro.props;
+const { title, description = 'เราทดลองสามรอบว่า ถ้าเขียนกฎให้ AI เขียนโค้ดแบบ Agent Skills กับแบบไฟล์เดียว AI จะทำตามกฎต่างกันไหม', current = '' } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const nav: [string, string][] = [
-  ['', 'ภาพรวม'],
+  ['', 'หน้าแรก'],
   ['study-1/', 'ชุดที่ 1'],
   ['study-2/', 'ชุดที่ 2'],
   ['study-3/', 'ชุดที่ 3'],
-  ['arms/', 'กลุ่มทดลองและกฎ'],
+  ['arms/', 'กลุ่มและกฎ'],
   ['scenarios/', 'โจทย์'],
-  ['runs/', 'ทะเบียน run'],
-  ['method/', 'วิธีวัด'],
-  ['protocol/', 'เอกสารแผน'],
+  ['runs/', 'ทุกครั้งที่ทำงาน'],
+  ['method/', 'วัดยังไง'],
+  ['protocol/', 'แผนก่อนเริ่ม'],
 ];
 const totalRuns = studies.reduce((s, st) => s + st.usable, 0);
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
@@ -75,9 +75,9 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
       รายวิชา 477-401 สัมมนาระบบสารสนเทศทางธุรกิจ คณะวิทยาการจัดการ มหาวิทยาลัยสงขลานครินทร์ ภาคเรียนที่ 1/2569</p>
     </div>
     <div>
-      <p>การทดลองสามชุด รวม {totalRuns} run บนโมเดล <span class="mono">{studies[2].model}</span></p>
-      <p>ตัวเลขทุกตัวในเว็บสร้างจากไฟล์ข้อมูลตอน build ไม่มีการพิมพ์ด้วยมือ</p>
-      <p><a href={`${base}skillbench-report.pdf`}>รายงานฉบับสมบูรณ์ (PDF)</a></p>
+      <p>ทดลองสามรอบ รวม {totalRuns} ครั้ง ด้วยโมเดล <span class="mono">{studies[2].model}</span></p>
+      <p>ตัวเลขทุกตัวในเว็บดึงจากไฟล์ผลการทดลองโดยตรง เราไม่ได้พิมพ์เอง</p>
+      <p><a href={`${base}skillbench-report.pdf`}>รายงานฉบับเต็ม (PDF)</a></p>
       <p><a href="https://github.com/Teerapab149/skillbench">โค้ดและข้อมูลทั้งหมดบน GitHub</a></p>
     </div>
   </div>

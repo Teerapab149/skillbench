@@ -3,17 +3,17 @@ import Base from '../../layouts/Base.astro';
 import { renderDoc } from '../../lib/md';
 import { docs } from '../../lib/data';
 const sections = [
-  { id: 'prereg-1', title: 'แผนล่วงหน้าของชุดที่ 1', file: 'PRE-REGISTRATION.md', note: 'แผนของการทดลองชุดที่ 1 รวมการแก้ไข (Amendment) ที่บันทึกไว้ก่อนเก็บข้อมูล', md: docs.prereg1 },
-  { id: 'prereg-2', title: 'แผนล่วงหน้าของชุดที่ 2', file: 'PRE-REGISTRATION-2.md', note: 'เขียนหลังเห็นผลชุดที่ 1 และก่อนเก็บข้อมูลชุดที่ 2', md: docs.prereg2 },
-  { id: 'prereg-3', title: 'แผนล่วงหน้าของชุดที่ 3', file: 'PRE-REGISTRATION-3.md', note: 'ล็อกด้วย git tag study3-prereg เมื่อ 5 ต.ค. 2569 ก่อนเก็บข้อมูลหลัก', md: docs.prereg3 },
-  { id: 'deviations', title: 'บันทึกส่วนเบี่ยงเบนจากแผนของชุดที่ 3', file: 'DEVIATIONS-3.md', note: 'บันทึกและ commit ก่อนเปิดดูผลแยกกลุ่ม', md: docs.deviations },
-  { id: 'requirements', title: 'ข้อกำหนดของระบบจำลอง', file: 'fixtures/gpu-booking/REQUIREMENTS.md', note: 'เอกสารที่เอเจนต์ทุกกลุ่มใช้อ้างอิงระหว่างทำโจทย์', md: docs.requirements },
+  { id: 'prereg-1', title: 'แผนของชุดที่ 1', file: 'PRE-REGISTRATION.md', note: 'แผนของการทดลองชุดที่ 1 รวมการแก้ไข (Amendment) ที่บันทึกไว้ก่อนเก็บข้อมูล', md: docs.prereg1 },
+  { id: 'prereg-2', title: 'แผนของชุดที่ 2', file: 'PRE-REGISTRATION-2.md', note: 'เขียนหลังเห็นผลชุดที่ 1 และก่อนเก็บข้อมูลชุดที่ 2', md: docs.prereg2 },
+  { id: 'prereg-3', title: 'แผนของชุดที่ 3', file: 'PRE-REGISTRATION-3.md', note: 'ล็อกด้วย git tag study3-prereg เมื่อ 5 ต.ค. 2569 ก่อนเก็บข้อมูลหลัก', md: docs.prereg3 },
+  { id: 'deviations', title: 'สิ่งที่ไม่เป็นไปตามแผนในชุดที่ 3', file: 'DEVIATIONS-3.md', note: 'บันทึกและ commit ก่อนเปิดดูผลแยกกลุ่ม', md: docs.deviations },
+  { id: 'requirements', title: 'ข้อกำหนดของระบบที่ AI ใช้', file: 'fixtures/gpu-booking/REQUIREMENTS.md', note: 'เอกสารที่ AI ทุกกลุ่มใช้อ้างอิงระหว่างทำโจทย์', md: docs.requirements },
 ].map((s) => ({ ...s, html: renderDoc(s.md) }));
 ---
-<Base title="เอกสารแผน SkillBench" current="protocol/">
+<Base title="แผนก่อนเริ่ม SkillBench" current="protocol/">
   <header class="title-block col">
-    <h1>แผนที่ประกาศไว้ก่อนเก็บข้อมูลทั้งสามชุด ส่วนเบี่ยงเบน และข้อกำหนดของระบบ</h1>
-    <p class="lede" style="margin-top:1rem">เอกสารเหล่านี้แสดงเนื้อหาตามต้นฉบับใน repository ปรับเฉพาะเครื่องหมายคั่นวลีให้อ่านง่ายขึ้น เอกสารทำงานบางส่วนเขียนระหว่างใช้ Claude เป็นเครื่องมือ จึงมีถ้อยคำที่เรียก Claude ว่า "ผู้ช่วย" หรือ "ผู้ออกแบบ"</p>
+    <h1>แผนที่เราเขียนไว้ก่อนเริ่ม</h1>
+    <p class="lede">ก่อนเก็บข้อมูลทุกรอบ เราเขียนแผนไว้ก่อนว่าจะวัดอะไร และจะตัดสินผลยังไง แล้วล็อกไว้บน GitHub เพื่อไม่ให้ปรับทีหลังตามผลที่ออกมา หน้านี้คือแผนทั้งสามฉบับ สิ่งที่ไม่เป็นไปตามแผน และข้อกำหนดของระบบที่ AI ใช้ทำงาน เอกสารเป็นภาษาทำงานของเราตามต้นฉบับ (ตัดแค่เครื่องหมายคั่นวลี) บางส่วนเขียนตอนใช้ Claude ช่วย เลยมีคำที่เรียก Claude ว่า "ผู้ช่วย" หรือ "ผู้ออกแบบ"</p>
     <nav class="tabs" aria-label="เอกสาร">{sections.map((s) => <a href={`#${s.id}`}>{s.title}</a>)}</nav>
   </header>
   {sections.map((s) => (

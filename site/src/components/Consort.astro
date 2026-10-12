@@ -4,17 +4,17 @@ import { ARM_INFO, type Study } from '../lib/data';
 interface Props { st: Study; n: number }
 const { st, n } = Astro.props;
 const a = st.nums.allocation;
-const planned = (st as { repsNote?: string }).repsNote ? (st as { repsNote?: string }).repsNote : st.fallback ? `แผนประกาศไว้ ${st.fallback.from} รอบ ใช้ ${st.fallback.to} รอบตามกฎสำรอง` : `ตามแผน ${st.reps} รอบ`;
+const planned = (st as { repsNote?: string }).repsNote ? (st as { repsNote?: string }).repsNote : st.fallback ? `แผนเดิม ${st.fallback.from} รอบ ใช้จริง ${st.fallback.to} รอบตามกฎสำรอง` : `ตามแผน ${st.reps} รอบ`;
 ---
 <figure class="fig-wide consort" aria-label={`แผนผังการไหลของข้อมูลชุดที่ ${st.n}`}>
   <div class="c-row"><div class="box">
     <b>{a.scenarios} โจทย์ × {st.armIds.length} กลุ่ม × {st.reps} รอบ</b>
-    <span>{a.declaredCells} run ({planned})</span>
+    <span>{a.declaredCells} ครั้ง ({planned})</span>
   </div></div>
   <div class="c-arrow" aria-hidden="true"></div>
   <div class="c-row"><div class="box">
-    <b>เก็บได้ {a.usableCells} run ({(a.completeness * 100).toFixed(0)}%)</b>
-    <span>ตัดออกเพราะล้มเหลวเชิงโครงสร้าง {a.structurallyExcluded} run และใช้ turn หมดเพดาน {st.nums.budgetExhausted.total} run</span>
+    <b>เก็บได้ครบ {a.usableCells} ครั้ง ({(a.completeness * 100).toFixed(0)}%)</b>
+    <span>ระบบล่มจนต้องตัดทิ้ง {a.structurallyExcluded} ครั้ง AI ทำงานจนหมดโควตาขั้นตอน {st.nums.budgetExhausted.total} ครั้ง</span>
   </div></div>
   <div class="c-arrow" aria-hidden="true"></div>
   <div class="c-row arms" style={`--k:${st.armIds.length}`}>
@@ -22,16 +22,16 @@ const planned = (st as { repsNote?: string }).repsNote ? (st as { repsNote?: str
       <div class={`box arm-box arm-${id}`}>
         <b><span class={`arm arm-${id}`}>{id}</span></b>
         <span>{ARM_INFO[id].short}</span>
-        <span class="n">{st.nums.perArm[id].n} run</span>
+        <span class="n">{st.nums.perArm[id].n} ครั้ง</span>
       </div>
     ))}
   </div>
   <div class="c-arrow" aria-hidden="true"></div>
   <div class="c-row"><div class="box unit">
-    <b>หน่วยวิเคราะห์คือโจทย์ ({st.k} คู่)</b>
-    <span>เฉลี่ยคะแนนของ {st.reps} รอบในแต่ละโจทย์ แล้วเทียบ A2 กับ A1 แบบจับคู่รายโจทย์</span>
+    <b>เทียบกันทีละโจทย์ ({st.k} โจทย์)</b>
+    <span>เอาคะแนน {st.reps} รอบของแต่ละโจทย์มาเฉลี่ย แล้วดูว่าในโจทย์เดียวกัน Skills ได้มากหรือน้อยกว่าไฟล์เดียว</span>
   </div></div>
-  <figcaption><b>รูปที่ {n}</b> การไหลของข้อมูลในการทดลองชุดที่ {st.n}</figcaption>
+  <figcaption><b>รูปที่ {n}</b> ข้อมูลของชุดที่ {st.n} ตั้งแต่วางแผนจนถึงตอนเทียบผล</figcaption>
 </figure>
 <style>
   .consort { display: flex; flex-direction: column; align-items: stretch; }

@@ -61,6 +61,7 @@ h2 { font-weight: 600; font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.4; ma
 h3 { font-weight: 600; font-size: 1.25rem; line-height: 1.5; margin-top: 2.5rem; margin-bottom: 0.5rem; }
 p { margin: 0 0 1.1em; }
 .lede { font-size: 1.25rem; line-height: 1.7; color: var(--ink-2); }
+.title-block h1 + .lede { margin-top: 1rem; }
 .muted { color: var(--ink-3); }
 .small { font-size: 0.92rem; }
 
@@ -210,3 +211,15 @@ article, section { min-width: 0; }
   table.bt { font-size: 0.94rem; }
   table.bt thead th, table.bt tbody td { padding: 0.5rem 0.5rem; }
 }
+
+/* กล่องพับ "รายละเอียดสำหรับกรรมการ" */
+.more-box { border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); margin-top: 1rem; }
+.more-box > summary { cursor: pointer; list-style: none; padding: 1.1rem 2.5rem 1.1rem 0; position: relative; display: flex; flex-direction: column; gap: 0.2rem; }
+.more-box > summary::-webkit-details-marker { display: none; }
+.more-box > summary::after { content: ''; position: absolute; right: 0.4rem; top: 1.45rem; width: 0.6rem; height: 0.6rem; border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: rotate(45deg); transition: transform 0.2s; }
+.more-box[open] > summary::after { transform: rotate(-135deg); top: 1.75rem; }
+.sm-t { font-family: var(--serif); font-weight: 600; font-size: 1.25rem; }
+.sm-s { color: var(--ink-3); font-size: 0.95rem; }
+.more-box > summary:hover .sm-t { color: var(--teal); }
+.more-box > h3 { margin-top: 2.5rem; }
+.more-box > p, .more-box > ul, .more-box > ol { max-width: var(--measure); }
