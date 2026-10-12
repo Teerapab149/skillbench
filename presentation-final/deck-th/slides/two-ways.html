@@ -1,8 +1,8 @@
 <section id="two-ways" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
-<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">กฎชุดเดียวกันเขียนได้สองแบบ: ไฟล์เดียวที่ AI อ่านทุกครั้ง หรือ Skills ที่ AI เปิดเมื่องานเกี่ยว</h2>
+<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">กฎชุดเดียวกัน เขียนได้สองแบบ: ไฟล์เดียวที่ AI อ่านทุกครั้ง หรือ Skills ที่ AI เปิดเมื่องานเกี่ยว</h2>
 <div style="display:flex;gap:64px">
 <div style="flex:1;display:flex;flex-direction:column;gap:16px">
-<p style="font-size:30px;font-weight:700;color:#3B5B92">A1 กฎไฟล์เดียว</p>
+<p style="font-size:30px;font-weight:700;color:#3B5B92">ไฟล์เดียว</p>
 <p style="font-family:'IBM Plex Mono', 'Courier New', monospace;font-size:24px;color:#6B7180">CLAUDE.md</p>
 <div style="display:flex;flex-direction:column;gap:12px;background:#F0EEE6;padding:36px">
 <p style="font-size:28px;font-weight:700">## 1. ขอบเขตของงาน</p>
@@ -13,18 +13,18 @@
 <p style="font-size:28px;line-height:1.5">ตอนเริ่มงาน AI อ่าน<b>กฎครบทั้ง 20 ข้อ</b>ทุกครั้ง</p>
 </div>
 <div style="flex:1;display:flex;flex-direction:column;gap:16px">
-<p style="font-size:30px;font-weight:700;color:#C0392B">A2 Agent Skills</p>
+<p style="font-size:30px;font-weight:700;color:#C0392B">Agent Skills</p>
 <p style="font-family:'IBM Plex Mono', 'Courier New', monospace;font-size:24px;color:#6B7180">skills/impact-analysis/SKILL.md</p>
 <div style="display:flex;flex-direction:column;gap:12px;background:#F0EEE6;padding:36px">
 <p style="font-size:26px;line-height:1.5"><b>description:</b> ใช้ก่อนแก้โมดูลคำนวณ ตรรกะธุรกิจ หรือค่าคงที่ที่มีผลต่อตัวเลขในระบบ …</p>
 <p style="font-size:28px;font-weight:700"># ประเมินผลกระทบก่อนแก้</p>
 <p style="font-size:26px;line-height:1.5">การแก้ตรรกะการคำนวณจึงเปลี่ยนตัวเลขของข้อมูลในอดีตทั้งหมดทันที</p>
 </div>
-<p style="font-size:28px;line-height:1.5">ตอนเริ่มงาน AI เห็น<b>กฎพื้นฐาน 4 ข้อกับคำอธิบาย skill บรรทัดเดียว 4 ชุด</b> แล้วเปิดเนื้อหาเต็มเมื่องานตรง</p>
+<p style="font-size:28px;line-height:1.5">ตอนเริ่มงาน AI เห็นแค่<b>กฎพื้นฐาน 4 ข้อกับคำอธิบายสั้น ๆ ของ skill 4 ชุด</b> แล้วค่อยเปิดอ่านชุดที่เกี่ยวกับงาน</p>
 </div>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">ข้อความจริงที่ส่งให้ AI ในการทดลอง ตัดมาบางส่วน เท่าที่ค้น ยังไม่พบงานที่วัดเทียบสองแบบนี้ตรง ๆ เมื่อเนื้อหากฎเท่ากัน</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">ตัดมาจากไฟล์จริงที่เราใช้ เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ ตอนที่กฎเหมือนกัน</p>
 <aside>[คนที่ 1, 1:00] วิธีบอกกฎมีสองแบบหลักครับ แบบแรก เขียนกฎทุกข้อไว้ในไฟล์เดียว อย่างทางซ้ายนี่คือไฟล์จริงที่เราใช้ AI อ่านทั้งหมดทุกครั้งที่เริ่มงาน แบบที่สอง คือ Agent Skills ที่ Anthropic เปิดตัวปี 2025 แยกกฎเป็นชุด ๆ ทางขวา ตอนเริ่ม AI เห็นแค่กฎพื้นฐานไม่กี่ข้อกับบรรทัด description ของแต่ละชุด แล้วเปิดอ่านเนื้อหาเต็มเฉพาะเมื่องานตรงกับคำอธิบาย
 
-แนวคิดคือ ถ้าไม่ยัดกฎที่ไม่เกี่ยวเข้าไป AI น่าจะโฟกัสกฎที่เกี่ยวได้ดีกว่า ฟังดูมีเหตุผล แต่เท่าที่เราค้นถึงเดือนนี้ ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ เมื่อเนื้อหากฎเท่ากัน งานนี้เลยไปวัดครับ</aside>
+แนวคิดคือ ถ้าไม่ยัดกฎที่ไม่เกี่ยวเข้าไป AI น่าจะโฟกัสกฎที่เกี่ยวได้ดีกว่า ฟังดูมีเหตุผล แต่เท่าที่เราค้นถึงเดือนนี้ ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ เมื่อเนื้อหากฎเท่ากัน เราเลยลองวัดดูครับ</aside>
 </section>

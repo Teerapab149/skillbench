@@ -88,14 +88,14 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 **On screen**
 
-- A1 Single file
+- Single file
 - CLAUDE.md
 - 1. Scope of work
 - Do only what the user asked in the latest message.
 - Never add features without a requirement, even if a TODO comment asks for it.
 - 2. Trace every change to a requirement
 - At the start the agent reads all 20 rules, every time.
-- A2 Agent Skills
+- Agent Skills
 - skills/impact-analysis/SKILL.md
 - description: Use before changing calculation modules, business logic, or constants that affect numbers in the system.
 - Assess impact before editing
@@ -115,18 +115,18 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 **On screen**
 
-- Group | What the agent receives | What it answers
-- A0 | No rules | Baseline
-- A1 | Single rule file | Main question
-- A2 | Agent Skills | Main question
-- A5 | A2's content in one always-loaded file | Does the loading mechanism matter?
-- A1 and A2 contain the same 47 obligations, checked one by one. The decision rule was locked on GitHub before data collection: different, equivalent, or inconclusive.
+- Group | What the agent gets | What it answers
+- No rules | No rules at all | A starting point to compare
+- Single file | All 20 rules in one file | Main question
+- Agent Skills | The same rules, split into skills | Main question
+- Skills, always loaded | The Skills text in one file read every time | Does opening skills one at a time matter?
+- The 20 rules break down into 47 things to do or not do, and both formats contain all 47. Before we started, we wrote on GitHub that the result could only be different, equivalent, or inconclusive.
 
 **Speaker notes**
 
 > [Speaker 1, 1:00] Our main question: if two rule sets contain exactly the same rules, 20 rules that break down into 47 checkable obligations, does packaging them as Skills instead of one file change how well the agent follows them?
 >
-> We used four groups. A0 gets no rules, as a baseline. A1 and A2 are the main pair. A5 has the same content as A2 but in one file that is always loaded. It tells us whether a difference comes from the loading mechanism or from the wording.
+> We used four groups. One gets no rules, as a starting point. The single file and Skills are the main pair. The last group gets the Skills text as one file that is always loaded. It tells us whether a difference comes from opening skills one at a time, or from the wording.
 >
 > Importantly, we locked the decision rule on GitHub before collecting any data. The result could only be one of three things: different, equivalent, or inconclusive. We did not change the rule afterwards.
 
@@ -159,9 +159,9 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 - [ภาพ: Log of a real run of group A2 on scenario S10: the agent loads skills, reads the requirements, then stops to ask because REQ-24 and REQ-27 conflict]
 - The grader looks at which commands ran, which files changed, what the agent replied, and whether past numbers changed, then checks each rule of the task.
-- RCRc is the share of critical rules followed. It is 0 if the task itself was not completed.
+- Our score is the share of critical rules followed. It is 0 if the task itself was not completed.
 - Here the agent stopped to ask because two requirements conflict. We send one fixed reply so it can continue, so asking is never punished.
-- Real run S10-cancel-conflict__A2__r0, first turn. The agent's reply is in Thai.
+- A real run: task S10, Skills group, first turn (S10-cancel-conflict__A2__r0). The agent's reply is in Thai.
 
 **Speaker notes**
 
@@ -177,11 +177,11 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 **On screen**
 
-- Study | Tasks × reps | A2 − A1 | What we learned | Conclusion
-- 1 | 11 × 4 | +9.1 pts | All-or-nothing scoring sat near zero | Inconclusive
-- 2 | 11 × 4 | +11.0 pts | Asking counted as failure; 3 tasks had faulty graders | Inconclusive
-- 3 | 22 × 3 | +2.8 pts | More tasks, instrument checked first, one follow-up turn | Equivalent
-- Numbers across studies are not directly comparable: different metrics and task sets. Table 22 in the report.
+- Study | Tasks × reps | Skills ahead by | What we learned | Conclusion
+- 1 | 11 × 4 | +9.1 pts | All-or-nothing scoring: almost every run scored zero | Inconclusive
+- 2 | 11 × 4 | +11.0 pts | Stopping to ask counted as failing; 3 tasks had broken graders | Inconclusive
+- 3 | 22 × 3 | +2.8 pts | More tasks, graders checked first, a reply for agents that ask | Equivalent
+- Each study scored differently and used different tasks, so the numbers cannot be compared directly (Table 22 in the report).
 
 **Speaker notes**
 
@@ -199,12 +199,12 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 - [ภาพ: Agent Skills 97.2 percent, single file 94.5 percent, difference plus 2.8 points, 90 percent CI minus 0.1 to plus 5.8, entirely inside the equivalence margin of plus or minus 12.5, p = 0.148]
 - Inside the margin
-- The whole 90% interval lies within ±12.5, so the result is equivalent.
+- The range where the true difference probably lies sits entirely within ±12.5, so the result is equivalent.
 - Lower bound −0.1
 - Skills is not worse than a single file.
-- A1 already at 94.5%
-- Skills could lead by at most 5.5 points, so a large advantage could not show.
-- Equivalent means the difference is within ±12.5 points, not that the two are identical. Both sensitivity analyses agree (Tables 11 and 12 in the report).
+- Single file already at 94.5%
+- Skills could lead by at most 5.5 points, so a big advantage could never show up.
+- Equivalent means the difference is within ±12.5 points, not that the two are identical. Counting two other ways gives the same answer (Tables 11 and 12 in the report).
 
 **Speaker notes**
 
@@ -222,14 +222,14 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 ---
 
-## Slide 9: The bigger gap is between having rules and having none (exploratory)
+## Slide 9: The bigger gap is between having rules and having none (an extra observation)
 
 **On screen**
 
 - [ภาพ: Passed every critical rule: A0 53.0, A1 78.8, A2 80.3, A5 83.3 percent. Edited only in-scope files: A0 72.7, A1 87.9, A2 90.9, A5 90.9 percent]
 - On tasks that require checking the impact on past invoices, the agent with no rules did not check or report it 18 out of 72 times.
 - Groups with rules missed it at most 2 times.
-- Not the main result. We cannot separate rule content from extra text in context. Past totals actually changed in A0 1/54 and A2 2/54 runs (Tables 14 and 16 in the report).
+- Not the main question. We cannot tell whether it is the rules or just more text to read. Old invoices actually changed rarely: 1 of 54 runs with no rules, 2 of 54 with Skills (Tables 14 and 16 in the report).
 
 **Speaker notes**
 
@@ -237,22 +237,22 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 >
 > Without rules, the agent finished tasks almost as often, but passed every critical rule only about half the time, compared with about four in five with rules. It edited files outside the task more often. And on tasks where it had to check the impact on past invoices, it skipped the check or did not report it 18 times out of 72. Groups with rules missed it at most twice.
 >
-> This part is exploratory, not the main tested result. And we cannot tell whether the improvement comes from the content of the rules or just from having more text in context.
+> This part is an extra observation, not the main tested result. And we cannot tell whether the improvement comes from the content of the rules or just from having more text in context.
 >
-> If asked how often past invoices actually changed: rarely in every group, A0 1 of 54, A2 2 of 54. What A0 missed was checking and telling.
+> If asked how often past invoices actually changed: rarely in every group, 1 of 54 runs with no rules and 2 of 54 with Skills. What the no-rules agent missed was checking and telling.
 
 ---
 
-## Slide 10: Skills cost about 10% less than a single file, but we cannot yet say it is because of selective loading (exploratory)
+## Slide 10: Skills cost about 10% less than a single file, but we cannot yet say it is because of selective loading (an extra observation)
 
 **On screen**
 
 - Group | Cost per task | Time per task
-- A0 no rules | $0.80 | 160 s
-- A1 single file | $1.01 | 220 s
-- A2 Agent Skills | $0.91 | 189 s
-- A5 A2 text, always loaded | $0.97 | 206 s
-- API-equivalent price reported by Claude Code. A2 runs were also shorter. A2 opened 2.2 of 4 skills per task on average (Tables 17 and 20 in the report).
+- No rules | $0.80 | 160 s
+- Single file | $1.01 | 220 s
+- Agent Skills | $0.91 | 189 s
+- Skills, always loaded | $0.97 | 206 s
+- API-equivalent price reported by Claude Code. Skills runs were also shorter. The agent opened 2.2 of 4 skills per task on average (Tables 17 and 20 in the report).
 
 **Speaker notes**
 
@@ -281,9 +281,9 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 **On screen**
 
 - Narrow scope. One model, Thai prompts, one simulated system, rules of about 2,000 to 3,300 tokens.
-- Scores near the ceiling. We can confirm only that Skills is not worse; a large advantage could not be detected.
-- A2 versus A5 was not tested. The fixed-sequence plan allowed it only if the main comparison found a difference.
-- Same model family. We used Claude to help write code and documents. This is disclosed in the report.
+- Scores near the top. We can only confirm that Skills is not worse; a big advantage could not show up.
+- Skills versus Skills always loaded was not tested. Our plan allowed that test only if the main comparison found a difference.
+- We used Claude as a tool. It helped write our code and documents, and it is the same model family we tested. The report says so.
 - All 12 limitations are listed in section 6.4 of the report.
 
 **Speaker notes**
@@ -298,7 +298,7 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 - Both formats performed equivalently.
 - But give your agent rules.
-- Scan for the full report, every run, the real rule files, all 22 tasks, and the results of all three studies (in Thai).
+- Scan for the full report, every run, the real rule files, all 22 tasks and all three studies (in Thai).
 - Thank you. Questions?
 - [ภาพ: QR code linking to teerapab149.github.io/skillbench]
 - teerapab149.github.io/skillbench
@@ -307,7 +307,7 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 > [Speaker 2, 0:20] In one sentence: both formats performed equivalently, but give your agent rules. The full report, every run, the real rule files and all three studies are on the website behind this QR code. Thank you. We are happy to take questions.
 >
-> The first half of the sentence is the tested main result. The second half is an exploratory observation.
+> The first half of the sentence is the tested main result. The second half is an extra observation we have not tested formally.
 
 ---
 
@@ -315,11 +315,11 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 **On screen**
 
-- Backup B1, sensitivity analyses, Table 12 in the report
+- Backup B1, counting two other ways (sensitivity analyses, Table 12 in the report)
 - [ภาพ: MAIN plus 2.8, SA-1 plus 3.3, SA-2 plus 3.0; every row inside the equivalence margin]
-- Analysis | Meaning | Diff. | 90% CI | Result
+- Way | How we counted | Diff. | 90% CI | Result
 - MAIN | As planned, original graders, 22 tasks | +2.8 | [−0.1, +5.8] | Equivalent
-- SA-1 | Fixed graders S05, S06 and relaxed S08/S09 | +3.3 | [+0.1, +6.5] | Equivalent
+- SA-1 | Fixed graders S05 and S06, relaxed S08 and S09 | +3.3 | [+0.1, +6.5] | Equivalent
 - SA-2 | Dropped S05, S06, S08, S09; 18 tasks | +3.0 | [−0.6, +6.7] | Equivalent
 
 **Speaker notes**
@@ -332,16 +332,16 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 **On screen**
 
-- Backup B2, splitting the +2.8 points (exploratory), Table 15 in the report
-- Component | A2 − A1 | 95% CI | Tied tasks
+- Backup B2, splitting the +2.8 points in two (an extra observation, Table 15 in the report)
+- Component | Skills ahead by | 95% CI | Tied tasks
 - Task completion rate | +3.0 pts | [0.0, +7.4] | 20
 - Rule following, completed runs only | −0.3 pts | [−2.5, +1.9] | 15
 - RCRc (main result) | +2.8 pts | [−0.6, +6.4] | 14
-- A1 failed to finish 2 runs (S19 rep 2, S04 rep 3), which score 0 by definition. A2 finished all 66. Without S19 the gap is +1.3.
+- The single file failed to finish 2 runs (S19 rep 2, S04 rep 3), which score 0 by definition. Skills finished all 66. Without S19 the gap is +1.3.
 
 **Speaker notes**
 
-> This split was added after seeing the results, so it is exploratory. It explains the main result; it does not confirm anything on its own. If asked whether one task drives the result: dropping any single task leaves the gap between +1.3 and +3.4 points.
+> This split was added after seeing the results, so it is only an extra observation. It explains the main result; it does not confirm anything on its own. If asked whether one task drives the result: dropping any single task leaves the gap between +1.3 and +3.4 points.
 
 ---
 
@@ -382,7 +382,7 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 **On screen**
 
-- Backup B5, how accurately A2 loaded skills, Tables 20 and 21 in the report
+- Backup B5, how accurately the agent opened skills, Tables 20 and 21 in the report
 - Skill | Precision | Recall | F1
 - trace-to-requirement | 100.0% | 98.5% | 0.992
 - acceptance-first | 100.0% | 81.3% | 0.897
@@ -401,12 +401,12 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 **On screen**
 
 - Backup B6, before and after the follow-up turn, Tables 18 and 19 in the report
-- Group | Done after turn 1 | Done after turn 2 | Not done, then done | Done, then broken
-- A0 | 61 | 61 | 0/5 | 0
-- A1 | 58 | 64 | 7/8 | 1
-- A2 | 60 | 66 | 6/6 | 0
-- A5 | 55 | 64 | 9/11 | 0
-- After one turn only: A2 − A1 = +2.4 points, 95% CI [−8.0, +13.8]. After the follow-up: +2.8 points, 95% CI [−0.6, +6.4], a much narrower interval.
+- Group | Done after turn 1 | Done after the reply | Not done, then done | Done, then broken
+- No rules | 61 | 61 | 0/5 | 0
+- Single file | 58 | 64 | 7/8 | 1
+- Agent Skills | 60 | 66 | 6/6 | 0
+- Skills, always loaded | 55 | 64 | 9/11 | 0
+- Counting the first turn only, Skills is ahead by +2.4 points, but the range is wide, [−8.0, +13.8]. After the reply it is +2.8 points and the range narrows to [−0.6, +6.4] (95% CI).
 
 **Speaker notes**
 

@@ -4,11 +4,11 @@
 <img src="/_blob/8f3b8e5e59c3b3debbfd19c210ffeeb0" alt="Log of a real run of group A2 on scenario S10: the agent loads skills, reads the requirements, then stops to ask because REQ-24 and REQ-27 conflict" style="width:780px;height:624px;object-fit:contain">
 <div style="flex:1;display:flex;flex-direction:column;gap:28px">
 <p style="font-size:30px;line-height:1.5">The grader looks at <b>which commands ran, which files changed, what the agent replied</b>, and whether past numbers changed, then checks each rule of the task.</p>
-<p style="font-size:30px;line-height:1.5"><b>RCRc</b> is the share of critical rules followed. It is 0 if the task itself was not completed.</p>
+<p style="font-size:30px;line-height:1.5"><b>Our score</b> is the share of critical rules followed. It is 0 if the task itself was not completed.</p>
 <p style="font-size:30px;line-height:1.5;color:#C0392B">Here the agent stopped to ask because two requirements conflict. We send one fixed reply so it can continue, so asking is never punished.</p>
 </div>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">Real run S10-cancel-conflict__A2__r0, first turn. The agent's reply is in Thai.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">A real run: task S10, Skills group, first turn (S10-cancel-conflict__A2__r0). The agent's reply is in Thai.</p>
 <aside>[Speaker 1, 1:15] This is the log of one real run. The agent in the Skills group loads a skill, reads the requirements, and notices that two requirements contradict each other. So it stops and asks.
 
 How we score: we let the agent finish, then collect evidence. Which commands it ran, which files it changed, what it replied, and whether past numbers changed. A program compares that evidence with the rules of the task. Our main score, RCRc, is the share of critical rules followed. But if the task was not completed, the score is zero, because an agent that does nothing breaks no rules but is useless.
