@@ -25,6 +25,8 @@ Liu, N. F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., & L
 
 Ouyang, S., Zhang, J. M., Harman, M., & Wang, M. (2025). An empirical study of the non-determinism of ChatGPT in code generation. *ACM Transactions on Software Engineering and Methodology, 34*(2), 1–28. https://doi.org/10.1145/3697010
 
+Rajasekaran, P., Dixon, E., Ryan, C., & Hadfield, J. (2025, September 29). *Effective context engineering for AI agents*. Anthropic. https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
+
 Song, Y., Wang, G., Li, S., & Lin, B. Y. (2024). *The good, the bad, and the greedy: Evaluation of LLMs should not ignore non-determinism* (arXiv:2407.10457). arXiv. https://doi.org/10.48550/arXiv.2407.10457
 
 Wallace, E., Xiao, K., Leike, R., Weng, L., Heidecke, J., & Beutel, A. (2024). *The instruction hierarchy: Training LLMs to prioritize privileged instructions* (arXiv:2404.13208). arXiv. https://doi.org/10.48550/arXiv.2404.13208
