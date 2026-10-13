@@ -77,7 +77,7 @@ const total = studies.reduce((s, st) => s + st.usable, 0);
   .cell.on { outline: 2.5px solid var(--ink); outline-offset: 1px; }
   .panel { border-top: 2px solid var(--ink); padding-top: 1rem; min-width: 0; }
   .pt { font-family: var(--serif); font-weight: 600; font-size: 1.15rem; margin: 0 0 0.25rem; }
-  :global(.panel h3) { font-size: 1rem; margin: 1.25rem 0 0.4rem; }
+  :global(.panel h2) { font-size: 1rem; font-weight: 600; line-height: 1.5; margin: 1.25rem 0 0.4rem; }
   :global(.panel .kv) { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 1rem; font-size: 0.95rem; margin: 0.75rem 0; }
   :global(.panel .kv dt) { color: var(--ink-3); }
   :global(.panel .kv dd) { margin: 0; overflow-wrap: anywhere; }
@@ -128,7 +128,7 @@ const total = studies.reduce((s, st) => s + st.usable, 0);
         <dt>ต้นทุน</dt><dd>${r.usd != null ? '$' + r.usd.toFixed(2) : 'ไม่มีข้อมูล'}</dd>
         <dt>token</dt><dd>เข้า ${r.inTok?.toLocaleString('en-US') ?? '-'} ออก ${r.outTok?.toLocaleString('en-US') ?? '-'}</dd>
       </dl>
-      <h3>ผลตรวจกฎทีละข้อ</h3><ul class="rules">${rules}</ul>
+      <h2>ผลตรวจกฎทีละข้อ</h2><ul class="rules">${rules}</ul>
       <p class="small muted mono" style="margin-top:1rem">${esc(r.id)}</p>`;
     if (scroll && window.innerWidth < 1080) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }

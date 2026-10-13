@@ -12,7 +12,8 @@ const rd = (p: string) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 const rj = (p: string) => JSON.parse(rd(p));
 const exists = (p: string) => fs.existsSync(path.join(ROOT, p));
 // เอกสารทำงานของผู้วิจัยใช้จุดกลาง (·) คั่นวลี ตอนแสดงบนเว็บแทนด้วยช่องว่าง เนื้อความไม่เปลี่ยน
-export const clean = (t: string) => String(t ?? '').replace(/[ \t]+·[ \t]+/g, ' ').replace(/^·\s*/gm, '').replace(/[ \t]+·[ \t]*(?=\r?$)/gm, '');
+// เอาเครื่องหมายคั่นแบบ · และขีดยาวที่มีช่องว่างล้อมออก เพราะภาษาไทยใช้ช่องว่างคั่นวลีอยู่แล้ว ขีดในช่วงตัวเลขอย่าง 2–4 ไม่ถูกแตะ
+export const clean = (t: string) => String(t ?? '').replace(/([ก-๙])ๆ/g, '$1 ๆ').replace(/[ \t]+—[ \t]*(?=\r?$)/gm, '').replace(/[ \t]+[—–][ \t]+/g, ' ').replace(/[ \t]+·[ \t]+/g, ' ').replace(/^·\s*/gm, '').replace(/[ \t]+·[ \t]*(?=\r?$)/gm, '');
 const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : NaN);
 
 /* ---------- ตระกูลโจทย์ ---------- */

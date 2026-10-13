@@ -53,6 +53,7 @@ a:hover { text-decoration-thickness: 2px; }
 img, svg { max-width: 100%; height: auto; }
 code, kbd, .mono { font-family: var(--mono); font-size: 0.86em; }
 code { background: var(--paper-2); padding: 0.08em 0.35em; border-radius: 3px; }
+.muted code { color: var(--ink-2); }
 html { scrollbar-color: var(--rule) transparent; }
 
 h1, h2, h3, h4 { font-family: var(--serif); color: var(--ink); text-wrap: balance; margin: 0; }
@@ -131,7 +132,7 @@ table.bt tr.hl-x td { background: var(--brick-wash); }
 .arm-A0 { --c: var(--a0); } .arm-A1 { --c: var(--a1); } .arm-A2 { --c: var(--a2); } .arm-A3 { --c: var(--a3); } .arm-A4 { --c: var(--a4); } .arm-A5 { --c: var(--a5); }
 
 .flag { display: inline-block; font-size: 0.82rem; font-weight: 600; color: var(--brick); border-bottom: 1px dashed var(--brick); line-height: 1.4; }
-.qual { color: var(--brick); }
+.qual { color: #a24c16; }
 
 /* กล่องหมายเหตุแบบวารสาร: เส้นบนเส้นเดียว ไม่ใช่การ์ด */
 .aside { border-top: 1px solid var(--ink); padding-top: 0.75rem; margin: 2rem 0; font-size: 1rem; color: var(--ink-2); }
