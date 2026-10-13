@@ -1,0 +1,140 @@
+---
+// เล่าที่มาของ Context Engineering และ Agent Skills ก่อนเข้าเรื่องการทดลอง
+// วันที่และนิยามตรวจกับแหล่งต้นทางแล้ว (ลิงก์อยู่ท้ายหน้า) ขนาดไฟล์คำนวณจากไฟล์กฎจริงใน arms/
+import Base from '../../layouts/Base.astro';
+import Toc from '../../components/Toc.astro';
+import { arms } from '../../lib/data';
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const a1 = arms.find((a) => a.id === 'A1')!;
+const a2 = arms.find((a) => a.id === 'A2')!;
+const a1Chars = a1.files.reduce((s, f) => s + f.body.length, 0);
+const a2Main = a2.files.filter((f) => f.always);
+const a2Skills = a2.files.filter((f) => !f.always);
+const a2MainChars = a2Main.reduce((s, f) => s + f.body.length, 0);
+const descChars = a2Skills.reduce((s, f) => s + (f.description ?? '').length, 0);
+const fmt = (n: number) => n.toLocaleString('en-US');
+const toc: [string, string][] = [['context', 'บริบทคืออะไร'], ['ce', 'Context Engineering'], ['rule-files', 'ไฟล์กฎ'], ['skills', 'Agent Skills'], ['timeline', 'เรียงตามเวลา'], ['why', 'ทำไมเราถึงวัดเรื่องนี้'], ['sources', 'แหล่งที่มา']];
+const timeline: [string, string][] = [
+  ['ช่วงแรกของ ChatGPT', 'คนสนใจว่าจะเขียนคำสั่งยังไงให้ได้คำตอบดี เรียกกันว่า prompt engineering'],
+  ['มิ.ย. 2025', 'Tobi Lütke (Shopify) และ Andrej Karpathy ชวนให้เรียกงานนี้ว่า context engineering แทน เพราะสิ่งที่ส่งผลจริงคือข้อมูลทั้งหมดที่โมเดลเห็น ไม่ใช่แค่ถ้อยคำในคำสั่ง'],
+  ['ส.ค. 2025', 'AGENTS.md ออกมาเป็นรูปแบบไฟล์กฎกลางที่เครื่องมือหลายตัวอ่านได้ แทนที่แต่ละเครื่องมือจะมีไฟล์ของตัวเอง'],
+  ['29 ก.ย. 2025', 'Anthropic เขียนบทความอธิบาย context engineering เป็นระบบ และชี้ว่าบริบทเป็นทรัพยากรที่มีจำกัด'],
+  ['16 ต.ค. 2025', 'Anthropic เปิดตัว Agent Skills ให้เอเจนต์เปิดอ่านความรู้หรือกฎเฉพาะเมื่องานต้องใช้'],
+  ['18 ธ.ค. 2025', 'Agent Skills เปิดเป็นมาตรฐานกลางที่ agentskills.io ให้เครื่องมืออื่นใช้รูปแบบเดียวกันได้'],
+  ['ต้นปี 2026', 'งานวิจัยชุดแรกเริ่มวัดว่า skill ช่วยเอเจนต์ได้แค่ไหน แต่ยังเทียบกับการไม่มี skill เป็นหลัก'],
+  ['ต.ค. 2026', 'งานของเรา เทียบไฟล์เดียวกับ Skills ตรง ๆ โดยให้กฎเหมือนกันทุกข้อ'],
+];
+---
+<Base title="Context Engineering และ Agent Skills SkillBench" current="background/">
+  <header class="title-block col">
+    <h1>Context Engineering กับ Agent Skills คืออะไร</h1>
+    <p class="lede">ก่อนไปดูผล ขอเล่าที่มาก่อนว่าสองคำนี้คืออะไร ทำงานยังไง มาจากไหน และทำไมเราถึงอยากวัดมัน</p>
+  </header>
+  <div class="article-grid">
+    <Toc items={toc} />
+    <article>
+      <section id="context" class="col">
+        <h2 class="h-first">เริ่มจากคำว่า "บริบท"</h2>
+        <p>AI อย่าง Claude หรือ ChatGPT ไม่ได้จำอะไรข้ามงาน ทุกครั้งที่มันตอบหรือลงมือทำ มันรู้แค่สิ่งที่อยู่ตรงหน้าตอนนั้น เรียกว่า<b>บริบท</b> (context) ซึ่งรวมทุกอย่างที่ถูกส่งให้โมเดล ทั้งคำสั่งของระบบ คำสั่งของผู้ใช้ ไฟล์ที่มันเปิดอ่าน ผลจากคำสั่งที่มันรัน และสิ่งที่คุยกันมาก่อนหน้า</p>
+        <p>ผลคือ <b>ถ้ากฎของทีมไม่ได้อยู่ในบริบท AI ก็ไม่รู้ว่ามีกฎนั้น</b> ต่อให้เป็นกฎที่ทุกคนในทีมรู้ดีก็ตาม งานทั้งหมดในหน้านี้จึงวนอยู่กับคำถามเดียว คือจะเอาอะไรใส่ในบริบท ใส่ตอนไหน และใส่แค่ไหน</p>
+      </section>
+
+      <section id="ce" class="col">
+        <h2>จาก Prompt Engineering สู่ Context Engineering</h2>
+        <p>ช่วงแรกที่คนเริ่มใช้ ChatGPT สิ่งที่ทุกคนสนใจคือจะ<b>เขียนคำสั่ง</b>ยังไงให้ได้คำตอบดี เรียกกันว่า prompt engineering</p>
+        <p>แต่พอ AI กลายเป็น<b>เอเจนต์</b>ที่ทำงานหลายขั้นได้เอง อ่านไฟล์ รันคำสั่ง แก้โค้ด สิ่งที่อยู่ในบริบทก็ไม่ได้มีแค่คำสั่งที่เราพิมพ์อีกต่อไป แต่มีทุกอย่างที่ไหลเข้ามาระหว่างทาง ทั้งเอกสาร ผลเทส และข้อความจากเครื่องมือ กลางปี 2025 คนในวงการเลยเริ่มเรียกงานนี้ว่า <b>context engineering</b> และ Anthropic อธิบายไว้ว่าเป็นวิธีคัดและดูแลข้อมูลในบริบทให้พอดีที่สุดในแต่ละช่วงที่โมเดลทำงาน</p>
+        <div class="aside"><b>ทำไมไม่ใส่ทุกอย่างลงไปเลย</b>บริบทมีขนาดจำกัด และยิ่งใส่เยอะ โมเดลยิ่งดึงข้อมูลที่ต้องใช้ออกมาได้แม่นน้อยลงทีละนิด Anthropic เรียกอาการนี้ว่า context rot และเปรียบว่าโมเดลมี "งบความสนใจ" ที่ข้อความทุกคำใช้ไปส่วนหนึ่ง เป้าหมายของ context engineering จึงไม่ใช่ใส่ให้เยอะที่สุด แต่ใส่เฉพาะที่จำเป็น และค่อยโหลดส่วนที่เหลือเมื่อต้องใช้</div>
+      </section>
+
+      <section id="rule-files" class="col">
+        <h2>ไฟล์กฎ วิธีแรกที่ทีมใช้บอกกฎ</h2>
+        <p>วิธีที่ง่ายที่สุดคือเขียนกฎทั้งหมดไว้ในไฟล์เดียว แล้วให้เครื่องมือโหลดเข้าบริบททุกครั้งที่เริ่มงาน แต่ละเครื่องมือมีชื่อไฟล์ของตัวเอง เช่น <code>CLAUDE.md</code> ของ Claude Code และ <code>.cursorrules</code> ของ Cursor ต่อมาในเดือนสิงหาคม 2025 มี <code>AGENTS.md</code> ออกมาเป็นรูปแบบกลางที่หลายเครื่องมืออ่านได้</p>
+        <p><b>ข้อดี</b> คือเขียนง่าย ดูแลง่าย และมั่นใจได้ว่า AI เห็นกฎครบทุกข้อ <b>ข้อเสีย</b> คือกฎทุกข้อกินพื้นที่บริบทตลอดเวลา แม้ข้อที่ไม่เกี่ยวกับงานตรงหน้า เช่น ตอนแก้หน้าเว็บ AI ก็ยังต้องอ่านกฎเรื่องการคิดเงินไปด้วย</p>
+      </section>
+
+      <section id="skills" class="wide">
+        <div class="col">
+          <h2>Agent Skills เปิดอ่านเมื่อจำเป็น</h2>
+          <p>เดือนตุลาคม 2025 Anthropic เปิดตัว <b>Agent Skills</b> ซึ่งเอาหลัก "โหลดเมื่อจำเป็น" ของ context engineering มาใช้กับความรู้และกฎ skill หนึ่งชุดคือโฟลเดอร์ที่มีไฟล์ <code>SKILL.md</code> ข้างบนสุดของไฟล์เขียนชื่อกับคำอธิบายสั้น ๆ ว่าใช้ตอนไหน ข้างล่างคือเนื้อหาเต็ม และอาจมีไฟล์อื่นประกอบ AI จะเห็นข้อมูลเป็นสามชั้น</p>
+          <ol class="levels">
+            <li><b>ชื่อกับคำอธิบาย</b><span>AI เห็นของทุก skill ตั้งแต่เริ่มงาน ไว้ใช้ตัดสินว่า skill ไหนเกี่ยวกับงานนี้</span></li>
+            <li><b>เนื้อหาเต็มใน SKILL.md</b><span>AI เปิดอ่านเมื่อเห็นว่างานตรงกับคำอธิบาย</span></li>
+            <li><b>ไฟล์ประกอบ</b><span>AI เปิดเพิ่มเฉพาะตอนที่เนื้อหาเต็มบอกให้ไปดู</span></li>
+          </ol>
+          <p>แนวคิดนี้เรียกว่า progressive disclosure คือค่อย ๆ เปิดข้อมูลเท่าที่ต้องใช้ ในเดือนธันวาคม 2025 Anthropic เปิด Agent Skills เป็นมาตรฐานกลางที่ <a href="https://agentskills.io">agentskills.io</a> เพื่อให้ skill ชุดเดียวกันใช้กับเครื่องมืออื่นได้</p>
+        </div>
+        <figure class="fig-wide compare">
+          <div class="cmp">
+            <div class="cmp-col">
+              <p class="cmp-h">ไฟล์เดียว</p>
+              <div class="row"><i class="bar always" style={`--w:100%`}></i><span>CLAUDE.md {fmt(a1Chars)} ตัวอักษร</span></div>
+              <p class="cmp-n">ตอนเริ่มงาน AI อ่านกฎครบทุกข้อ ทุกครั้ง</p>
+            </div>
+            <div class="cmp-col">
+              <p class="cmp-h">Agent Skills</p>
+              <div class="row"><i class="bar always" style={`--w:${(a2MainChars / a1Chars) * 100}%`}></i><span>ไฟล์สั้น {fmt(a2MainChars)}</span></div>
+              <div class="row"><i class="bar desc" style={`--w:${(descChars / a1Chars) * 100}%`}></i><span>คำอธิบาย {a2Skills.length} skill {fmt(descChars)}</span></div>
+              <div class="skills-row">{a2Skills.map((s) => <div class="row"><i class="bar od" style={`--w:${(s.body.length / a1Chars) * 100}%`}></i><span class="mono">{s.name} {fmt(s.body.length)}</span></div>)}</div>
+              <p class="cmp-n">ตอนเริ่มงาน AI เห็นแค่สองแถวบน แถวล่างเปิดเฉพาะชุดที่เกี่ยวกับงาน</p>
+            </div>
+          </div>
+          <figcaption><b>รูปที่ 1</b> สิ่งที่ AI เห็นตอนเริ่มงานในการทดลองของเรา ความยาวแถบเทียบกับไฟล์เดียวทั้งไฟล์ (ตัวอักษร) แถบสีทึบคืออ่านทุกครั้ง แถบเส้นประคือเห็นทุกครั้งแต่สั้น แถบอ่อนคือเปิดเมื่องานเกี่ยว กฎทั้งสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่ง <a href={`${base}arms/`}>ดูไฟล์จริงทั้งหมด</a></figcaption>
+        </figure>
+      </section>
+
+      <section id="timeline" class="col">
+        <h2>เรียงตามเวลา</h2>
+        <ol class="tl">
+          {timeline.map(([when, what]) => <li><b>{when}</b><span>{what}</span></li>)}
+        </ol>
+      </section>
+
+      <section id="why" class="col">
+        <h2>ทำไมเราถึงวัดเรื่องนี้</h2>
+        <p>Agent Skills ตั้งอยู่บนความเชื่อว่า ถ้ากฎที่ไม่เกี่ยวไม่มากวน AI จะทำตามกฎที่เกี่ยวได้ดีขึ้น ฟังดูมีเหตุผล แต่ก็มีความเสี่ยงอีกด้าน คือ AI อาจไม่เปิด skill ที่ควรเปิด แล้วไม่เห็นกฎที่สำคัญเลย</p>
+        <p>งานวิจัยที่ออกมาช่วงต้นปี 2026 วัดว่า "มี skill" ดีกว่า "ไม่มี skill" ไหม แต่เท่าที่เราค้น ยังไม่มีใครเทียบไฟล์เดียวกับ Skills ตรง ๆ โดยให้กฎเหมือนกันทุกข้อ และวัดว่า AI ทำผิดกฎจริงหรือเปล่าจากสิ่งที่มันทำกับระบบ เราเลยทำการทดลองนี้ขึ้นมา</p>
+        <p class="next"><a href={`${base}#answer`}>ไปดูคำตอบ</a> <a href={`${base}arms/`}>ดูกฎที่แต่ละกลุ่มได้</a></p>
+      </section>
+
+      <section id="sources" class="col">
+        <h2>แหล่งที่มา</h2>
+        <ul class="src small">
+          <li>Rajasekaran, P., Dixon, E., Ryan, C., & Hadfield, J. (2025, September 29). <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents"><i>Effective context engineering for AI agents</i></a>. Anthropic.</li>
+          <li>Zhang, B., Lazuka, K., & Murag, M. (2025, October 16). <a href="https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills"><i>Equipping agents for the real world with Agent Skills</i></a>. Anthropic. (มีหมายเหตุเพิ่มเรื่องมาตรฐานเปิด 18 ธ.ค. 2025)</li>
+          <li>Anthropic. (n.d.). <a href="https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview"><i>Agent Skills</i></a>. Claude Docs.</li>
+          <li>Willison, S. (2025, June 27). <a href="https://simonwillison.net/2025/Jun/27/context-engineering/"><i>Context engineering</i></a>. (รวมโพสต์ของ Tobi Lütke และ Andrej Karpathy)</li>
+          <li>Krzaczyński, R. (2025, August 27). <a href="https://www.infoq.com/news/2025/08/agents-md/"><i>AGENTS.md emerges as open standard for AI coding agents</i></a>. InfoQ.</li>
+          <li>งานวิจัยปี 2026 ที่กล่าวถึงอยู่ในหัวข้อ 2.1 ของ<a href={`${base}skillbench-report.pdf`}>รายงานฉบับเต็ม</a></li>
+        </ul>
+      </section>
+    </article>
+  </div>
+</Base>
+<style>
+  .h-first { margin-top: 0; }
+  .levels { counter-reset: l; list-style: none; padding: 0; margin: 1.25rem 0; border-top: 2px solid var(--ink); }
+  .levels li { counter-increment: l; display: grid; grid-template-columns: 2rem 13rem 1fr; gap: 0.25rem 1rem; padding: 0.8rem 0; border-bottom: 1px solid var(--rule); }
+  .levels li::before { content: counter(l); font-family: var(--serif); color: var(--teal); font-weight: 700; }
+  .levels b { font-family: var(--serif); }
+  @media (max-width: 640px) { .levels li { grid-template-columns: 1.5rem 1fr; } .levels li span { grid-column: 2; } }
+  .compare { margin: 2rem 0; }
+  .cmp { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 900px) { .cmp { grid-template-columns: 1fr 1fr; } }
+  .cmp-h { font-family: var(--serif); font-weight: 600; font-size: 1.15rem; margin: 0 0 0.6rem; }
+  .cmp-n { color: var(--ink-3); font-size: 0.95rem; margin-top: 0.6rem; }
+  .row { display: grid; grid-template-columns: 1fr; gap: 0.15rem; margin-bottom: 0.55rem; font-size: 0.88rem; color: var(--ink-2); }
+  .row .mono { font-size: 0.8rem; }
+  .bar { display: block; width: var(--w); height: 0.9rem; box-sizing: border-box; }
+  .bar.always { background: var(--a1); }
+  .cmp-col:nth-child(2) .bar.always { background: var(--a2); }
+  .bar.desc { border: 1.5px dashed var(--a2); background: #fff; }
+  .bar.od { background: var(--teal-wash); border: 1px solid var(--a2); }
+  .skills-row { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px dashed var(--rule); }
+  .tl { list-style: none; padding: 0; margin: 0; border-top: 2px solid var(--ink); }
+  .tl li { display: grid; grid-template-columns: 9rem 1fr; gap: 0.25rem 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--rule); }
+  .tl li:last-child b { color: var(--teal); }
+  .tl b { font-family: var(--serif); }
+  @media (max-width: 640px) { .tl li { grid-template-columns: 1fr; } }
+  .next { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+  .src li { margin-bottom: 0.5rem; }
+</style>

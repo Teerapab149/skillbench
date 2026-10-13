@@ -82,7 +82,7 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
         <figcaption><b>Agent Skills</b> แยกกฎเป็นชุดย่อย ๆ ไอเดียคือถ้ากฎที่ไม่เกี่ยวไม่มากวน AI น่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ</figcaption>
       </figure>
     </div>
-    <p class="col"><a href={`${base}arms/`}>ดูไฟล์กฎฉบับเต็มของทุกกลุ่ม</a></p>
+    <p class="col links-row"><a href={`${base}background/`}>Context Engineering กับ Agent Skills คืออะไร และมาจากไหน</a> <a href={`${base}arms/`}>ดูไฟล์กฎฉบับเต็มของทุกกลุ่ม</a></p>
   </section>
 
   <section id="final" class="col">
@@ -215,6 +215,7 @@ const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'imp
   .tl-next { color: var(--ink-2); }
   @media (max-width: 640px) { .timeline li { grid-template-columns: 1fr; gap: 0.25rem; } }
 
+  .links-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
   .finds { padding-left: 1.3rem; }
   .finds li { margin-bottom: 1rem; line-height: 1.8; }
   .finds b { font-family: var(--serif); }
