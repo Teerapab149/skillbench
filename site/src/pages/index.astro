@@ -1,9 +1,9 @@
 ---
-// หน้าแรกแบบเรื่องเล่า "กองหลักฐานกลายเป็นคำตอบ"
-// จุด 660 จุดคือการทำงานจริงทุกครั้ง วาดบน canvas ที่ตรึงอยู่หลังทั้งเรื่อง แผงแต่ละฉากเลื่อนทับขึ้นมา
-// พอถึงช่วงการทดลอง กองจุดเรียงตัวเป็นตารางสามชุด แล้วชุดที่ 3 ยุบลงเป็นเส้นผลในแถบเกณฑ์ ทุกอย่างผูกกับการเลื่อนจอ
+// หน้าแรก: แบบจำลองหลักฐานบนกระดาษกราฟ
+// การทำงานจริง 660 ครั้งคือเสา 660 ต้น สูงตามคะแนนจริง ตั้งเป็นเมืองสามย่านตามชุดการทดลองบนพื้นกระดาษกราฟ
+// เลื่อนลงแล้วกล้องค่อย ๆ ก้มลงจนมองตรงจากด้านบน เมืองกลายเป็นตารางของแต่ละชุด แล้วชุดที่ 3 ยุบลงเป็นเส้นผลในแถบเกณฑ์
+// ฉากอื่นแสดงหลักฐานในรูปที่มันเป็นจริง บันทึกของ AI diff ของใบแจ้งหนี้ และขนาดบริบทที่ AI เห็นนับเป็นตัวอักษร
 // ถ้าไม่มี JavaScript จะเห็นรูปนิ่งแทน ถ้าเครื่องตั้งค่าลดการเคลื่อนไหว canvas จะเปลี่ยนเป็นทีละสถานะโดยไม่ขยับ
-import '@fontsource/noto-serif-thai/200.css';
 import Base from '../layouts/Base.astro';
 import { studies, s3, scenarios, arms, pct, pts } from '../lib/data';
 
@@ -16,6 +16,7 @@ const trapped = scenarios.filter((s) => s.family !== 'ordinary').length;
 const s09 = scenarios.find((s) => s.code === 'S09')!;
 const [, rateFrom, rateTo] = (s09.prompt.match(/(\d+)\s*บาทเป็น\s*(\d+)/) ?? ['', '20', '25']).map(Number);
 const hours = 10;
+const fmt = (n: number) => n.toLocaleString('en-US');
 
 // บันทึกจริงของกลุ่มไม่มีกฎในโจทย์ S09 เลือกครั้งแรกที่พลาดกฎเรื่องผลกระทบ
 const s09runs = s3.runs.filter((r) => r.sc === s09.id && r.arm === 'A0').sort((a, b) => a.rep - b.rep);
@@ -23,14 +24,24 @@ const imMiss = (r: (typeof s09runs)[number]) => r.rules.some((x) => /^IM/.test(x
 const demo = s09runs.find(imMiss) ?? s09runs[0];
 const demoMissed = imMiss(demo);
 
-// ไฟล์กฎจริง
+// ขนาดบริบทจริง นับเป็นตัวอักษรจากไฟล์กฎ
 const a1 = arms.find((a) => a.id === 'A1')!;
-const sections = a1.files[0].body.split(/\r?\n/).filter((l) => /^## /.test(l)).map((l) => l.replace(/^##\s*\d+\.\s*/, ''));
+const a1Body = a1.files.map((f) => f.body).join('\n');
+const a1Parts = a1Body.split(/\r?\n(?=## )/);
+const a1Segs = a1Parts.map((t, i) => ({ name: /^## /.test(t) ? t.split(/\r?\n/)[0].replace(/^##\s*\d+\.\s*/, '') : 'หัวไฟล์', n: t.length + (i < a1Parts.length - 1 ? 1 : 0) }));
+const a1Chars = a1.files.reduce((s, f) => s + f.body.length, 0);
 const a2 = arms.find((a) => a.id === 'A2')!;
-const skills = a2.files.filter((f) => !f.always).map((f) => ({ name: f.name, needed: s09.expectedSkills.includes(f.name) }));
-const neededN = skills.filter((s) => s.needed).length;
+const a2Base = a2.files.filter((f) => f.always).reduce((s, f) => s + f.body.length, 0);
+const a2Skills = a2.files.filter((f) => !f.always).map((f) => ({ name: f.name, n: f.body.length, desc: (f.description ?? '').length, needed: s09.expectedSkills.includes(f.name) }));
+const descChars = a2Skills.reduce((s, x) => s + x.desc, 0);
+const a2Start = a2Base + descChars;
+const a2Opened = a2Skills.filter((s) => s.needed).reduce((s, x) => s + x.n, 0);
+const scaleMax = Math.max(a1Chars, a2Start + a2Opened);
+const w = (n: number) => `${(n / scaleMax) * 100}%`;
+const neededN = a2Skills.filter((s) => s.needed).length;
 let nj = 0;
-const shelf = skills.map((s) => ({ ...s, j: s.needed ? nj++ : -1 }));
+const a2Open = a2Skills.filter((s) => s.needed).map((s) => ({ ...s, j: nj++ }));
+const a2Idle = a2Skills.filter((s) => !s.needed);
 
 // จุดทุกครั้งที่ทำงาน เรียงแบบเดียวกับตารางของแต่ละชุด แถวคือโจทย์ คอลัมน์คือกลุ่มและรอบ
 const shade = (v: number) => `color-mix(in oklab, #3fb3a6 ${Math.round(v * 100)}%, #d9733a)`;
@@ -48,29 +59,29 @@ const payload = {
 const lo = -0.15, hi = 0.15, AX = { x0: 20, x1: 580 };
 const X = (v: number) => AX.x0 + ((v - lo) / (hi - lo)) * (AX.x1 - AX.x0);
 const crit = (['A0', 'A1', 'A2', 'A5'] as const).map((a) => ({ a, v: s3.nums.perArm[a].CRIT as number }));
-const critName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A5: 'Skills แบบอ่านทุกครั้ง' };
-const withRules = crit.filter((c) => c.a !== 'A0').map((c) => c.v);
-const noRules = crit.find((c) => c.a === 'A0')!.v;
+const critName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A5: 'Skills อ่านทุกครั้ง' };
+const ci = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(1)}`;
 ---
-<Base title="SkillBench เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม" current="" theme="story">
+<Base title="SkillBench การควบคุมพฤติกรรม LLM Agent ด้วย Context Engineering และระบบทักษะเอเจนต์" current="" theme="story">
   <div class="story">
     <div class="stage" aria-hidden="true"><canvas id="heap"></canvas></div>
     <script is:inline type="application/json" id="story-data" set:html={JSON.stringify(payload)}></script>
 
     <section class="hero" id="top">
       <div class="hero-in">
-        <h1 class="title"><span class="nw">เขียนกฎให้ AI</span> <span class="nw">แบบไหน</span> <span class="nw accent">AI ถึงจะทำตาม</span></h1>
-        <p class="lead">เราให้ AI เขียนโค้ดทำงานจริง <b>{totalRuns} ครั้ง</b> เพื่อหาคำตอบว่า กฎชุดเดียวกัน ถ้าส่งเป็น <b>Agent Skills</b> กับ<b class="nw">ไฟล์เดียว</b> AI จะทำตามต่างกันไหม</p>
+        <h1 class="title">การควบคุมพฤติกรรม LLM Agent ในงานพัฒนาระบบด้วย <span class="accent">Context Engineering และระบบทักษะเอเจนต์</span></h1>
+        <p class="ask">พูดง่าย ๆ คือ เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม</p>
+        <p class="lead">กฎชุดเดียวกัน ถ้าส่งเป็น <b>Agent Skills</b> กับ<b class="nw">ไฟล์เดียว</b> AI จะทำตามต่างกันไหม เราให้ AI เขียนโค้ดทำงานจริง <b>{totalRuns} ครั้ง</b> เพื่อหาคำตอบ</p>
         <div class="hero-act">
           <a class="btn" href="#problem">เลื่อนดูเรื่องทั้งหมด</a>
-          <p class="quick"><b>คำตอบสั้น ๆ</b> ได้ผลเทียบเท่ากัน <a href="#answer">ข้ามไปดูคำตอบ</a></p>
+          <p class="quick">คำตอบสั้น ๆ <b>ได้ผลเทียบเท่ากัน</b> <a href="#answer">ข้ามไปดูคำตอบ</a></p>
         </div>
-        <p class="byline">งานสัมมนา 477-401 สัมมนาระบบสารสนเทศทางธุรกิจ มหาวิทยาลัยสงขลานครินทร์<span>ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด</span></p>
-        <p class="heap-note">จุดทุกจุดข้างหลังคือการทำงานจริงหนึ่งครั้ง สีเขียวคือทำตามกฎได้ครบ สีส้มคือพลาด</p>
+        <p class="byline">งานสัมมนา 477-401 มหาวิทยาลัยสงขลานครินทร์<span>ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด</span></p>
       </div>
+      <p class="key"><span>เสาหนึ่งต้นคือ AI ทำงานจริงหนึ่งครั้ง</span><span>สูงและเขียว ทำตามกฎได้ครบ</span><span>เตี้ยและส้ม พลาด</span></p>
     </section>
 
-    <section class="panel paper" id="problem">
+    <section class="room" id="problem">
       <div class="wrap two">
         <div class="copy">
           <h2>แก้ถูก แต่ใบแจ้งหนี้เดือนที่แล้วแพงขึ้นเอง</h2>
@@ -79,8 +90,7 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
         </div>
         <div class="evidence">
           <figure class="term" aria-label="บันทึกการทำงานจริงของ AI ในโจทย์ S09">
-            <span class="tag t-dark">S09 กลุ่มไม่มีกฎ รอบที่ {demo.rep + 1}</span>
-            <p class="term-bar">Claude Code</p>
+            <p class="term-bar"><span>claude code</span><span>S09 กลุ่มไม่มีกฎ รอบที่ {demo.rep + 1}</span></p>
             <div class="term-body">
               <p class="t-line user"><span class="t-tag">ผู้ใช้</span><span class="type" data-text={s09.prompt}>{s09.prompt}</span></p>
               <p class="t-line step" style="--i:0"><span class="t-tag">AI</span>อ่านข้อกำหนดและโค้ดที่เกี่ยวข้อง</p>
@@ -89,45 +99,48 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
               {demoMissed && <p class="t-line step warn" style={`--i:${demo.files.length + 2}`}><span class="t-tag">แต่</span>ไม่ได้เช็กและไม่ได้บอกว่าใบแจ้งหนี้เก่าเปลี่ยน</p>}
             </div>
           </figure>
-          <figure class="inv-stage changed" data-scrub="enter">
-            <div class="inv">
-              <p class="inv-h">ใบแจ้งหนี้เดือนที่แล้ว <span>ส่งให้ลูกค้าแล้ว</span></p>
-              <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd class="rate" data-from={`${rateFrom} บาท/ชม.`} data-to={`${rateTo} บาท/ชม.`}>{rateTo} บาท/ชม.</dd></dl>
-              <p class="inv-t">ยอดรวม <b><span class="count" data-from={hours * rateFrom} data-to={hours * rateTo}>{hours * rateTo}</span> บาท</b></p>
-              <span class="tag t-brick">ยอดเปลี่ยนเอง ไม่มีใครรู้</span>
-            </div>
-            <figcaption>ใบเดิมใบเดียวกัน ก่อนและหลัง AI แก้อัตรา อัตรา {rateFrom} เป็น {rateTo} บาทมาจากโจทย์จริง ส่วนจำนวนชั่วโมงเป็นตัวอย่าง</figcaption>
+          <figure class="diff" data-scrub="enter" aria-label={`ใบแจ้งหนี้เดือนที่แล้ว อัตราเปลี่ยนจาก ${rateFrom} เป็น ${rateTo} บาทต่อชั่วโมง ยอดรวมเปลี่ยนจาก ${hours * rateFrom} เป็น ${hours * rateTo} บาท`}>
+            <p class="diff-h"><span>ใบแจ้งหนี้เดือนที่แล้ว</span><span>ส่งให้ลูกค้าแล้ว</span></p>
+            <p class="dl"><span class="dm"> </span><span>เครื่อง V100</span><span>{hours} ชม.</span></p>
+            <p class="dl del"><span class="dm">−</span><span>อัตรา</span><span>{rateFrom} บาท/ชม.</span></p>
+            <p class="dl add" style="--o:0"><span class="dm">+</span><span>อัตรา</span><span>{rateTo} บาท/ชม.</span></p>
+            <p class="dl del total"><span class="dm">−</span><span>ยอดรวม</span><span>{hours * rateFrom} บาท</span></p>
+            <p class="dl add total" style="--o:1"><span class="dm">+</span><span>ยอดรวม</span><span>{hours * rateTo} บาท</span></p>
+            <figcaption>ใบเดิมใบเดียวกัน ก่อนและหลัง AI แก้อัตรา อัตรามาจากโจทย์จริง จำนวนชั่วโมงเป็นตัวอย่าง</figcaption>
           </figure>
         </div>
       </div>
     </section>
 
-    <section class="panel deep" id="two-ways" data-pin>
+    <section class="room" id="two-ways" data-pin>
       <div class="pin-in">
         <div class="wrap">
           <h2>กฎชุดเดียวกัน ส่งให้ AI ได้สองแบบ</h2>
-          <p class="sub">กล่องคือสิ่งที่ AI เห็นตอนทำโจทย์ใบแจ้งหนี้ข้อเดิม กฎในสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่ง</p>
-          <div class="ways">
-            <div class="way" data-scrub="way">
-              <h3>ไฟล์เดียว <span class="tag t-blue">A1</span></h3>
-              <div class="ctx">
-                <div class="chips">{sections.map((t, i) => <span class="chip all" style={`--i:${i};--r:${((i * 37) % 13) - 6}`}>{t}</span>)}</div>
+          <p class="sub">แถบคือสิ่งที่ AI อ่านเข้าไปตอนทำโจทย์ใบแจ้งหนี้ข้อเดิม ความยาวนับจากจำนวนตัวอักษรจริงในไฟล์กฎ กฎในสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่ง</p>
+          <div class="gauges" data-scrub="way">
+            <div class="gauge">
+              <p class="g-h"><b>ไฟล์เดียว</b><span class="read">{fmt(a1Chars)} ตัวอักษร ตั้งแต่เริ่ม</span></p>
+              <div class="tape" role="img" aria-label={`ไฟล์เดียว ${a1Segs.length} ส่วน รวม ${fmt(a1Chars)} ตัวอักษร เข้าไปทั้งหมดตั้งแต่เริ่ม`}>
+                {a1Segs.map((x, i) => <i class="seg one" style={`--w:${w(x.n)};--i:${i}`} title={`${x.name} ${fmt(x.n)}`}></i>)}
               </div>
-              <p class="note">ทั้ง {sections.length} หมวดเข้าไปตั้งแต่เริ่ม แม้หมวดที่ไม่เกี่ยวกับงานนี้</p>
+              <ol class="seg-names">{a1Segs.filter((x) => x.name !== 'หัวไฟล์').map((x) => <li>{x.name}</li>)}</ol>
             </div>
-            <div class="way" data-scrub="way">
-              <h3>Agent Skills <span class="tag t-teal">A2</span></h3>
-              <div class="ctx">
-                <div class="chips">
-                  <span class="chip base" style="--i:0">กฎพื้นฐานไม่กี่ข้อ</span>
-                  <span class="chip desc" style="--i:1">ชื่อและคำอธิบายของ skill {skills.length} ชุด</span>
-                  {shelf.filter((s) => s.needed).map((s) => <span class="chip open mono" style={`--j:${s.j}`}>{s.name}</span>)}
-                </div>
+            <div class="gauge">
+              <p class="g-h"><b>Agent Skills</b><span class="read">{fmt(a2Start)} ตอนเริ่ม <span class="open-read">+ {fmt(a2Opened)} ถ้าเปิด {neededN} skill</span></span></p>
+              <div class="tape" role="img" aria-label={`Agent Skills เริ่มที่ ${fmt(a2Start)} ตัวอักษร แล้วเปิด skill ที่เกี่ยว ${neededN} ชุด เพิ่ม ${fmt(a2Opened)} ตัวอักษร`}>
+                <i class="seg base" style={`--w:${w(a2Base)}`} title={`กฎพื้นฐาน ${fmt(a2Base)}`}></i>
+                <i class="seg desc" style={`--w:${w(descChars)}`} title={`คำอธิบาย skill ${fmt(descChars)}`}></i>
+                {a2Open.map((s) => <i class="seg open" style={`--w:${w(s.n)};--j:${s.j}`} title={`${s.name} ${fmt(s.n)}`}></i>)}
               </div>
-              <div class="shelf" aria-label="skill ทั้งหมดที่มีให้เปิด">{shelf.map((s) => <span class={`card mono ${s.needed ? 'need' : 'idle'}`} style={`--j:${s.j}`}>{s.name}{!s.needed && <span class="idle-l"> ไม่ต้องเปิด</span>}</span>)}</div>
-              <p class="note">โจทย์นี้ควรเปิด {neededN} จาก {skills.length} ชุด ชุดที่ไม่เกี่ยวไม่ต้องเข้ามากวน</p>
+              <ul class="seg-key">
+                <li><i class="k base"></i>กฎพื้นฐาน {fmt(a2Base)}</li>
+                <li><i class="k desc"></i>ชื่อและคำอธิบาย skill {a2Skills.length} ชุด {fmt(descChars)}</li>
+                {a2Open.map((s) => <li class="k-open" style={`--j:${s.j}`}><i class="k open"></i><span class="mono">{s.name}</span> {fmt(s.n)}</li>)}
+                {a2Idle.map((s) => <li class="k-idle"><i class="k idle"></i><span class="mono">{s.name}</span> {fmt(s.n)} ไม่ได้เปิด เพราะไม่เกี่ยวกับโจทย์นี้</li>)}
+              </ul>
             </div>
           </div>
+          <p class="sub">Skills เริ่มด้วยของที่น้อยกว่า แต่ถ้าเปิด skill ที่โจทย์นี้ควรเปิดครบ {neededN} ชุด ความยาวรวมกลับมากกว่าไฟล์เดียว ที่ต่างคือ skill ที่ไม่เกี่ยวอย่าง <span class="mono">{a2Idle.map((x) => x.name).join(" ")}</span> ไม่ถูกอ่านเลย</p>
           <p class="sub small">ไอเดียของ Skills คือกฎที่ไม่เกี่ยวไม่ควรมากวน AI ฟังดูดี แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ <a href={`${base}background/`}>อ่านว่าสองแบบนี้มาจากไหน</a></p>
         </div>
       </div>
@@ -136,8 +149,8 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
     <section class="seq" id="experiment">
       <div class="beat">
         <div class="slab">
-          <p class="numeral" aria-hidden="true">{totalRuns}</p>
-          <h2>ครั้ง ที่เราให้ AI ทำงานจริงแล้ววัดผล</h2>
+          <p class="readout"><b>{totalRuns}</b> ครั้ง</p>
+          <h2>เราเลยให้ AI ทำงานจริงแล้ววัดผลทุกครั้ง</h2>
           <p>โจทย์ {scenarios.length} ข้อ {trapped} ข้อซ่อนกับดัก ให้ AI ตัวเดียวกันทำทุกกลุ่มทุกรอบ ทดลองสามชุด แล้วให้โปรแกรมตรวจทีละกฎ ไม่มีคนหรือ AI ตัวอื่นให้คะแนน</p>
           <p class="legend"><i class="lg hi"></i><span class="nw">ทำตามกฎได้ครบ</span> <i class="lg lo"></i><span class="nw">พลาด</span> <a href={`${base}runs/`} class="nw">กดดูทีละครั้ง</a></p>
           <div class="fb field" aria-label={`การทำงานทั้ง ${totalRuns} ครั้งของการทดลองสามชุด`}>
@@ -162,8 +175,12 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
       <div class="beat answer" id="answer">
         <div class="slab">
           <h2>ใช้แบบไหนก็ได้ผล<span class="eq">เทียบเท่า</span>กัน</h2>
-          <p class="numeral">{pts(p.diff)}<span>จุด</span></p>
-          <p>Skills ได้ {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน <b>{pts(p.diff)} จุด</b> เส้นคือช่วงที่ค่าจริงน่าจะอยู่ ซึ่งอยู่ในแถบเกณฑ์ ±{(margin * 100).toFixed(1)} จุดที่ตั้งไว้ก่อนเริ่มทั้งเส้น เทียบเท่าไม่ได้แปลว่าเหมือนกัน แต่มั่นใจได้ว่า Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</p>
+          <dl class="meter">
+            <div><dt>ผลต่าง</dt><dd class="big">{pts(p.diff)}<small>จุด</small></dd></div>
+            <div><dt>ช่วงที่ค่าจริงน่าจะอยู่</dt><dd>{ci(d.ci90[0])} ถึง {ci(d.ci90[1])}</dd></div>
+            <div><dt>เกณฑ์ที่ตั้งไว้ก่อนเริ่ม</dt><dd>±{(margin * 100).toFixed(1)}</dd></div>
+          </dl>
+          <p>Skills ได้ {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ช่วงของผลต่างอยู่ในแถบเกณฑ์ทั้งเส้น เทียบเท่าไม่ได้แปลว่าเหมือนกัน แต่มั่นใจได้ว่า Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</p>
           <figure class="fb axis">
             <svg viewBox="0 0 600 150" role="img" aria-label={`Skills ได้ ${pct(p.rateA)}% ไฟล์เดียว ${pct(p.rateB)}% ต่างกัน ${pts(p.diff)} จุด อยู่ในเกณฑ์ ±${(margin * 100).toFixed(1)} จุด`}>
               <rect class="band" x={X(-margin)} y="34" width={X(margin) - X(-margin)} height="56" />
@@ -181,39 +198,34 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
       <div class="beat tail" aria-hidden="true"></div>
     </section>
 
-    <section class="panel brick" id="rules">
-      <div class="wrap">
-        <h2>แต่ต้องมีกฎ</h2>
-        <p class="versus">
-          <span class="vs-item"><span class="numeral">{pct(noRules)}<span class="pc">%</span></span><span class="vs-l">ไม่มีกฎ</span></span>
-          <svg class="vs-arrow" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 12h56M48 3l10 9-10 9" fill="none" stroke="currentColor" stroke-width="2" /></svg>
-          <span class="vs-item"><span class="numeral">{pct(Math.min(...withRules))}<span class="to">ถึง</span>{pct(Math.max(...withRules))}<span class="pc">%</span></span><span class="vs-l">กลุ่มที่มีกฎ</span></span>
-        </p>
-        <div class="bars" role="img" aria-label="สัดส่วนครั้งที่ทำตามกฎสำคัญครบทุกข้อของแต่ละกลุ่ม" data-scrub="enter">
+    <section class="room" id="rules">
+      <div class="wrap two rules">
+        <div class="copy">
+          <h2>แต่ต้องมีกฎ</h2>
+          <p>สัดส่วนครั้งที่ AI ทำตามกฎสำคัญครบทุกข้อ ในการทดลองชุดที่ 3 กลุ่มที่ไม่ได้กฎเลยทำได้แค่ครึ่งเดียว ส่วนกลุ่มที่ได้กฎ จะส่งแบบไหนก็ขึ้นมาใกล้กัน</p>
+          <p class="note">ข้อนี้เป็นข้อสังเกตเพิ่ม ยังไม่ได้ทดสอบยืนยันทางสถิติ</p>
+        </div>
+        <div class="cols" role="img" aria-label={`สัดส่วนครั้งที่ทำตามกฎสำคัญครบทุกข้อ ${crit.map(({ a, v }) => `${critName[a]} ${pct(v)}%`).join(' ')}`} data-scrub="enter">
           {crit.map(({ a, v }, i) => (
-            <div class={`bar-row ${a === 'A0' ? 'none' : ''}`} style={`--i:${i}`}>
-              <span class="bar-l">{critName[a]}</span>
-              <span class="bar-t"><i style={`--w:${v * 100}%`}></i></span>
-              <b class="bar-v">{pct(v)}%</b>
+            <div class={`col ${a === 'A0' ? 'none' : ''}`} style={`--h:${v};--i:${i}`}>
+              <b class="col-v">{pct(v)}%</b>
+              <span class="col-t"><i></i></span>
+              <span class="col-l">{critName[a]}</span>
             </div>
           ))}
         </div>
-        <p class="sub small">สัดส่วนครั้งที่ AI ทำตามกฎสำคัญครบทุกข้อ ในการทดลองชุดที่ 3 <span class="tag t-cream">ข้อสังเกตเพิ่ม ยังไม่ได้ทดสอบยืนยัน</span></p>
       </div>
     </section>
 
-    <section class="panel bright" id="explore">
+    <section class="room end" id="explore">
       <div class="wrap">
         <h2>อยากรู้มากกว่านี้</h2>
         <p class="sub">ทุกตัวเลขในเว็บนี้ดึงจากไฟล์ผลการทดลองโดยตรง กดเข้าไปดูได้ถึงการทำงานทีละครั้ง</p>
-        <a class="big-go" href={`${base}overview/`}>
-          <span>สำรวจทั้งหมด</span>
-          <svg viewBox="0 0 64 24" aria-hidden="true"><path d="M2 12h56M48 3l10 9-10 9" fill="none" stroke="currentColor" stroke-width="2.5" /></svg>
-        </a>
-        <nav class="go" aria-label="ไปต่อ">
-          <a href={`${base}study-3/`}><b>ผลรอบสุดท้าย</b><span>ตัวเลขเต็มของชุดที่ 3</span></a>
-          <a href={`${base}background/`}><b>เรื่องพื้นฐาน</b><span>Context Engineering กับ Agent Skills</span></a>
-          <a href={`${base}skillbench-report.pdf`}><b>รายงานฉบับเต็ม</b><span>PDF ภาษาไทย</span></a>
+        <nav class="index" aria-label="ไปต่อ">
+          <a class="lead-row" href={`${base}overview/`}><b>สำรวจทั้งหมด</b><span>ภาพรวม ผลทั้งสามชุด กฎ โจทย์ และการทำงานทุกครั้ง</span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M1 8h28M23 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" /></svg></a>
+          <a href={`${base}study-3/`}><b>ผลรอบสุดท้าย</b><span>ตัวเลขเต็มของชุดที่ 3</span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M1 8h28M23 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" /></svg></a>
+          <a href={`${base}background/`}><b>เรื่องพื้นฐาน</b><span>Context Engineering กับ Agent Skills คืออะไร</span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M1 8h28M23 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" /></svg></a>
+          <a href={`${base}skillbench-report.pdf`}><b>รายงานฉบับเต็ม</b><span>PDF ภาษาไทย</span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M1 8h28M23 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" /></svg></a>
         </nav>
       </div>
     </section>
@@ -241,16 +253,21 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
     const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
     const hash = (i: number) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
     const HI = [63, 179, 166], LO = [217, 115, 58];
-    const col = (v: number) => `rgb(${HI.map((h, k) => Math.round(LO[k] + (h - LO[k]) * v)).join(',')})`;
+    const mixc = (v: number) => HI.map((h, k) => LO[k] + (h - LO[k]) * v);
+    const rgb = (c: number[], k = 1) => `rgb(${c.map((x) => Math.round(Math.min(255, x * k))).join(',')})`;
 
     // ---------- เตรียมจุด ----------
-    type P = { s: number; g: number; c: string; dl: number; hx: number; hy: number; hs: number; hr: number; gx: number; gy: number; ax: number; jy: number; i: number };
-    const pts: P[] = data.dots.map(([s, i, sc, g], k) => ({ s, g, c: col(sc / 100), dl: hash(k + 7), hx: 0, hy: 0, hs: 0.7 + hash(k * 7 + 3) * 0.75, hr: (hash(k * 11 + 5) - 0.5) * 1.8, gx: 0, gy: 0, ax: 0, jy: hash(k * 13 + 1) - 0.5, i }));
-    const order = pts.map((_, k) => k).sort((a, b) => pts[a].hs - pts[b].hs);
+    // แต่ละครั้งที่ทำงานคือเสาหนึ่งต้น ความสูงตามคะแนนจริง มองจากบนลงล่างก็คือตารางของแต่ละชุด
+    type P = { s: number; g: number; c: string; rgb: number[]; hz: number; dl: number; u: number; v: number; gx: number; gy: number; ax: number; jy: number; i: number };
+    const pts: P[] = data.dots.map(([s, i, sc, g], k) => ({ s, g, c: rgb(mixc(sc / 100)), rgb: mixc(sc / 100), hz: 0.6 + (sc / 100) * 4.4, dl: hash(k + 7), u: 0, v: 0, gx: 0, gy: 0, ax: 0, jy: hash(k * 13 + 1) - 0.5, i }));
+    const order = pts.map((_, k) => k);
     const ansIdx = pts.map((_, k) => k).filter((k) => pts[k].g).sort((a, b) => hash(a * 3 + 2) - hash(b * 3 + 2));
 
     let W = 0, H = 0, dpr = 1, mobile = false;
-    let cell = 10, dotSz = 8, heapSz = 10;
+    let cell = 10, dotSz = 8;
+    let gridC = { x: 0, y: 0 };
+    let cam = { s: 8, x: 0, y: 0 };
+    const YAW = -0.62, TILT = 1.0;
     let grids: { x: number; top: number; w: number; s: number }[] = [];
     let axis = { x0: 0, x1: 0, yc: 0, bh: 0 };
     const AX = (v: number) => axis.x0 + ((v - data.axis.lo) / (data.axis.hi - data.axis.lo)) * (axis.x1 - axis.x0);
@@ -263,14 +280,13 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
       const top = 72;
       // พื้นที่วาดตารางและแกน มือถือใช้ครึ่งบนของจอ จอใหญ่ใช้ฝั่งขวา
       const R = mobile ? { x: 16, y: top + 8, w: W - 32, h: H * 0.5 - top } : { x: W * 0.47, y: H * 0.16, w: W * 0.5 - 24, h: H * 0.68 };
-      const Hp = mobile ? { x: -10, y: H * 0.62, w: W + 20, h: H * 0.38 } : { x: W * 0.46, y: H * 0.2, w: W * 0.56, h: H * 0.8 };
+      const Hp = mobile ? { x: 8, y: H * 0.6, w: W - 16, h: H * 0.38 } : { x: W * 0.5, y: H * 0.14, w: W * 0.48, h: H * 0.8 };
       // ตาราง
       const span = data.studies.map((st) => st.cols + (st.cols / st.reps - 1) * 0.35);
       const totalCols = span.reduce((a, b) => a + b, 0) + 2 * 2.5;
       const maxRows = Math.max(...data.studies.map((s) => s.rows));
       cell = Math.min(R.w / totalCols, (R.h - 70) / maxRows, 15);
       dotSz = cell * 0.8;
-      heapSz = mobile ? 9 : 12;
       const gw = cell * totalCols;
       let x = R.x + (R.w - gw) / 2;
       const baseY = R.y + 30 + maxRows * cell + (R.h - 70 - maxRows * cell) / 2;
@@ -286,13 +302,20 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
         const cx = c + Math.floor(c / st.reps) * 0.35;
         p.gx = grids[p.s].x + cx * cell + cell / 2;
         p.gy = grids[p.s].top + r * cell + cell / 2;
-        // กอง: เนินที่สูงตรงกลาง กระจายลงด้านข้าง
-        const u = hash(k * 3 + 1) * 2 - 1;
-        const mound = Hp.h * Math.pow(1 - u * u, 0.75);
-        const v = Math.pow(hash(k * 5 + 2), 0.8);
-        p.hx = Hp.x + Hp.w / 2 + u * Hp.w * 0.5;
-        p.hy = Hp.y + Hp.h - v * mound + 6;
       });
+      // เมือง: พิกัดโลกเป็นหน่วยช่อง วัดจากกลางตาราง
+      gridC = { x: grids[0].x + (grids[2].x + grids[2].w - grids[0].x) / 2, y: baseY - maxRows * cell / 2 };
+      pts.forEach((p) => { p.u = (p.gx - gridC.x) / cell; p.v = (p.gy - gridC.y) / cell; });
+      // หาขนาดเมืองในมุมเอียง แล้วใส่ให้พอดีพื้นที่
+      const cs = Math.cos(YAW), sn = Math.sin(YAW), ct = Math.cos(TILT), st = Math.sin(TILT);
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const p of pts) for (const [du, dv] of [[-0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [0.5, -0.5]]) {
+        const u = p.u + du, v = p.v + dv, xr = u * cs - v * sn, yr = u * sn + v * cs;
+        x0 = Math.min(x0, xr); x1 = Math.max(x1, xr);
+        y0 = Math.min(y0, yr * ct - p.hz * st); y1 = Math.max(y1, yr * ct);
+      }
+      const sc = Math.min(Hp.w / (x1 - x0), Hp.h / (y1 - y0));
+      cam = { s: sc, x: Hp.x + Hp.w / 2 - sc * (x0 + x1) / 2, y: Hp.y + Hp.h / 2 - sc * (y0 + y1) / 2 };
       const [c0, c1] = data.axis.ci;
       ansIdx.forEach((k, n) => { pts[k].ax = AX(c0 + (c1 - c0) * (n / (ansIdx.length - 1))); });
     }
@@ -310,6 +333,44 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
       ctx!.font = font; ctx!.fillStyle = color; ctx!.textAlign = align; ctx!.fillText(text, x, y);
     }
 
+    // วาดเสาแบบเห็นสามด้าน ไล่จากหลังมาหน้า
+    const SIDES: [number, number, number, number, number, number][] = [[0.5, -0.5, 0.5, 0.5, 1, 0], [-0.5, 0.5, -0.5, -0.5, -1, 0], [0.5, 0.5, -0.5, 0.5, 0, 1], [-0.5, -0.5, 0.5, -0.5, 0, -1]];
+    function city(c3: number, now: number) {
+      const yaw = (YAW + (reduce ? 0 : Math.sin(now * 0.00022) * 0.07)) * c3, tilt = TILT * c3;
+      const cs = Math.cos(yaw), sn = Math.sin(yaw), ct = Math.cos(tilt), st = Math.sin(tilt);
+      const S = lerp(cell, cam.s, c3), CX = lerp(gridC.x, cam.x, c3), CY = lerp(gridC.y, cam.y, c3);
+      const half = 0.4;
+      const P = (u: number, v: number, z: number): [number, number] => [CX + S * (u * cs - v * sn), CY + S * ((u * sn + v * cs) * ct - z * st)];
+      // พื้นกระดาษกราฟ เส้นทุก 2 ช่อง
+      ctx!.strokeStyle = `rgba(120,160,190,${0.05 + 0.07 * c3})`; ctx!.lineWidth = 1;
+      ctx!.beginPath();
+      for (let u = -40; u <= 40; u += 2) { const [a, b] = P(u, -22, 0), [c, e] = P(u, 22, 0); ctx!.moveTo(a, b); ctx!.lineTo(c, e); }
+      for (let v = -22; v <= 22; v += 2) { const [a, b] = P(-40, v, 0), [c, e] = P(40, v, 0); ctx!.moveTo(a, b); ctx!.lineTo(c, e); }
+      ctx!.stroke();
+      // แสงนวลใต้เมือง
+      const [gx, gy] = P(0, 0, 0);
+      const gr = ctx!.createRadialGradient(gx, gy, 0, gx, gy, S * 34);
+      gr.addColorStop(0, `rgba(63,179,166,${0.16 * c3})`); gr.addColorStop(1, 'rgba(63,179,166,0)');
+      ctx!.fillStyle = gr; ctx!.fillRect(0, 0, W, H);
+      const ord = pts.map((p, k) => [p.u * sn + p.v * cs, k]).sort((a, b) => a[0] - b[0]);
+      for (const [, k] of ord) {
+        const p = pts[k];
+        const z = p.hz * c3;
+        for (const [a1, b1, a2, b2, nx, ny] of SIDES) {
+          const ny1 = nx * sn + ny * cs;
+          if (ny1 <= 0.01 || z < 0.01) continue;
+          const nx1 = nx * cs - ny * sn;
+          const [x1, y1] = P(p.u + a1 * half * 2, p.v + b1 * half * 2, 0), [x2, y2] = P(p.u + a2 * half * 2, p.v + b2 * half * 2, 0);
+          const [x3, y3] = P(p.u + a2 * half * 2, p.v + b2 * half * 2, z), [x4, y4] = P(p.u + a1 * half * 2, p.v + b1 * half * 2, z);
+          ctx!.fillStyle = rgb(p.rgb, nx1 < 0 ? 0.72 : 0.48);
+          ctx!.beginPath(); ctx!.moveTo(x1, y1); ctx!.lineTo(x2, y2); ctx!.lineTo(x3, y3); ctx!.lineTo(x4, y4); ctx!.closePath(); ctx!.fill();
+        }
+        const t = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => P(p.u + a * half, p.v + b * half, z));
+        ctx!.fillStyle = rgb(p.rgb, 1.08);
+        ctx!.beginPath(); ctx!.moveTo(t[0][0], t[0][1]); for (let j = 1; j < 4; j++) ctx!.lineTo(t[j][0], t[j][1]); ctx!.closePath(); ctx!.fill();
+      }
+    }
+
     function draw(now: number) {
       if (!ctx) return;
       const q = seqProgress();
@@ -319,16 +380,15 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
       const ans = clamp((q - 0.64) / 0.08);
       const lineP = ease(clamp((q - 0.8) / 0.08));
       const ptP = ease(clamp((q - 0.88) / 0.05));
-      const wob = !reduce && q < 0.3;
-      const heroFade = mobile ? 0.55 : 0.75;
+      // c3 = 1 คือเมืองเอียงในฉากเปิด, 0 คือมองตรงจากด้านบนเป็นตาราง
+      const c3 = 1 - ease(clamp((q - 0.02) / 0.26));
+      if (c3 > 0.002) city(c3, now);
 
       // แถบเกณฑ์ บนพื้นของตัวเอง
       if (ans > 0) {
-        const m = mobile ? 10 : 24, fx = m, fw = W - 2 * m, fy = mobile ? 70 : 76, fh = H - fy - m;
-        ctx.globalAlpha = ans; ctx.fillStyle = '#0b3a38';
-        ctx.beginPath(); ctx.roundRect ? ctx.roundRect(fx, fy, fw, fh, mobile ? 20 : 36) : ctx.rect(fx, fy, fw, fh); ctx.fill();
         const x0 = AX(-data.axis.margin), x1 = AX(data.axis.margin);
         ctx.globalAlpha = ans;
+        ctx.fillStyle = 'rgba(11,15,22,0.9)'; ctx.fillRect(axis.x0 - 10, axis.yc - axis.bh / 2 - 34, axis.x1 - axis.x0 + 20, axis.bh + 84);
         ctx.fillStyle = 'rgba(63,179,166,0.14)'; ctx.strokeStyle = '#3fb3a6'; ctx.lineWidth = 1.5;
         const w = (x1 - x0) * (reduce ? 1 : ease(ans));
         ctx.fillRect((x0 + x1) / 2 - w / 2, axis.yc - axis.bh / 2, w, axis.bh);
@@ -336,21 +396,18 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
         ctx.setLineDash([3, 4]); ctx.strokeStyle = '#5a6578'; ctx.beginPath(); ctx.moveTo(AX(0), axis.yc - axis.bh / 2); ctx.lineTo(AX(0), axis.yc + axis.bh / 2); ctx.stroke(); ctx.setLineDash([]);
         const fs = mobile ? 12 : 13;
         label(`เกณฑ์ ±${(data.axis.margin * 100).toFixed(1)} จุดที่ตั้งไว้ก่อนเริ่ม`, AX(0), axis.yc - axis.bh / 2 - 10, `${fs}px Sarabun`, '#9fe0d6', 'center');
-        [-15, -10, -5, 0, 5, 10, 15].forEach((t) => label(t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0', AX(t / 100), axis.yc + axis.bh / 2 + 20, `${fs}px Sarabun`, '#a9cbc6', 'center'));
-        label('ไฟล์เดียวดีกว่า', axis.x0, axis.yc + axis.bh / 2 + 40, `${fs}px Sarabun`, '#a9cbc6', 'left');
-        label('Skills ดีกว่า', axis.x1, axis.yc + axis.bh / 2 + 40, `${fs}px Sarabun`, '#a9cbc6', 'right');
+        [-15, -10, -5, 0, 5, 10, 15].forEach((t) => label(t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0', AX(t / 100), axis.yc + axis.bh / 2 + 20, `${fs}px Sarabun`, '#8792a4', 'center'));
+        label('ไฟล์เดียวดีกว่า', axis.x0, axis.yc + axis.bh / 2 + 40, `${fs}px Sarabun`, '#8792a4', 'left');
+        label('Skills ดีกว่า', axis.x1, axis.yc + axis.bh / 2 + 40, `${fs}px Sarabun`, '#8792a4', 'right');
         ctx.globalAlpha = 1;
       }
 
       // จุด
-      for (const k of order) {
+      if (c3 <= 0.002) for (const k of order) {
         const p = pts[k];
-        const e1 = ease(clamp((q - 0.02 - p.dl * 0.1) / 0.18));
-        let x = lerp(p.hx, p.gx, e1), y = lerp(p.hy, p.gy, e1);
-        if (wob && e1 < 1) { x += Math.sin(now * 0.0009 + k) * 1.6 * (1 - e1); y += Math.cos(now * 0.0011 + k * 1.7) * 1.6 * (1 - e1); }
-        let sz = lerp(heapSz * p.hs, dotSz, e1);
-        let rot = p.hr * (1 - e1);
-        let a = lerp(heroFade * (0.5 + 0.5 * (p.hs - 0.7) / 0.75), 1, e1);
+        let x = p.gx, y = p.gy;
+        let sz = dotSz;
+        let a = 1;
         if (p.s < 2) a *= (1 - 0.72 * fade12) * (1 - ans);
         else if (!p.g) a *= 1 - ans;
         else {
@@ -364,13 +421,12 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
         if (a < 0.01) continue;
         ctx.globalAlpha = a;
         ctx.fillStyle = p.c;
-        if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillRect(-sz / 2, -sz / 2, sz, sz); ctx.restore(); }
-        else ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+        ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
       }
       ctx.globalAlpha = 1;
 
       // ป้ายชื่อตาราง
-      const la = clamp((q - 0.16) / 0.1);
+      const la = clamp((q - 0.25) / 0.06);
       if (la > 0) {
         const fs = mobile ? 12 : 14;
         grids.forEach((g) => {
@@ -403,8 +459,6 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
     const scrubs = [...document.querySelectorAll<HTMLElement>('[data-scrub]')];
     const pin = document.querySelector<HTMLElement>('[data-pin]');
     const wide = window.matchMedia('(min-width: 900px) and (min-height: 640px)');
-    const count = document.querySelector<HTMLElement>('.count');
-    const rate = document.querySelector<HTMLElement>('.rate');
     function scrub() {
       if (reduce) return;
       const vh = window.innerHeight;
@@ -417,14 +471,6 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
         if (pinned && el.dataset.scrub === 'way') { el.style.removeProperty('--p'); continue; }
         const r = el.getBoundingClientRect();
         el.style.setProperty('--p', String(clamp((vh * 0.92 - r.top) / (vh * 0.55))));
-      }
-      if (count && rate) {
-        const st = count.closest<HTMLElement>('[data-scrub]')!;
-        const t = clamp((Number(st.style.getPropertyValue('--p')) - 0.35) / 0.5);
-        const from = Number(count.dataset.from), to = Number(count.dataset.to);
-        count.textContent = String(Math.round(from + (to - from) * ease(t)));
-        rate.textContent = t > 0.02 ? rate.dataset.to! : rate.dataset.from!;
-        st.classList.toggle('changed', t > 0.02);
       }
     }
 
@@ -466,153 +512,144 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
   </script>
 </Base>
 <style>
-  /* โลกของหน้า: ห้องมืดที่มีกองหลักฐานอยู่ข้างหลัง แผงแต่ละฉากเป็นวัสดุของตัวเอง กระดาษ เขียวหัวเป็ดเข้ม อิฐ และเขียวสว่าง */
-  .story { --bg: #0e131c; --fg: #ecedf0; --fg2: #b4bccb; --fg3: #8b95a7; --line: #2a3344; --teal-l: #3fb3a6; --brick-l: #e0874f; --ease: cubic-bezier(0.16, 1, 0.3, 1); margin-inline: calc(50% - 50vw); background: var(--bg); color: var(--fg); overflow-x: clip; position: relative; }
-  .story ::selection { background: var(--teal-l); color: #0e131c; }
+  /* โลกของหน้า: แบบจำลองเมืองของเสาบนพื้นกระดาษกราฟที่ตรงกับพิกัดข้อมูล ฉากอื่นเป็นหลักฐานจริงบนพื้นหมึก ตัวเลขอ่านแบบหน้าปัดเครื่องมือวัด
+     เขียวคือทำตามกฎได้ครบ ส้มคือพลาด ไม่มีสีอื่นนอกจากน้ำเงินของกลุ่มไฟล์เดียว */
+  .story { --bg: #0b0f16; --fg: #eceef2; --fg2: #b3bccb; --fg3: #8792a4; --line: #222b3a; --teal-l: #3fb3a6; --miss: #d9733a; --a1: #4a6fb0; --ease: cubic-bezier(0.16, 1, 0.3, 1); margin-inline: calc(50% - 50vw); background: var(--bg); color: var(--fg); overflow-x: clip; position: relative; }
+  .story ::selection { background: var(--teal-l); color: var(--bg); }
   .stage { position: sticky; top: 0; height: 100svh; margin-bottom: -100svh; z-index: 0; pointer-events: none; }
   .stage canvas { display: block; width: 100%; height: 100%; }
   :global(html:not(.cv)) .stage { display: none; }
   .story > section { position: relative; z-index: 1; }
   .wrap { width: 100%; max-width: var(--wide); margin: 0 auto; }
   .story h2, .story h3 { color: var(--fg); }
-  .story h2 { font-size: clamp(1.9rem, 5vw, 3.2rem); line-height: 1.3; margin: 0 0 1.25rem; max-width: 20ch; }
-  .story h3 { font-size: 1.3rem; margin: 0 0 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
+  .story h2 { font-size: clamp(1.8rem, 4.4vw, 3rem); line-height: 1.3; margin: 0 0 1.25rem; max-width: 20ch; }
   .story p { color: var(--fg2); }
   .story b { color: var(--fg); font-weight: 600; }
   .story a { color: var(--teal-l); text-underline-offset: 3px; }
   .story a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-  .sub { font-size: clamp(1.05rem, 2vw, 1.2rem); line-height: 1.8; max-width: 44rem; }
+  .sub { font-size: clamp(1.05rem, 2vw, 1.18rem); line-height: 1.8; max-width: 44rem; }
   .small { font-size: 0.98rem; }
   .nw { white-space: nowrap; }
   .mono { font-family: var(--mono); }
-  .numeral { font-family: var(--serif); font-weight: 200; font-size: clamp(4.5rem, 15vw, 8.5rem); line-height: 1; letter-spacing: -0.03em; color: #fff !important; margin: 0 0 0.25rem; font-variant-numeric: lining-nums; }
-  .numeral span { font-size: 0.3em; font-weight: 500; letter-spacing: 0; margin-left: 0.3em; }
 
-  /* ป้ายบอกรหัสจริง ใช้เฉพาะชื่อที่มีในข้อมูล */
-  .tag { display: inline-block; font-family: var(--mono); font-size: 0.78rem; font-weight: 500; line-height: 1.3; padding: 0.3rem 0.7rem; border-radius: 999px; transform: rotate(-3deg); white-space: nowrap; letter-spacing: 0; }
-  .t-dark { background: #161b26; color: #ecedf0; }
-  .t-brick { background: #b4561c; color: #fff; }
-  .t-blue { background: #2f4f86; color: #fff; transform: rotate(2deg); }
-  .t-teal { background: var(--teal-l); color: #0b1016; transform: rotate(-2deg); }
-  .t-cream { background: #fbefe4; color: #6b2a0c; font-family: var(--sans); font-size: 0.85rem; margin-left: 0.3rem; }
-
-  .btn { display: inline-flex; align-items: center; min-height: 48px; padding: 0.8rem 1.6rem; background: var(--teal-l); color: #0b1016 !important; font-weight: 600; text-decoration: none; border-radius: 999px; transition: background 0.2s, transform 0.2s var(--ease); }
+  .btn { display: inline-flex; align-items: center; min-height: 48px; padding: 0.75rem 1.4rem; background: var(--teal-l); color: var(--bg) !important; font-weight: 600; text-decoration: none; border-radius: 4px; transition: background 0.2s, transform 0.2s var(--ease); }
   .btn:hover { background: #5fcabd; }
   .btn:active { transform: translateY(1px); }
 
-  /* ---------- ฉากเปิด: ตัวหนังสืออยู่หน้ากองจุด ---------- */
-  .hero { min-height: 100svh; display: flex; align-items: center; padding: clamp(2rem, 6vw, 4rem) 1.25rem clamp(3rem, 8vh, 5rem); }
+  /* ---------- ฉากเปิด: ชื่อวิจัยอยู่หน้าเมืองของเสา ---------- */
+  .hero { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: clamp(2rem, 6vw, 4rem) 1.25rem 1.5rem; }
   .hero-in { width: 100%; max-width: var(--wide); margin: 0 auto; }
-  .hero-in > * { max-width: 36rem; }
-  .title { color: #fff; font-size: clamp(2.5rem, 8vw, 5.4rem); line-height: 1.2; margin: 0; letter-spacing: -0.015em; max-width: 12ch !important; text-shadow: 0 2px 24px rgba(14, 19, 28, 0.9); }
+  .hero-in > * { max-width: 34rem; }
+  .title { color: #fff; font-size: clamp(1.9rem, 4.2vw, 3.3rem); line-height: 1.32; margin: 0; letter-spacing: -0.01em; text-shadow: 0 2px 20px rgba(11, 15, 22, 0.9); }
   .title .accent { color: var(--teal-l); }
-  .lead { font-size: clamp(1.1rem, 2.2vw, 1.35rem); line-height: 1.75; margin-top: 1.5rem; text-shadow: 0 1px 14px rgba(14, 19, 28, 0.95); }
-  .hero-act { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin: 2rem 0 1.75rem; }
-  .story .quick { margin: 0; font-size: 1rem; line-height: 1.6; color: var(--fg); text-shadow: 0 1px 12px rgba(14, 19, 28, 0.95); }
-  .quick b { color: var(--teal-l); margin-right: 0.35rem; }
+  .story .ask { font-family: var(--serif); font-weight: 500; font-size: clamp(1.2rem, 2.3vw, 1.5rem); line-height: 1.5; color: #fff; margin: 1.5rem 0 0; text-shadow: 0 1px 14px rgba(11, 15, 22, 0.95); }
+  .lead { font-size: clamp(1.05rem, 2vw, 1.2rem); line-height: 1.75; margin-top: 0.6rem; text-shadow: 0 1px 14px rgba(11, 15, 22, 0.95); }
+  .hero-act { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin: 1.75rem 0 1.5rem; }
+  .story .quick { margin: 0; font-size: 1rem; line-height: 1.6; text-shadow: 0 1px 12px rgba(11, 15, 22, 0.95); }
+  .quick b { color: var(--teal-l); }
   .quick a { white-space: nowrap; margin-left: 0.35rem; }
-  .byline { font-size: 0.92rem; line-height: 1.7; color: var(--fg) !important; text-shadow: 0 1px 12px rgba(14, 19, 28, 0.95); }
+  .byline { font-size: 0.9rem; line-height: 1.7; color: var(--fg) !important; text-shadow: 0 1px 12px rgba(11, 15, 22, 0.95); }
   .byline span { display: block; color: var(--fg3); }
-  .story .heap-note { font-size: 0.85rem; color: var(--fg3); margin: 0; }
-  :global(html:not(.cv)) .heap-note { display: none; }
+  .story .key { width: 100%; max-width: var(--wide); margin: auto auto 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; font-family: var(--mono); font-size: 0.78rem; color: var(--fg3); }
+  :global(html:not(.cv)) .key { display: none; }
   @media (max-width: 899px) {
-    .hero { align-items: flex-start; padding-top: 1.75rem; }
-    .hero-in { display: flex; flex-direction: column; min-height: calc(100svh - 7rem); }
-    .heap-note { order: 9; margin-top: auto !important; }
+    .hero { justify-content: flex-start; padding-top: 1.5rem; }
     .byline { display: none; }
-    .story .heap-note { color: var(--fg2); background: rgba(14, 19, 28, 0.86); padding: 0.55rem 0.85rem; border-radius: 12px; box-shadow: 0 0 0 1px var(--line); }
+    .story .key { margin-top: auto; background: rgba(11, 15, 22, 0.88); padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: 4px; width: auto; }
   }
 
-  /* ---------- แผง: เลื่อนทับกองจุดขึ้นมา ---------- */
-  .panel { margin: 0 clamp(0.6rem, 2vw, 1.5rem); border-radius: clamp(20px, 3vw, 36px); padding: clamp(3.5rem, 8vw, 6.5rem) clamp(1.1rem, 4vw, 3.5rem); box-shadow: 0 -30px 80px -30px rgba(0, 0, 0, 0.75); }
-  .panel + .panel, .seq + .panel { margin-top: clamp(0.6rem, 2vw, 1.5rem); }
-
-  /* ปัญหา: กระดาษ */
-  .paper { --ink: #161b26; background-color: #f4f1ea; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.25 0 0 0 0 0.2 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); color: var(--ink); }
-  .story .paper h2 { color: var(--ink); }
-  .story .paper .copy p { color: #3f4756; }
-  .story .paper b { color: var(--ink); }
+  /* ---------- ห้อง: ฉากที่ไม่มี canvas พื้นหมึกเรียบ ให้หลักฐานเป็นตัวเด่น ---------- */
+  .room { padding: clamp(4rem, 9vw, 7rem) 1.25rem; background: var(--bg); border-top: 1px solid var(--line); }
   .two { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
-  @media (min-width: 980px) { .two { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 4rem; } }
-  .copy p { font-size: clamp(1.05rem, 2vw, 1.2rem); line-height: 1.8; max-width: 34rem; }
-  .evidence { display: grid; gap: 1.25rem; }
-  .term { position: relative; margin: 0; background: #0e131c; border-radius: 14px; box-shadow: 0 30px 60px -28px rgba(22, 27, 38, 0.65); }
-  .term .tag { position: absolute; top: -0.85rem; right: 1rem; }
-  .story .term-bar { margin: 0; padding: 0.7rem 1.1rem; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 0.8rem; color: var(--fg3); }
-  .term-body { padding: 1rem 1.1rem 1.2rem; display: grid; gap: 0.5rem; align-content: start; }
+  @media (min-width: 980px) { .two { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 4rem; } }
+  .copy p { font-size: clamp(1.05rem, 2vw, 1.18rem); line-height: 1.8; max-width: 34rem; }
+  .story .note { font-size: 0.95rem; color: var(--fg3); }
+
+  /* หลักฐาน: บันทึกของ AI และ diff ของใบแจ้งหนี้ */
+  .evidence { display: grid; gap: 1rem; }
+  .term, .diff { margin: 0; background: #070a0f; border: 1px solid var(--line); border-radius: 6px; }
+  .story .term-bar { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0; padding: 0.6rem 1rem; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--fg3); }
+  .term-body { padding: 0.9rem 1rem 1.1rem; display: grid; gap: 0.45rem; align-content: start; }
   .t-line { margin: 0; display: grid; grid-template-columns: 3rem 1fr; gap: 0.6rem; font-size: 0.93rem; line-height: 1.6; overflow-wrap: anywhere; }
   .t-tag { font-size: 0.78rem; color: var(--fg3); padding-top: 0.15rem; }
   .story .t-line { color: var(--fg2); }
   .story .t-line.user { color: #fff; font-size: 1rem; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--line); }
   .t-line.user .t-tag { color: var(--teal-l); }
   .story .t-line.ok { color: #9fe0d6; }
-  .story .t-line.warn { color: var(--brick-l); font-weight: 600; }
-  .t-line.warn .t-tag { color: var(--brick-l); }
-  .inv-stage { margin: 0; }
-  .inv { position: relative; background: #fffdf8; color: #161b26; padding: 1.1rem 1.4rem 1.2rem; border-radius: 4px; box-shadow: 0 1px 2px rgba(22, 27, 38, 0.12), 0 22px 40px -22px rgba(22, 27, 38, 0.45); transform: rotate(-1.2deg); transition: box-shadow 0.4s; }
-  .changed .inv { box-shadow: 0 1px 2px rgba(22, 27, 38, 0.12), 0 22px 40px -22px rgba(22, 27, 38, 0.45), 0 0 0 2px #b4561c; }
-  .story .inv-h { font-family: var(--serif); font-weight: 600; margin: 0 0 0.5rem; color: #161b26; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-  .inv-h span { font-family: var(--sans); font-weight: 400; font-size: 0.85rem; color: #6a7180; }
-  .inv dl { display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 1rem; margin: 0; padding-bottom: 0.5rem; border-bottom: 1px solid #d6d8dd; }
-  .inv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-  .changed .rate { color: #b4561c; font-weight: 600; }
-  .story .inv-t { margin: 0.5rem 0 0; display: flex; justify-content: space-between; align-items: baseline; color: #161b26; }
-  .inv-t b { font-family: var(--serif); font-size: 1.9rem; font-variant-numeric: tabular-nums; }
-  .story .changed .inv-t b { color: #b4561c; }
-  .inv .tag { position: absolute; right: 1rem; bottom: -0.9rem; opacity: 1; transition: opacity 0.3s, transform 0.4s var(--ease); }
-  :global(.motion) .inv-stage:not(.changed) .inv .tag { opacity: 0; transform: rotate(-3deg) scale(1.3); }
-  .inv-stage figcaption { font-size: 0.85rem; color: #5a6270; margin-top: 1.6rem; }
+  .story .t-line.warn { color: var(--miss); font-weight: 600; }
+  .t-line.warn .t-tag { color: var(--miss); }
+  .diff { padding: 0 0 0.9rem; font-family: var(--mono); font-size: 0.9rem; }
+  .story .diff-h { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0 0 0.4rem; padding: 0.6rem 1rem; border-bottom: 1px solid var(--line); font-size: 0.78rem; color: var(--fg3); }
+  .story .dl { display: grid; grid-template-columns: 1.5rem 1fr auto; gap: 0.5rem; margin: 0; padding: 0.2rem 1rem; color: var(--fg2); font-family: var(--sans); font-variant-numeric: tabular-nums; }
+  .dl > :last-child { font-family: var(--mono); }
+  .dm { font-family: var(--mono); color: var(--fg3); }
+  .story .dl.del { background: rgba(217, 115, 58, 0.1); color: #f0b48f; }
+  .story .dl.add { background: rgba(63, 179, 166, 0.12); color: #a6e6dd; }
+  .dl.del .dm { color: var(--miss); }
+  .dl.add .dm { color: var(--teal-l); }
+  .story .dl.total { font-weight: 600; }
+  .diff figcaption { font-family: var(--sans); font-size: 0.85rem; color: var(--fg3); padding: 0.7rem 1rem 0; }
+  /* บรรทัด + โผล่ตามการเลื่อน ถ้าไม่มี --p จะแสดงครบ */
+  .dl.add { --k: clamp(0, (var(--p, 1) - 0.3 - var(--o) * 0.15) * 4, 1); opacity: var(--k); transform: translateX(calc((1 - var(--k)) * -10px)); }
+  .dl.del { --k: clamp(0, (var(--p, 1) - 0.3) * 4, 1); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--miss) calc(var(--k) * 100%), transparent); }
 
-  /* สองแบบ: เขียวหัวเป็ดเข้ม จอใหญ่ตรึงไว้ระหว่างเลื่อน */
-  .deep { background: #0b3a38; }
-  .story .deep p { color: #b9d6d2; }
-  .story .deep .note { color: #9cc4bf; }
-  .story .deep a { color: #8fe3d8; }
+  /* สองแบบ: แถบบริบทวัดเป็นตัวอักษรจริง จอใหญ่ตรึงไว้ระหว่างเลื่อน */
   @media (min-width: 900px) and (min-height: 640px) {
-    .deep { height: 240svh; padding-block: 0; }
+    #two-ways { height: 220svh; padding-block: 0; }
     .pin-in { position: sticky; top: 0; min-height: 100svh; display: flex; align-items: center; padding-block: 4.5rem 3rem; }
   }
-  .ways { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); margin: 2rem 0 1.5rem; }
-  @media (min-width: 900px) { .ways { grid-template-columns: 1fr 1fr; gap: 3rem; } }
-  .ctx { border: 1.5px solid #2c6a65; border-radius: 16px; padding: 1rem; min-height: 11rem; background: rgba(5, 25, 24, 0.55); }
-  .chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
-  .chip { font-size: 0.88rem; padding: 0.35rem 0.75rem; border-radius: 999px; line-height: 1.4; }
-  .chip.all { background: #2f4f86; color: #fff; }
-  .chip.base { background: #e6f3f1; color: #0b3a38; }
-  .chip.desc { box-shadow: inset 0 0 0 1px #6fc9be; color: #c7ebe6; }
-  .chip.open { background: var(--teal-l); color: #0b1016; font-size: 0.8rem; }
-  .shelf { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.8rem; }
-  .card { font-size: 0.8rem; padding: 0.3rem 0.7rem; border-radius: 999px; box-shadow: inset 0 0 0 1px #2c6a65; color: #9cc4bf; }
-  .card.need { box-shadow: inset 0 0 0 1px var(--teal-l); color: #c7ebe6; }
-  .card.idle { box-shadow: none; outline: 1px dashed #5f8f8a; outline-offset: -1px; color: #b9d6d2; }
-  .idle-l { font-family: var(--sans); font-size: 0.78rem; color: #9cc4bf; }
-  .note { font-size: 0.95rem; margin-top: 0.75rem; }
+  .gauges { display: grid; gap: 2.5rem; margin: 2.25rem 0 2rem; }
+  .story .g-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.25rem 1rem; margin: 0 0 0.6rem; }
+  .g-h b { font-family: var(--serif); font-size: 1.3rem; }
+  .read { font-family: var(--mono); font-size: 0.9rem; color: var(--fg2); }
+  .open-read { color: var(--teal-l); }
+  .tape { display: flex; height: 2.4rem; outline: 1px solid #39465c; outline-offset: 3px; border-radius: 2px; background: rgba(7, 10, 15, 0.8); }
+  .seg { display: block; height: 100%; flex: none; width: var(--w); box-shadow: inset -2px 0 0 #0b0f16; }
+  .seg.one { background: var(--a1); }
+  .seg.one:nth-child(odd) { background: #567bbd; }
+  .seg.base { background: #d7ece9; }
+  .seg.desc { background: repeating-linear-gradient(135deg, rgba(63, 179, 166, 0.55) 0 3px, rgba(63, 179, 166, 0.2) 3px 6px); }
+  .seg.open { background: var(--teal-l); }
+  .seg.open + .seg.open { background: #35a397; }
+  .seg-names { margin: 0.7rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; font-size: 0.88rem; color: var(--fg3); counter-reset: s; }
+  .seg-names li::before { counter-increment: s; content: counter(s) ' '; font-family: var(--mono); color: #7f9bd0; }
+  .seg-key { margin: 0.7rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-size: 0.88rem; color: var(--fg3); }
+  .seg-key li { display: flex; align-items: center; gap: 0.45rem; }
+  .k { width: 0.8rem; height: 0.8rem; border-radius: 1px; flex: none; }
+  .k.base { background: #d7ece9; }
+  .k.desc { background: repeating-linear-gradient(135deg, rgba(63, 179, 166, 0.7) 0 2px, rgba(63, 179, 166, 0.25) 2px 4px); }
+  .k.open { background: var(--teal-l); }
+  .k.idle { outline: 1px dashed var(--fg3); outline-offset: -1px; }
   /* ค่า --p มาจากการเลื่อน ถ้าไม่มีจะเป็น 1 คือสถานะสุดท้าย */
-  .chip.all { --k: clamp(0, (var(--p, 1) - 0.04 - var(--i) * 0.035) * 4, 1); opacity: var(--k); transform: translateY(calc((1 - var(--k)) * -56px)) rotate(calc((1 - var(--k)) * var(--r) * 3deg)); }
-  .chip.base, .chip.desc { --k: clamp(0, (var(--p, 1) - 0.04 - var(--i) * 0.05) * 4, 1); opacity: var(--k); transform: translateY(calc((1 - var(--k)) * -40px)); }
-  .chip.open { --k: clamp(0, (var(--p, 1) - 0.5 - var(--j) * 0.1) * 4, 1); opacity: var(--k); transform: translateY(calc((1 - var(--k)) * 16px)) scale(calc(0.9 + var(--k) * 0.1)); }
-  .card.need { --k: clamp(0, (var(--p, 1) - 0.5 - var(--j) * 0.1) * 4, 1); opacity: calc(1 - var(--k) * 0.6); }
+  .seg.one { --k: clamp(0, (var(--p, 1) - 0.05 - var(--i) * 0.03) * 5, 1); transform: scaleX(var(--k)); transform-origin: left; opacity: calc(0.3 + var(--k) * 0.7); }
+  .seg.base, .seg.desc { --k: clamp(0, (var(--p, 1) - 0.05) * 5, 1); transform: scaleX(var(--k)); transform-origin: left; }
+  .seg.open { --k: clamp(0, (var(--p, 1) - 0.5 - var(--j) * 0.12) * 5, 1); transform: scaleX(var(--k)); transform-origin: left; }
+  .k-open { --k: clamp(0, (var(--p, 1) - 0.5 - var(--j) * 0.12) * 5, 1); opacity: calc(0.35 + var(--k) * 0.65); }
+  .open-read { opacity: clamp(0.3, (var(--p, 1) - 0.5) * 3, 1); }
 
-  /* ---------- การทดลอง: ไม่มีแผง ให้เห็นกองจุดเต็มจอ ---------- */
+  /* ---------- การทดลอง: ไม่มีพื้น ให้เห็น canvas เต็มจอ ---------- */
   .seq { padding: 0 1.25rem; }
   .beat { min-height: 100svh; display: flex; align-items: center; max-width: var(--wide); margin: 0 auto; }
   .beat.tail { min-height: 45svh; }
-  .beat > .slab { background: rgba(14, 19, 28, 0.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 22px; padding: 1.5rem 1.6rem; box-shadow: 0 0 0 1px var(--line); max-width: 29rem; }
-  .beat h2 { font-size: clamp(1.6rem, 4vw, 2.4rem); }
+  .beat > .slab { background: rgba(11, 15, 22, 0.86); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 6px; padding: 1.4rem 1.5rem; max-width: 29rem; }
+  .beat h2 { font-size: clamp(1.55rem, 3.6vw, 2.3rem); }
   .beat p { font-size: 1.02rem; line-height: 1.75; }
-  .beat .numeral { font-size: clamp(4.5rem, 12vw, 7.5rem); }
+  .story .readout { font-family: var(--mono); font-size: 1rem; color: var(--fg3); margin: 0 0 0.4rem; }
+  .readout b { font-family: var(--mono); font-weight: 500; font-size: clamp(2.6rem, 6vw, 3.6rem); color: #fff; letter-spacing: -0.02em; margin-right: 0.3rem; }
   .eq { color: var(--teal-l); padding: 0 0.15em; }
-  .answer .numeral { color: var(--teal-l) !important; }
-  :global(html.cv) .beat.answer > .slab { background: none; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
-  :global(html.cv) .story .answer .slab p { color: #c7e3df; }
+  .meter { display: grid; grid-template-columns: auto 1fr; gap: 0.3rem 1.25rem; margin: 0 0 1.1rem; padding: 0.9rem 0; border-block: 1px solid var(--line); }
+  .meter div { display: contents; }
+  .meter dt { font-size: 0.9rem; color: var(--fg3); align-self: baseline; }
+  .meter dd { margin: 0; font-family: var(--mono); font-size: 1.05rem; color: var(--fg); text-align: right; align-self: baseline; font-variant-numeric: tabular-nums; }
+  .meter dd.big { font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 500; color: var(--teal-l); line-height: 1.1; }
+  .meter small { font-family: var(--sans); font-size: 1rem; margin-left: 0.3rem; color: var(--fg2); }
   .links { display: flex; gap: 1rem; }
   .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.5rem; font-size: 0.95rem; }
-  .lg { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 2px; }
+  .lg { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 1px; }
   .lg.hi { background: #3fb3a6; } .lg.lo { background: #d9733a; margin-left: 0.5rem; }
   @media (max-width: 899px) {
     .beat { align-items: flex-end; padding-bottom: 4svh; }
-    .beat > .slab { padding: 1.2rem 1.25rem; }
-    .beat .numeral { font-size: clamp(3.6rem, 18vw, 5rem); }
+    .beat > .slab { padding: 1.1rem 1.2rem; }
   }
   /* รูปนิ่งเมื่อไม่มี canvas */
   :global(html.cv) .fb { display: none; }
@@ -630,49 +667,39 @@ const noRules = crit.find((c) => c.a === 'A0')!.v;
   .band-t { fill: #9fe0d6; font-size: 16px; }
   .zero { stroke: #5a6578; stroke-dasharray: 3 4; }
   .ci { stroke: #fff; stroke-width: 7; stroke-linecap: round; }
-  .pt { fill: var(--teal-l); stroke: #0e131c; stroke-width: 3; }
+  .pt { fill: var(--teal-l); stroke: var(--bg); stroke-width: 3; }
   .tick { fill: var(--fg3); font-size: 16px; }
   .dir { fill: var(--fg3); font-size: 15px; }
 
-  /* ---------- ต้องมีกฎ: อิฐ ---------- */
-  .brick { background: #7c3414; }
-  .story .brick h2 { color: #fff; }
-  .story .brick p { color: #f6d9c6; }
-  .versus { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; margin: 1.5rem 0 2.25rem; }
-  .vs-item { display: flex; flex-direction: column; }
-  .vs-item .numeral { margin: 0; }
-  .vs-item .to { font-size: 0.3em; font-weight: 500; margin: 0 0.35em; letter-spacing: 0; }
-  .vs-item .pc { font-size: 0.45em; font-weight: 300; margin-left: 0.08em; letter-spacing: 0; }
-  .vs-l { font-size: 1rem; color: #f6d9c6; margin-top: 0.4rem; }
-  .vs-arrow { width: clamp(2.5rem, 6vw, 4rem); color: #f6d9c6; }
-  .bars { display: grid; gap: 0.75rem; margin: 0 0 1.25rem; max-width: 46rem; }
-  .bar-row { display: grid; grid-template-columns: 11rem 1fr 4rem; gap: 0.8rem; align-items: center; }
-  .bar-l { font-size: 0.98rem; color: #fff; }
-  .bar-t { height: 0.85rem; background: rgba(255, 255, 255, 0.14); border-radius: 999px; overflow: hidden; }
-  .bar-t i { display: block; height: 100%; width: var(--w); background: #fbefe4; border-radius: 999px; transform-origin: left; transform: scaleX(clamp(0, var(--p, 1) * 1.6, 1)); }
-  .none .bar-t i { background: transparent; box-shadow: inset 0 0 0 2px #fbefe4; }
-  .story .bar-v { font-family: var(--serif); font-variant-numeric: tabular-nums; text-align: right; color: #fff; }
-  @media (max-width: 640px) { .bar-row { grid-template-columns: 1fr 3.6rem; } .bar-l { grid-column: 1 / -1; font-size: 0.92rem; } .bar-t { grid-column: 1; } }
+  /* ---------- ต้องมีกฎ: เสาสี่ต้นแบบเดียวกับเสาของการทำงานแต่ละครั้ง ---------- */
+  .cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(0.6rem, 2vw, 1.5rem); align-items: end; height: clamp(16rem, 40vw, 22rem); padding: 0 0.25rem; border-bottom: 1px solid #39465c; }
+  .col { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-end; height: 100%; text-align: center; }
+  .col-v { font-family: var(--mono); font-weight: 500; font-size: clamp(1rem, 2.4vw, 1.5rem); color: #fff; margin-bottom: 0.4rem; }
+  .none .col-v { color: var(--miss); }
+  .col-t { display: block; height: calc(var(--h) * 78%); position: relative; }
+  .col-t i { position: absolute; inset: 0; background: linear-gradient(90deg, #3fb3a6 0 62%, #2a7f76 62% 100%); transform-origin: bottom; transform: scaleY(clamp(0, var(--p, 1) * 1.6, 1)); }
+  .none .col-t i { background: linear-gradient(90deg, #d9733a 0 62%, #9b5229 62% 100%); }
+  .cols { margin-bottom: 3.5rem; }
+  .col { position: relative; }
+  .col-l { position: absolute; left: 0; right: 0; top: 100%; margin-top: 0.6rem; font-size: 0.88rem; color: var(--fg2); line-height: 1.35; }
 
-  /* ---------- ไปต่อ: เขียวสว่าง ---------- */
-  .bright { background: #3fb3a6; margin-bottom: clamp(0.6rem, 2vw, 1.5rem); }
-  .story .bright h2, .story .bright b { color: #0b1016; }
-  .story .bright p { color: #0f3532; }
-  .big-go { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 2rem 0 1.5rem; padding: 0.4rem 0 1rem; border-bottom: 3px solid #0b1016; color: #0b1016 !important; text-decoration: none; font-family: var(--serif); font-weight: 600; font-size: clamp(2.2rem, 8vw, 5.2rem); line-height: 1.2; }
-  .big-go svg { width: clamp(3rem, 9vw, 6rem); flex: none; transition: transform 0.35s var(--ease); }
-  .big-go:hover svg { transform: translateX(10px); }
-  .go { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 2rem; }
-  @media (min-width: 760px) { .go { grid-template-columns: repeat(3, 1fr); } }
-  .story .go a { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.9rem 0; border-bottom: 1px solid rgba(11, 16, 22, 0.25); text-decoration: none; color: #0b1016; }
-  .go b { font-family: var(--serif); font-size: 1.15rem; }
-  .go span { color: #0f3532; font-size: 0.95rem; }
-  .go a:hover b { text-decoration: underline; text-underline-offset: 4px; }
+  /* ---------- ไปต่อ: สารบัญ ---------- */
+  .end { padding-bottom: clamp(4rem, 8vw, 6rem); }
+  .index { display: grid; border-top: 1px solid #39465c; margin-top: 2rem; }
+  .story .index a { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'b arrow' 's arrow'; align-items: center; column-gap: 1.5rem; padding: 1.1rem 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--fg); }
+  .index b { grid-area: b; font-family: var(--serif); font-size: clamp(1.25rem, 2.6vw, 1.6rem); font-weight: 600; }
+  .index span { grid-area: s; color: var(--fg3); font-size: 0.95rem; }
+  .index svg { grid-area: arrow; width: 2rem; color: var(--fg3); transition: transform 0.3s var(--ease), color 0.2s; }
+  .index a:hover b { color: var(--teal-l); }
+  .index a:hover svg { transform: translateX(6px); color: var(--teal-l); }
+  .index .lead-row b { font-size: clamp(1.8rem, 5vw, 3rem); color: var(--teal-l); }
+  .index .lead-row svg { width: 3rem; color: var(--teal-l); }
 
   /* ---------- การเคลื่อนไหวที่ไม่ผูกกับการเลื่อน ---------- */
   :global(.motion) .hero-in > * { animation: rise 0.9s var(--ease) both; }
   :global(.motion) .hero-in > :nth-child(2) { animation-delay: 0.12s; }
-  :global(.motion) .hero-in > :nth-child(3) { animation-delay: 0.22s; }
-  :global(.motion) .hero-in > :nth-child(n + 4) { animation-delay: 0.32s; }
+  :global(.motion) .hero-in > :nth-child(3) { animation-delay: 0.2s; }
+  :global(.motion) .hero-in > :nth-child(n + 4) { animation-delay: 0.3s; }
   @keyframes rise { from { opacity: 0; transform: translateY(18px); filter: blur(6px); } }
   :global(.motion) .t-line.step { opacity: 0; transform: translateX(-6px); transition: opacity 0.4s, transform 0.4s var(--ease); transition-delay: calc(var(--i) * 380ms + 150ms); }
   :global(.motion) .term.typed .t-line.step { opacity: 1; transform: none; }

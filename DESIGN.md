@@ -24,7 +24,7 @@ Tokens are defined in `site/src/styles/global.css` (`:root`).
 
 Arm colors are used only when arms are compared side by side: A0 `#8a929e`, A1 `#2f4f86`, A2 `#0b6e69`, A3 `#7a5c99`, A4 `#a8506f`, A5 `#b7791f`. The same colors are used in the slides and the report figures.
 
-The landing page is the only dark surface: ink (`#0e131c`) behind a canvas of all 660 runs, with panels in paper, deep teal `#0b3a38`, brick `#7c3414` and bright teal `#3fb3a6`. Every other page stays on white paper.
+The landing page is the only dark surface: ink `#0b0f16`, with the run colors and the single-file blue `#4a6fb0` as the only hues. Every other page stays on white paper.
 
 ## Type
 
@@ -65,7 +65,7 @@ The landing page is the only dark surface: ink (`#0e131c`) behind a canvas of al
 
 | Path | Content |
 |---|---|
-| `/` | dark scroll story: the 660 real runs heaped behind the title, the invoice problem with a real agent log, the two ways of giving rules, the heap sorting into the three studies and collapsing into the answer, the rules finding, and Explore |
+| `/` | dark scroll story: the official title over a city of the 660 runs, the agent log and invoice diff, context tapes of the two ways, the city flattening into the three study grids and the answer band, the rules finding, and an index |
 | `/overview/` | the full overview: answer, three-study chart, invoice example, real rule files, findings, the three studies, links |
 | `/background/` | what context engineering and Agent Skills are, where they came from, with a dated timeline and sources |
 | `/study-1/`, `/study-2/`, `/study-3/` | design, flow diagram, primary result, per-scenario results, what changed next |
@@ -84,30 +84,24 @@ The landing page is the only dark surface: ink (`#0e131c`) behind a canvas of al
 
 ## Landing story and motion
 
-The landing (`src/pages/index.astro`) is built around one idea: the heap of evidence becomes the answer.
+The landing (`src/pages/index.astro`) is a model of the evidence. It does not borrow any outside layout: no colored card panels, no stickers, no oversized display numerals.
 
-- **One continuous object.** A sticky `<canvas>` behind the whole story draws all 660 real runs, colored from miss (`#d9733a`) to full compliance (`#3fb3a6`) by each run's real score. In the hero they lie in a loose heap of rotated tiles, with size and alpha giving depth and a slow wobble.
-- **Panels slide over the heap.** Each scene is a rounded panel with its own field, and the heap shows through between panels:
-  - problem: grained paper, holding the real S09 log and the invoice
-  - two ways: deep teal `#0b3a38`, pinned on desktop
-  - rules: brick `#7c3414`
-  - explore: bright teal `#3fb3a6`
-- **Scroll-scrubbed experiment.** `#experiment` has no panel. Its progress `q`, from 0 to 1, drives the canvas:
-  - 0.02 to 0.3: the heap sorts into the three study grids
-  - 0.38 to 0.48: studies 1 and 2 dim, and each grid shows its real verdict
-  - 0.64 to 0.72: the answer field and the ±12.5 band open
-  - 0.66 to 0.8: study 3's A1 and A2 runs fly into the band
-  - 0.8 to 0.88: those tiles flatten into the CI90 line
-  - 0.88 to 0.93: the estimate lands
-- **Text cards.** Text sits on dark cards. They are on the left on desktop and at the bottom on a phone, where the drawing uses the top half of the screen.
-- **Other scrubs.** CSS reads `--p` from scroll:
-  - rule chips fall into the context box
-  - the needed skills rise in while `safe-shell` stays on the shelf
-  - the invoice total runs from 200 to 250
-  - the rule bars grow together
-- **Display type.** Numerals are Noto Serif Thai 200 at up to 8.5rem: 660, +2.8 จุด, and 53.0% → 78.8 ถึง 83.3%. Headings stay Noto Serif Thai 600 to 700.
-- **Stickers.** Rotated pills that name only real identifiers (S09, A1, A2) and the "ข้อสังเกตเพิ่ม" label.
-- **Nav.** On the landing, the nav collapses to the brand plus one "สำรวจทั้งหมด" pill (`theme="story"` in `Base.astro`).
-- **Fallbacks.** With reduced motion, the canvas snaps to whole states (heap, grids, studies, answer) and `--p` stays at its final value. Without JavaScript, the canvas is hidden and static figures show instead.
+- **The city of runs.** A sticky `<canvas>` behind the story draws all 660 real runs as square pillars, three districts for the three studies.
+  - Pillar height follows the run's real score, colored from miss (`#d9733a`) to full compliance (`#3fb3a6`).
+  - The pillars stand on a graph-paper floor drawn in the same coordinates as the run grids. This is the only grid on the page: a CSS grid background was rejected as decoration.
+  - The camera sways slightly in the hero.
+- **Camera move.** As `#experiment` scrolls, the camera turns and tilts down until it looks straight down, so the city becomes the three flat study grids. Progress `q` runs from 0 to 1:
+  - 0.02 to 0.28: the camera flattens the city into the grids
+  - 0.38 to 0.48: studies 1 and 2 dim, with their real verdicts
+  - 0.64 to 0.8: the band opens and study 3's A1 and A2 runs fly into it
+  - 0.8 to 0.93: those runs flatten into the CI90 line and the estimate lands
+- **Rooms.** The other scenes sit on plain ink, and each shows its evidence in its native form:
+  - the real S09 agent log as a terminal
+  - the invoice change as a code diff, with lines that strike and add on scroll
+  - the two ways of giving rules as context tapes measured in real characters from the rule files (single file 4,518 at start; Skills 1,946 at start plus each expected skill, with `safe-shell` left unread)
+  - the rules finding as four two-tone columns that echo the pillars
+  - Explore as a table-of-contents index
+- **Type.** Headings are Noto Serif Thai 600 to 700. Measured values are IBM Plex Mono readouts. The hero carries the official research title, with the plain question under it.
+- **Nav.** On the landing, the nav collapses to the brand plus one "สำรวจทั้งหมด" link (`theme="story"` in `Base.astro`).
+- **Fallbacks.** With reduced motion, the canvas snaps to whole states and every `--p` scrub stays at its final value. Without JavaScript, static figures show instead.
 - **Easing.** `cubic-bezier(0.16, 1, 0.3, 1)` throughout, with no bounce.
-- **Hero answer line.** It states only the primary verdict.
