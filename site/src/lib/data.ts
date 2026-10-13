@@ -20,6 +20,7 @@ export const clean = (t: string) => String(t ?? '').replace(/([ก-๙])ๆ/g, '
 const tidyNote = (t: string) => clean(t)
   .replace(/\s*ตัวชี้วัดพิเศษ:[^()]*\(ดู analyze\.mjs\)/g, '')
   .replace(/([^\d\s])\.\s+/g, '$1 ')
+  .replace(/([^\d\s])\.\s*$/, '$1')
   .replace(/\s*->\s*/g, ' → ')
   .replace(/\[Study 3\]\s*/g, 'ในชุดที่ 3 ')
   .replace(/กฎข้อ (\d)/g, 'กฎหมวด $1')
