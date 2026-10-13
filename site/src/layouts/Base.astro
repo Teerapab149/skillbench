@@ -1,11 +1,12 @@
 ---
 import '../styles/global.css';
 import { studies } from '../lib/data';
-interface Props { title: string; description?: string; current?: string }
-const { title, description = 'เราทดลองสามรอบว่า ถ้าเขียนกฎให้ AI เขียนโค้ดแบบ Agent Skills กับแบบไฟล์เดียว AI จะทำตามกฎต่างกันไหม', current = '' } = Astro.props;
+interface Props { title: string; description?: string; current?: string; theme?: 'story' }
+const { title, description = 'เราทดลองสามรอบว่า ถ้าเขียนกฎให้ AI เขียนโค้ดแบบ Agent Skills กับแบบไฟล์เดียว AI จะทำตามกฎต่างกันไหม', current = '', theme } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const nav: [string, string][] = [
   ['', 'หน้าแรก'],
+  ['overview/', 'ภาพรวม'],
   ['background/', 'เรื่องพื้นฐาน'],
   ['study-1/', 'ชุดที่ 1'],
   ['study-2/', 'ชุดที่ 2'],
@@ -42,7 +43,7 @@ const ogImage = new URL(`${base}og.png`, Astro.site).href;
 <meta property="og:image:alt" content="เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม ผลการทดลองสามชุดของ SkillBench" />
 <meta name="twitter:card" content="summary_large_image" />
 </head>
-<body>
+<body class={theme}>
 <!-- THESIS: เว็บนี้คือรายงานงานวิจัยแบบวารสาร ไม่ใช่หน้า landing เล่าการทดลองทั้งสามชุดตามลำดับจริง ผลและระดับความแรงของผลมาก่อน ทุกตัวเลขตามไปถึง run ได้
 OWN-WORLD: กระดาษขาว หมึกดำ ตารางเส้นบนหนาเส้นล่างบาง รูปมีเลขและคำบรรยาย forest plot และแผนผัง CONSORT หัวเรื่อง Noto Serif Thai เนื้อความ Sarabun เขียวหัวเป็ดคือผลหลัก ส้มอิฐคือเชิงสำรวจ
 STORY: ผู้อ่านรู้ในจอแรกว่างานนี้ถามอะไรและได้คำตอบอะไร เห็นว่าทำไมต้องทดลองสามชุด แล้วเลือกเจาะชุดใดชุดหนึ่ง หรือดูกฎ โจทย์ และ run จริง

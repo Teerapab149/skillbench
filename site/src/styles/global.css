@@ -223,3 +223,20 @@ article, section { min-width: 0; }
 .more-box > summary:hover .sm-t { color: var(--teal); }
 .more-box > h3 { margin-top: 2.5rem; }
 .more-box > p, .more-box > ul, .more-box > ol { max-width: var(--measure); }
+
+/* หน้าแรกแบบเรื่องเล่า พื้นมืดทั้งหน้า */
+body.story { background: #0e131c; }
+body.story .masthead { background: color-mix(in srgb, #0e131c 88%, transparent); border-bottom-color: #2a3344; }
+body.story .brand { color: #ecedf0; }
+body.story .nav a { color: #b4bccb; }
+body.story .nav a:hover { background: #1b2331; color: #fff; }
+body.story .nav a[aria-current='page'] { color: #fff; box-shadow: inset 0 -2px 0 #3fb3a6; }
+body.story .mnav summary { background: #141b27; border-color: #3a4558; color: #ecedf0; }
+body.story .mnav-ico { background: linear-gradient(#ecedf0, #ecedf0) 0 0 / 100% 2px no-repeat, linear-gradient(#ecedf0, #ecedf0) 0 50% / 100% 2px no-repeat, linear-gradient(#ecedf0, #ecedf0) 0 100% / 100% 2px no-repeat; }
+body.story .mnav nav { background: #0e131c; border-bottom-color: #3fb3a6; }
+body.story .mnav nav a { color: #ecedf0; border-bottom-color: #2a3344; }
+body.story .mnav nav a[aria-current='page'] { color: #3fb3a6; }
+body.story .page { padding-top: 0; padding-bottom: 0; }
+body.story .footer { background: #0a0e15; color: #8b95a7; border-top-color: #2a3344; margin-top: 0; }
+body.story .footer strong { color: #ecedf0; }
+body.story .footer a { color: #3fb3a6; }

@@ -24,7 +24,7 @@ Tokens are defined in `site/src/styles/global.css` (`:root`).
 
 Arm colors are used only when arms are compared side by side: A0 `#8a929e`, A1 `#2f4f86`, A2 `#0b6e69`, A3 `#7a5c99`, A4 `#a8506f`, A5 `#b7791f`. The same colors are used in the slides and the report figures.
 
-The landing page hero is the only dark surface. It carries the run field (one mark per run, all three studies).
+The landing page is the only dark surface: a six-scene story on ink (`#0e131c`) with light teal `#3fb3a6` and light brick `#e0874f` as the result and miss colors. Every other page stays on white paper.
 
 ## Type
 
@@ -65,7 +65,9 @@ The landing page hero is the only dark surface. It carries the run field (one ma
 
 | Path | Content |
 |---|---|
-| `/` | question, answer, three-study chart, verdict matrix, invoice example, real rule files, timeline, links |
+| `/` | dark scroll story in six scenes: the question with a real agent log, the invoice problem, the two ways of giving rules, all 660 runs, the answer, and Explore |
+| `/overview/` | the full overview: answer, three-study chart, invoice example, real rule files, findings, the three studies, links |
+| `/background/` | what context engineering and Agent Skills are, where they came from, with a dated timeline and sources |
 | `/study-1/`, `/study-2/`, `/study-3/` | design, flow diagram, primary result, per-scenario results, what changed next |
 | `/arms/` | arms A0 to A5 with the full rule text each one received |
 | `/scenarios/`, `/scenarios/<id>/` | the scenarios, their traps and rules, and results in each study |
@@ -79,3 +81,10 @@ The landing page hero is the only dark surface. It carries the run field (one ma
 - Every page carries Open Graph and Twitter card tags (`layouts/Base.astro`). The share image is `site/public/og.png`, 1200×630, generated from the result files by `node scripts/make-og.mjs` (headless Edge). Regenerate it if the results change.
 - Documents rendered from markdown (rule files, pre-registrations) go through `src/lib/md.ts`, which pushes their headings down two levels so each page keeps a single `h1` and an unbroken heading order. Their look comes from the `md-h1` to `md-h3` classes.
 - Dense run grids are not in the tab order. Keyboard users reach runs through one link per study in the run field caption and through the rep-number headers of each scenario's rule matrix. Every cell still has a text label for screen readers.
+
+## Landing story and motion
+
+- `src/pages/index.astro` is a scroll story. Each scene is a `[data-scene]` section; an IntersectionObserver adds `.in` once, and CSS transitions run from that class. Motion only applies under `html.motion`, which the script sets unless the visitor prefers reduced motion. Without JavaScript or with reduced motion every scene shows its final state.
+- One authored moment per scene: the user prompt types out and the agent steps appear (scene 1), the invoice total counts from the old to the new amount (2), rule chips fall into the context box while only the needed skills rise into it (3), the 660 run dots fly into the three study grids (4), the equivalence band opens, the interval draws in and the estimate lands, then the rule bars grow (5).
+- All content is real: the terminal shows the files a real no-rules run changed on S09, the skills that move are S09's expected skills, and every number comes from `lib/data.ts`.
+- Easing is `cubic-bezier(0.16, 1, 0.3, 1)` throughout; no bounce.

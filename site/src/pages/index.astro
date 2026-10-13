@@ -1,233 +1,411 @@
 ---
+// หน้าแรกแบบเรื่องเล่า 6 ฉาก พื้นมืดทั้งหน้า ขยับตามการเลื่อนจอ ทุกตัวเลขและข้อความกฎมาจากไฟล์จริง
+// ถ้าเครื่องตั้งค่าลดการเคลื่อนไหว หรือ JavaScript ไม่ทำงาน ทุกฉากแสดงสถานะสุดท้ายครบ
 import Base from '../layouts/Base.astro';
-import ThreeStudies from '../components/ThreeStudies.astro';
-import RunField from '../components/RunField.astro';
-import { studies, s3, scenarios, arms, failsByCat, pct, pts } from '../lib/data';
+import { studies, s3, scenarios, arms, pct, pts } from '../lib/data';
 
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
 const p = s3.primary;
 const d = p.decision;
-const s09 = scenarios.find((s) => s.code === 'S09')!;
+const margin = d.margin as number;
 const totalRuns = studies.reduce((s, st) => s + st.usable, 0);
-const im = failsByCat.IM;
-// อัตราในโจทย์ S09 มาจากคำสั่งจริง (20 → 25 บาท) ส่วนจำนวนชั่วโมงเป็นตัวอย่าง
+const trapped = scenarios.filter((s) => s.family !== 'ordinary').length;
+const s09 = scenarios.find((s) => s.code === 'S09')!;
 const [, rateFrom, rateTo] = (s09.prompt.match(/(\d+)\s*บาทเป็น\s*(\d+)/) ?? ['', '20', '25']).map(Number);
 const hours = 10;
-// ข้อความจริงจากไฟล์กฎ
-const a1 = arms.find((a) => a.id === 'A1')!.files[0];
-const a1Lines = a1.body.split(/\r?\n/).filter((l) => l.trim()).slice(0, 6);
-const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'impact-analysis')!;
+
+// บันทึกจริงของกลุ่มไม่มีกฎในโจทย์ S09 เลือกครั้งแรกที่พลาดกฎเรื่องผลกระทบ
+const s09runs = s3.runs.filter((r) => r.sc === s09.id && r.arm === 'A0').sort((a, b) => a.rep - b.rep);
+const imMiss = (r: (typeof s09runs)[number]) => r.rules.some((x) => /^IM/.test(x.id) && x.app && x.ok === false);
+const demo = s09runs.find(imMiss) ?? s09runs[0];
+const demoMissed = imMiss(demo);
+
+// ไฟล์กฎจริง
+const a1 = arms.find((a) => a.id === 'A1')!;
+const sections = a1.files[0].body.split(/\r?\n/).filter((l) => /^## /.test(l)).map((l) => l.replace(/^##\s*\d+\.\s*/, ''));
+const a2 = arms.find((a) => a.id === 'A2')!;
+const skills = a2.files.filter((f) => !f.always).map((f) => ({ name: f.name, needed: s09.expectedSkills.includes(f.name) }));
+const neededN = skills.filter((s) => s.needed).length;
+
+// จุดทุกครั้งที่ทำงาน ตำแหน่งเริ่มต้นแบบสุ่มแต่คงที่ทุก build
+const hash = (i: number) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
+let dotIndex = 0;
+const fieldStudies = studies.map((st) => ({
+  st,
+  cells: st.perScenario.flatMap((ps) => st.armIds.flatMap((a, ai) => ps.byArm[a].runs.map((r, ri) => {
+    const i = dotIndex++;
+    return { r, gap: ri === 0 && ai > 0, dx: Math.round((hash(i) - 0.5) * 520), dy: Math.round((hash(i + 999) - 0.5) * 420), delay: Math.round(hash(i + 7) * 650) };
+  }))),
+}));
+const shade = (v: number) => `color-mix(in oklab, #3fb3a6 ${Math.round(v * 100)}%, #d9733a)`;
+
+// แกนผลหลัก
+const lo = -0.15, hi = 0.15, AX = { x0: 20, x1: 580 };
+const X = (v: number) => AX.x0 + ((v - lo) / (hi - lo)) * (AX.x1 - AX.x0);
+const crit = (['A0', 'A1', 'A2', 'A5'] as const).map((a) => ({ a, v: s3.nums.perArm[a].CRIT as number }));
+const critName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A5: 'Skills แบบอ่านทุกครั้ง' };
 ---
-<Base title="SkillBench เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม" current="">
-  <section class="hero">
-    <div class="hero-in">
-      <div class="hero-text">
-        <h1><span class="nw">เขียนกฎให้ AI</span> <span class="nw">แบบไหน</span> <span class="nw">AI ถึงจะทำตาม</span></h1>
-        <p class="hero-lede">เราให้ AI เขียนโค้ดทำงานจริง {totalRuns} ครั้ง เพื่อหาคำตอบว่า ถ้าเขียนกฎแบบ <b>Agent Skills</b> AI จะทำตามกฎต่างจากการ<b class="nw">เขียนรวมไว้ไฟล์เดียว</b>ไหม</p>
-        <div class="hero-cta">
-          <a class="btn" href="#answer">ดูคำตอบ</a>
-          <a class="btn ghost" href={`${base}skillbench-report.pdf`}>อ่านรายงานฉบับเต็ม</a>
-        </div>
-        <p class="hero-by">ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ <span>อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด</span><span>สัมมนาระบบสารสนเทศทางธุรกิจ <span class="nw">มหาวิทยาลัยสงขลานครินทร์</span></span></p>
-      </div>
-      <div class="hero-field">
-        <RunField />
-        <p class="field-note">หนึ่งช่องคือการทำงานหนึ่งครั้ง ยิ่งเขียวยิ่งทำตามกฎได้มาก กดช่องไหนก็ได้เพื่อดูว่า AI ทำอะไรไปบ้าง</p>
-      </div>
-    </div>
-  </section>
-
-  <section id="answer" class="band">
-    <h2>คำตอบสั้น ๆ</h2>
-    <p class="answer">ใช้แบบไหนก็ได้ผล<span class="verdict">เทียบเท่า</span>กัน แต่ AI ที่<b>ไม่มีกฎ</b>พลาดบ่อยกว่ามาก</p>
-    <p class="answer-sub">ครึ่งแรกคือสิ่งที่เราทดสอบตามแผนที่ตั้งไว้ก่อนเริ่ม ครึ่งหลังเป็นสิ่งที่เราสังเกตเห็นเพิ่ม ยังไม่ได้ทดสอบยืนยัน กว่าจะได้คำตอบนี้เราทดลองสามรอบ สองรอบแรกยังสรุปไม่ได้</p>
-  </section>
-
-  <ThreeStudies n={1} />
-
-  <section id="problem" class="split">
-    <div class="split-text">
-      <h2>ทำไมต้องมีกฎ</h2>
-      <p>ลองดูโจทย์ {s09.code} ผู้ใช้สั่งว่า <q>{s09.prompt}</q> AI แก้ตัวเลขได้ถูกต้อง แต่ระบบนี้คิดใบแจ้งหนี้ใหม่ทุกครั้งที่เปิดดู ใบแจ้งหนี้ที่ส่งให้ลูกค้าไปแล้วเลยแพงขึ้นตามไปด้วย ไม่มี error ขึ้น และเทสเดิมก็ยังผ่านหมด</p>
-      <p>ปัญหาแบบนี้ไม่ได้เกิดเพราะ AI เขียนโค้ดไม่เป็น แต่เพราะมันทำเกินกว่าที่ขอโดยไม่บอกใคร ทีมพัฒนาเลยต้องเขียนกฎให้ AI เช่น แก้เฉพาะที่สั่ง ห้ามแตะไฟล์ข้อมูล และต้องเช็กผลกระทบก่อนแก้ส่วนที่คิดเงิน</p>
-      <p><a href={`${base}scenarios/${s09.id}/`}>ดูว่าแต่ละกลุ่มทำโจทย์นี้ได้แค่ไหน</a></p>
-    </div>
-    <figure class="invoices">
-      <div class="inv">
-        <p class="inv-h">ใบแจ้งหนี้เดือนที่แล้ว <span>ส่งให้ลูกค้าแล้ว</span></p>
-        <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd>{rateFrom} บาท/ชม.</dd></dl>
-        <p class="inv-t">ยอดรวม <b>{hours * rateFrom} บาท</b></p>
-      </div>
-      <div class="inv changed">
-        <p class="inv-h">ใบเดิม หลัง AI แก้อัตรา <span>ไม่มีใครรู้</span></p>
-        <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd><b>{rateTo} บาท/ชม.</b></dd></dl>
-        <p class="inv-t">ยอดรวม <b>{hours * rateTo} บาท</b></p>
-      </div>
-      <figcaption><b>รูปที่ 2</b> อัตรา {rateFrom} เป็น {rateTo} บาทมาจากโจทย์จริง ส่วนจำนวนชั่วโมงเป็นตัวอย่าง</figcaption>
-    </figure>
-  </section>
-
-  <section id="two-ways" class="wide">
-    <h2>กฎชุดเดียวกัน เขียนได้สองแบบ</h2>
-    <p class="col">กฎทั้งสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่งให้ AI แบบแรก AI อ่านกฎทั้งหมดตั้งแต่เริ่มงาน แบบที่สอง AI เห็นแค่หัวข้อ แล้วค่อยเปิดอ่านเฉพาะเรื่องที่เกี่ยวกับงานตรงหน้า ด้านล่างคือไฟล์จริงที่เราใช้</p>
-    <div class="files">
-      <figure class="file">
-        <p class="file-h"><span class="mono">{a1.path}</span><span class="load always">อ่านทุกครั้งที่เริ่มงาน</span></p>
-        <div class="file-b">{a1Lines.map((l) => <p class={l.startsWith('#') ? 'fh' : ''}>{l.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</p>)}<p class="more">ไฟล์นี้มีกฎครบทุกข้อ ยาว {a1.body.length.toLocaleString('en-US')} ตัวอักษร</p></div>
-        <figcaption><b>ไฟล์เดียว</b> เขียนง่าย ดูแลง่าย แต่ AI ต้องอ่านกฎทุกข้อ แม้ข้อที่ไม่เกี่ยวกับงาน</figcaption>
-      </figure>
-      <figure class="file">
-        <p class="file-h"><span class="mono">{skill.path}</span><span class="load ondemand">เปิดเมื่องานเกี่ยว</span></p>
-        <div class="file-b"><p class="fh">คำอธิบายที่ AI เห็นตอนเริ่มงาน</p><p>{skill.description}</p><p class="more">ถ้างานตรงกับคำอธิบายนี้ AI จะเปิดอ่านเนื้อหาเต็มอีก {skill.body.length.toLocaleString('en-US')} ตัวอักษร</p></div>
-        <figcaption><b>Agent Skills</b> แยกกฎเป็นชุดย่อย ๆ ไอเดียคือถ้ากฎที่ไม่เกี่ยวไม่มากวน AI น่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ</figcaption>
-      </figure>
-    </div>
-    <p class="col links-row"><a href={`${base}background/`}>Context Engineering กับ Agent Skills คืออะไร และมาจากไหน</a> <a href={`${base}arms/`}>ดูไฟล์กฎฉบับเต็มของทุกกลุ่ม</a></p>
-  </section>
-
-  <section id="final" class="col">
-    <h2>สิ่งที่เราพบ</h2>
-    <ol class="finds">
-      <li><b>ใช้แบบไหนก็ได้</b> ในการทดลองรอบสุดท้าย Skills ได้คะแนน {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน {pts(p.diff)} จุด ซึ่งอยู่ในเกณฑ์ ±{(d.margin * 100).toFixed(1)} จุดที่เราตั้งไว้ก่อนเริ่ม และเพราะไฟล์เดียวได้คะแนนสูงอยู่แล้ว สิ่งที่มั่นใจได้จริง ๆ คือ Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</li>
-      <li><b>แต่ต้องมีกฎ</b> AI ที่ไม่มีกฎทำตามกฎสำคัญได้ครบแค่ {pct(s3.nums.perArm.A0.CRIT)}% ของครั้ง ส่วนกลุ่มที่มีกฎทำได้ {pct(s3.nums.perArm.A1.CRIT)} ถึง {pct(s3.nums.perArm.A5.CRIT)}% และในโจทย์ที่ต้องเช็กผลกระทบต่อใบแจ้งหนี้เก่า AI ที่ไม่มีกฎไม่เช็กหรือไม่บอก {im.A0.fail} จาก {im.A0.app} ครั้ง (ข้อนี้เราสังเกตเพิ่ม ยังไม่ได้ทดสอบยืนยัน)</li>
-      <li><b>ถ้าใช้ Skills ให้เขียนคำอธิบายดี ๆ</b> AI เปิด skill เฉลี่ย {s3.nums.manipulation.A2.skillsLoadedPerRun.toFixed(1)} จาก 4 ชุดต่องาน บางชุดถูกเปิดเกินจำเป็น บางชุดไม่ถูกเปิดตอนที่ควรเปิด และควรปล่อยให้ AI ถามได้เมื่อเจอข้อกำหนดที่ไม่ชัด</li>
-    </ol>
-  </section>
-
-  <section id="studies" class="wide">
-    <h2>ทำไมต้องทดลองสามรอบ</h2>
-    <p class="col">ทุกรอบใช้ Claude Code กับโมเดล <span class="mono">{s3.model}</span> บนระบบจองเครื่อง GPU ที่เราสร้างขึ้นเอง แต่ละรอบทำให้เราเจอจุดที่เครื่องมือวัดยังไม่ดี แล้วแก้ในรอบถัดไป</p>
-    <ol class="timeline">
-      {studies.map((st) => (
-        <li class={st.n === 3 ? 'last' : ''}>
-          <div class="tl-n">ชุดที่ {st.n}<small>{st.verdict}</small></div>
-          <div class="tl-body">
-            <h3><a href={`${base}study-${st.n}/`}>{st.role}</a></h3>
-            <p>{st.summary}</p>
-            {st.changed && <p class="tl-next">{st.changed}</p>}
-            <p class="small"><a href={`${base}study-${st.n}/`}>อ่านเรื่องของชุดที่ {st.n}</a></p>
+<Base title="SkillBench เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม" current="" theme="story">
+  <div class="story">
+    <section class="scene s1 in" data-scene id="top">
+      <div class="s1-in">
+        <div class="s1-text">
+          <h1 class="title"><span class="nw">เขียนกฎให้ AI</span> <span class="nw">แบบไหน</span> <span class="nw accent">AI ถึงจะทำตาม</span></h1>
+          <p class="lead">เราให้ AI เขียนโค้ดทำงานจริง <b>{totalRuns} ครั้ง</b> เพื่อหาคำตอบว่า กฎชุดเดียวกัน ถ้าส่งเป็น <b>Agent Skills</b> กับ<b class="nw">ไฟล์เดียว</b> AI จะทำตามต่างกันไหม</p>
+          <div class="cta">
+            <a class="btn" href="#problem">เลื่อนดูเรื่องทั้งหมด</a>
+            <a class="btn ghost" href={`${base}overview/`}>ข้ามไปสำรวจ</a>
           </div>
-        </li>
-      ))}
-    </ol>
-  </section>
+          <p class="byline">งานสัมมนา 477-401 สัมมนาระบบสารสนเทศทางธุรกิจ มหาวิทยาลัยสงขลานครินทร์<span>ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด</span></p>
+        </div>
+        <figure class="term" aria-label="บันทึกการทำงานจริงของ AI ในโจทย์ S09">
+          <p class="term-bar"><i></i><i></i><i></i><span>Claude Code</span></p>
+          <div class="term-body">
+            <p class="t-line user"><span class="t-tag">ผู้ใช้</span><span class="type" data-text={s09.prompt}>{s09.prompt}</span></p>
+            <p class="t-line step" style="--i:0"><span class="t-tag">AI</span>อ่านข้อกำหนดและโค้ดที่เกี่ยวข้อง</p>
+            {demo.files.map((f, i) => <p class="t-line step" style={`--i:${i + 1}`}><span class="t-tag">แก้</span><span class="mono">{f}</span></p>)}
+            {demo.done && <p class="t-line step ok" style={`--i:${demo.files.length + 1}`}><span class="t-tag">ผล</span>งานเสร็จ เทสผ่าน</p>}
+            {demoMissed && <p class="t-line step warn" style={`--i:${demo.files.length + 2}`}><span class="t-tag">แต่</span>ไม่ได้เช็กและไม่ได้บอกว่าใบแจ้งหนี้เก่าเปลี่ยน</p>}
+          </div>
+          <figcaption>บันทึกจริงของ AI กลุ่มไม่มีกฎ โจทย์ S09 รอบที่ {demo.rep + 1} ย่อเหลือเฉพาะขั้นสำคัญ</figcaption>
+        </figure>
+      </div>
+      <a class="cue" href="#problem" aria-label="เลื่อนลง"><span></span></a>
+    </section>
 
-  <section id="explore" class="wide">
-    <h2>อยากดูเพิ่ม</h2>
-    <p class="report-dl"><a href={`${base}skillbench-report.pdf`}>อ่านรายงานฉบับเต็ม</a> <span>PDF ภาษาไทย ขนาด 1.9 MB มีวิธีวิจัย ผล และข้อจำกัดครบทั้งสามรอบ</span></p>
-    <div class="explore">
-      <a href={`${base}runs/`}><b>การทำงานทั้ง {totalRuns} ครั้ง</b><span>ดูทีละครั้งว่า AI แก้ไฟล์ไหน เปิด skill อะไร และผ่านกฎข้อไหน</span></a>
-      <a href={`${base}scenarios/`}><b>โจทย์ {scenarios.length} ข้อ</b><span>คำสั่ง กับดัก และผลของแต่ละกลุ่ม</span></a>
-      <a href={`${base}arms/`}><b>กลุ่มทดลองและไฟล์กฎ</b><span>แต่ละกลุ่มได้อะไร และข้อความกฎเต็ม ๆ</span></a>
-      <a href={`${base}method/`}><b>เราวัดยังไง</b><span>หนึ่งครั้งที่ AI ทำงานมีขั้นตอนอะไร และให้คะแนนแบบไหน</span></a>
-      <a href={`${base}protocol/`}><b>แผนที่ตั้งไว้ก่อนเริ่ม</b><span>แผนทั้งสามรอบ และสิ่งที่ไม่เป็นไปตามแผน</span></a>
-      <a href="https://github.com/Teerapab149/skillbench"><b>โค้ดและข้อมูลดิบ</b><span>ทุกอย่างอยู่บน GitHub</span></a>
-    </div>
-  </section>
+    <section class="scene s2" data-scene id="problem">
+      <div class="wrap two">
+        <div class="copy">
+          <h2>แก้ถูก แต่ใบแจ้งหนี้เดือนที่แล้วแพงขึ้นเอง</h2>
+          <p>ระบบนี้คิดใบแจ้งหนี้ใหม่ทุกครั้งที่เปิดดู พอ AI แก้อัตราค่าบริการ ใบที่ส่งให้ลูกค้าไปแล้วก็เปลี่ยนตาม ไม่มี error ขึ้น เทสเดิมก็ยังผ่านหมด</p>
+          <p>ปัญหาไม่ได้อยู่ที่ AI เขียนโค้ดไม่เป็น แต่อยู่ที่มัน<b>ทำเกินที่ขอโดยไม่บอกใคร</b> ทีมพัฒนาเลยต้องเขียนกฎให้ AI</p>
+        </div>
+        <figure class="inv-stage">
+          <div class="inv">
+            <p class="inv-h">ใบแจ้งหนี้เดือนที่แล้ว <span>ส่งให้ลูกค้าแล้ว</span></p>
+            <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd>{rateFrom} บาท/ชม.</dd></dl>
+            <p class="inv-t">ยอดรวม <b>{hours * rateFrom} บาท</b></p>
+          </div>
+          <div class="inv after">
+            <p class="inv-h">ใบเดิม หลัง AI แก้อัตรา <span class="stamp">ไม่มีใครรู้</span></p>
+            <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd><b>{rateTo} บาท/ชม.</b></dd></dl>
+            <p class="inv-t">ยอดรวม <b><span class="count" data-from={hours * rateFrom} data-to={hours * rateTo}>{hours * rateTo}</span> บาท</b></p>
+          </div>
+          <figcaption>อัตรา {rateFrom} เป็น {rateTo} บาทมาจากโจทย์จริง ส่วนจำนวนชั่วโมงเป็นตัวอย่าง</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="scene s3" data-scene id="two-ways">
+      <div class="wrap">
+        <h2>กฎชุดเดียวกัน ส่งให้ AI ได้สองแบบ</h2>
+        <p class="sub">กล่องคือสิ่งที่ AI เห็นตอนเริ่มทำโจทย์ใบแจ้งหนี้ข้อเดิม กฎในสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่ง</p>
+        <div class="ways">
+          <div class="way">
+            <h3>ไฟล์เดียว</h3>
+            <div class="ctx">
+              <p class="ctx-h">สิ่งที่ AI เห็นตอนเริ่มงาน</p>
+              <div class="chips">{sections.map((t, i) => <span class="chip all" style={`--i:${i}`}>{t}</span>)}</div>
+            </div>
+            <p class="note">ทั้ง {sections.length} หมวดเข้าไปตั้งแต่เริ่ม แม้หมวดที่ไม่เกี่ยวกับงานนี้</p>
+          </div>
+          <div class="way">
+            <h3>Agent Skills</h3>
+            <div class="ctx">
+              <p class="ctx-h">สิ่งที่ AI เห็นตอนเริ่มงาน</p>
+              <div class="chips">
+                <span class="chip base">กฎพื้นฐานไม่กี่ข้อ</span>
+                <span class="chip desc">ชื่อและคำอธิบายของ skill {skills.length} ชุด</span>
+                {skills.filter((s) => s.needed).map((s, i) => <span class="chip open mono" style={`--i:${i}`}>{s.name}</span>)}
+              </div>
+            </div>
+            <div class="shelf">{skills.map((s, i) => <span class={`card mono ${s.needed ? 'need' : 'skip'}`} style={`--i:${i}`}>{s.name}</span>)}</div>
+            <p class="note">โจทย์นี้ควรเปิด {neededN} จาก {skills.length} ชุด ชุดที่ไม่เกี่ยวไม่ต้องเข้ามากวน</p>
+          </div>
+        </div>
+        <p class="sub small">ไอเดียของ Skills คือกฎที่ไม่เกี่ยวไม่ควรมากวน AI ฟังดูดี แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ <a href={`${base}background/`}>อ่านว่าสองแบบนี้มาจากไหน</a></p>
+      </div>
+    </section>
+
+    <section class="scene s4" data-scene id="experiment">
+      <div class="wrap">
+        <h2>เราเลยลองวัดดู {totalRuns} ครั้ง</h2>
+        <p class="sub">โจทย์ {scenarios.length} ข้อ {trapped} ข้อซ่อนกับดัก ให้ AI ตัวเดียวกันทำทุกกลุ่มทุกรอบ ทดลองสามชุด แล้วให้โปรแกรมตรวจทีละกฎ ไม่มีคนหรือ AI ตัวอื่นให้คะแนน</p>
+        <div class="field" aria-label={`การทำงานทั้ง ${totalRuns} ครั้งของการทดลองสามชุด`}>
+          {fieldStudies.map(({ st, cells }) => (
+            <figure class="blk">
+              <figcaption><a href={`${base}study-${st.n}/`}><b>ชุดที่ {st.n}</b></a><span>{st.usable} ครั้ง</span></figcaption>
+              <div class="grid" aria-hidden="true" style={`--cols:${st.armIds.length * st.reps}`}>
+                {cells.map((c) => <i class={`d ${c.gap ? 'gap' : ''}`} style={`background:${shade(c.r.score)};--dx:${c.dx}px;--dy:${c.dy}px;--dl:${c.delay}ms`}></i>)}
+              </div>
+            </figure>
+          ))}
+        </div>
+        <p class="legend"><i class="lg hi"></i>ทำตามกฎได้ครบ <i class="lg lo"></i>พลาด หนึ่งจุดคือการทำงานหนึ่งครั้ง <a href={`${base}runs/`}>กดดูทีละครั้ง</a></p>
+      </div>
+    </section>
+
+    <section class="scene s5" data-scene id="answer">
+      <div class="wrap">
+        <h2 class="big">ใช้แบบไหนก็ได้ผล<span class="eq">เทียบเท่า</span>กัน</h2>
+        <figure class="axis">
+          <svg viewBox="0 0 600 150" role="img" aria-label={`Skills ได้ ${pct(p.rateA)}% ไฟล์เดียว ${pct(p.rateB)}% ต่างกัน ${pts(p.diff)} จุด อยู่ในเกณฑ์ ±${(margin * 100).toFixed(1)} จุด`}>
+            <rect class="band" x={X(-margin)} y="34" width={X(margin) - X(-margin)} height="56" />
+            <text class="band-t" x={X(0)} y="24" text-anchor="middle">เกณฑ์ ±{(margin * 100).toFixed(1)} จุดที่ตั้งไว้ก่อนเริ่ม</text>
+            <line x1={X(0)} x2={X(0)} y1="34" y2="90" class="zero" />
+            <line class="ci" x1={X(d.ci90[0])} x2={X(d.ci90[1])} y1="62" y2="62" pathLength="1" />
+            <circle class="pt" cx={X(p.diff)} cy="62" r="9" />
+            {[-15, -10, -5, 0, 5, 10, 15].map((t) => <text class="tick" x={X(t / 100)} y="116" text-anchor="middle">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>)}
+            <text class="dir" x={AX.x0} y="142">ไฟล์เดียวดีกว่า</text>
+            <text class="dir" x={AX.x1} y="142" text-anchor="end">Skills ดีกว่า</text>
+          </svg>
+          <figcaption>Skills ได้ {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน <b>{pts(p.diff)} จุด</b> เส้นคือช่วงที่ค่าจริงน่าจะอยู่ ซึ่งอยู่ในแถบเกณฑ์ทั้งเส้น เทียบเท่าไม่ได้แปลว่าเหมือนกัน แต่มั่นใจได้ว่า Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</figcaption>
+        </figure>
+
+        <div class="rules-block" data-scene>
+        <h2 class="big but">แต่<span class="must">ต้องมีกฎ</span></h2>
+        <div class="bars" role="img" aria-label="สัดส่วนครั้งที่ทำตามกฎสำคัญครบทุกข้อของแต่ละกลุ่ม">
+          {crit.map(({ a, v }, i) => (
+            <div class={`bar-row ${a === 'A0' ? 'none' : ''}`} style={`--i:${i}`}>
+              <span class="bar-l">{critName[a]}</span>
+              <span class="bar-t"><i style={`--w:${v * 100}%`}></i></span>
+              <b class="bar-v">{pct(v)}%</b>
+            </div>
+          ))}
+        </div>
+        <p class="sub small">สัดส่วนครั้งที่ AI ทำตามกฎสำคัญครบทุกข้อ ในการทดลองชุดที่ 3 ข้อนี้เป็นข้อสังเกตเพิ่ม ยังไม่ได้ทดสอบยืนยัน</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="scene s6" data-scene id="explore">
+      <div class="wrap">
+        <h2 class="big">อยากรู้มากกว่านี้</h2>
+        <p class="sub">ทุกตัวเลขในเว็บนี้ดึงจากไฟล์ผลการทดลองโดยตรง กดเข้าไปดูได้ถึงการทำงานทีละครั้ง</p>
+        <a class="btn xl" href={`${base}overview/`}>สำรวจทั้งหมด</a>
+        <nav class="go" aria-label="ไปต่อ">
+          <a href={`${base}study-3/`}><b>ผลรอบสุดท้าย</b><span>ตัวเลขเต็มของชุดที่ 3 และสิ่งที่เราเห็นเพิ่ม</span></a>
+          <a href={`${base}background/`}><b>เรื่องพื้นฐาน</b><span>Context Engineering กับ Agent Skills คืออะไร มาจากไหน</span></a>
+          <a href={`${base}arms/`}><b>กลุ่มและกฎ</b><span>ไฟล์กฎจริงที่ AI แต่ละกลุ่มได้</span></a>
+          <a href={`${base}scenarios/`}><b>โจทย์ {scenarios.length} ข้อ</b><span>คำสั่ง กับดัก และผลของแต่ละกลุ่ม</span></a>
+          <a href={`${base}runs/`}><b>ทุกครั้งที่ทำงาน</b><span>{totalRuns} ครั้ง ดูได้ว่า AI ทำอะไรไปบ้าง</span></a>
+          <a href={`${base}skillbench-report.pdf`}><b>รายงานฉบับเต็ม</b><span>PDF ภาษาไทย</span></a>
+        </nav>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const root = document.documentElement;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduce) {
+      root.classList.add('motion');
+      // พิมพ์คำสั่งของผู้ใช้ทีละตัวอักษร ตัดตามกลุ่มตัวอักษรไทยไม่ให้สระลอย
+      const type = document.querySelector<HTMLElement>('.type');
+      if (type) {
+        const text = type.dataset.text ?? '';
+        const seg = 'Segmenter' in Intl ? [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(text)].map((s) => s.segment) : [...text];
+        type.textContent = '';
+        let n = 0;
+        const tick = () => { n++; type.textContent = seg.slice(0, n).join(''); if (n < seg.length) setTimeout(tick, 34); else type.closest('.term')?.classList.add('typed'); };
+        setTimeout(tick, 500);
+      }
+      // นับยอดใบแจ้งหนี้เมื่อฉากเข้าจอ
+      const runCount = (el: HTMLElement) => {
+        const from = Number(el.dataset.from), to = Number(el.dataset.to), t0 = performance.now(), dur = 1400;
+        el.textContent = String(from);
+        const step = (t: number) => { const k = Math.min(1, (t - t0 - 500) / dur); const e = k <= 0 ? 0 : 1 - Math.pow(1 - k, 3); el.textContent = String(Math.round(from + (to - from) * e)); if (k < 1) requestAnimationFrame(step); };
+        requestAnimationFrame(step);
+      };
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add('in');
+          e.target.querySelectorAll<HTMLElement>('.count').forEach(runCount);
+          io.unobserve(e.target);
+        }
+      }, { threshold: 0.28 });
+      document.querySelectorAll('[data-scene]:not(.s1)').forEach((s) => io.observe(s));
+      document.querySelectorAll<HTMLElement>('.count').forEach((el) => { el.textContent = el.dataset.from ?? ''; });
+    } else {
+      document.querySelectorAll('[data-scene]').forEach((s) => s.classList.add('in'));
+    }
+  </script>
 </Base>
 <style>
-  /* ---------- hero เต็มจอ พื้นหมึก ---------- */
-  .hero { margin-inline: calc(50% - 50vw); background: #121722; color: #e8eaee; padding: clamp(3rem, 7vw, 6rem) 1.25rem clamp(3rem, 6vw, 5rem); }
-  .hero-in { max-width: var(--wide); margin: 0 auto; display: grid; gap: 3rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
-  @media (min-width: 1100px) { .hero-in { grid-template-columns: minmax(34rem, 1fr) auto; } .hero h1 { font-size: clamp(2.4rem, 3.3vw, 3.6rem); } }
-  .hero h1 { color: #fff; font-size: clamp(2rem, 7vw, 4.4rem); line-height: 1.25; }
+  /* โลกของหน้า: ห้องมืดของคนดูจอ ตัวอักษรขาวนวล เขียวหัวเป็ดคือผลหลัก ส้มอิฐคือสิ่งที่พลาด */
+  .story { --bg: #0e131c; --bg2: #141b27; --fg: #ecedf0; --fg2: #b4bccb; --fg3: #8b95a7; --line: #2a3344; --teal-l: #3fb3a6; --brick-l: #e0874f; margin-inline: calc(50% - 50vw); background: var(--bg); color: var(--fg); overflow: hidden; }
+  .story ::selection { background: var(--teal-l); color: #0e131c; }
+  .scene { position: relative; min-height: 100svh; display: flex; align-items: center; padding: clamp(4rem, 9vw, 7rem) 1.25rem; border-top: 1px solid var(--line); }
+  .s1 { border-top: 0; padding-top: clamp(2.5rem, 6vw, 4rem); }
+  .wrap { width: 100%; max-width: var(--wide); margin: 0 auto; }
+  .story h2 { color: var(--fg); font-size: clamp(1.8rem, 5vw, 3.1rem); line-height: 1.3; margin: 0 0 1.25rem; max-width: 22ch; }
+  .story h3 { color: var(--fg); font-size: 1.3rem; margin: 0 0 0.8rem; }
+  .story p { color: var(--fg2); }
+  .story b { color: var(--fg); font-weight: 600; }
+  .story a { color: var(--teal-l); text-underline-offset: 3px; }
+  .sub { font-size: clamp(1.05rem, 2vw, 1.2rem); line-height: 1.8; max-width: 44rem; }
+  .small { font-size: 0.98rem; }
   .nw { white-space: nowrap; }
-  .hero-lede { font-size: clamp(1.1rem, 2vw, 1.35rem); line-height: 1.75; color: #b9c0cc; margin-top: 1.5rem; max-width: 34rem; }
-  .hero-lede b { color: #fff; font-weight: 600; }
-  .hero-cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0; }
-  .btn { display: inline-block; padding: 0.65rem 1.4rem; background: #3fb3a6; color: #0d1118; font-weight: 600; text-decoration: none; border-radius: 3px; transition: background 0.2s; }
-  .btn:hover { background: #5cc8bb; }
-  .btn.ghost { background: transparent; color: #e8eaee; box-shadow: inset 0 0 0 1px #4a5366; }
-  .btn.ghost:hover { box-shadow: inset 0 0 0 1px #e8eaee; }
-  .hero-by { font-size: 0.95rem; color: #e8eaee; line-height: 1.7; }
-  .hero-by span { display: block; color: #8a93a4; }
-  .field-note { font-size: 0.88rem; color: #8a93a4; margin-top: 1.25rem; max-width: 30rem; }
-  .hero :global(a:focus-visible) { outline-color: #3fb3a6; }
+  .mono { font-family: var(--mono); }
 
-  .facts-line { border-bottom: 1px solid var(--rule); padding: 1.5rem 0; }
-  .facts-line p { margin: 0; font-size: 1.1rem; color: var(--ink-2); line-height: 1.9; }
-  .facts-line b { font-family: var(--serif); font-size: 1.9rem; color: var(--ink); margin: 0 0.15rem 0 0.6rem; }
-  .facts-line b:first-child { margin-left: 0; }
+  .btn { display: inline-block; padding: 0.8rem 1.5rem; background: var(--teal-l); color: #0b1016 !important; font-weight: 600; text-decoration: none; border-radius: 3px; transition: background 0.2s, transform 0.2s; }
+  .btn:hover { background: #5fcabd; }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: transparent; color: var(--fg) !important; box-shadow: inset 0 0 0 1px #4a5568; }
+  .btn.ghost:hover { box-shadow: inset 0 0 0 1px var(--fg); }
+  .story a:focus-visible { outline: 2px solid var(--teal-l); outline-offset: 3px; }
 
-  /* ---------- คำตอบ และตารางผลที่เป็นไปได้ ---------- */
-  .band { padding: 4rem 0 1rem; }
-  .band h2 { margin-top: 0; }
-  .answer { font-family: var(--serif); font-size: clamp(1.5rem, 3.2vw, 2.25rem); line-height: 1.55; font-weight: 500; max-width: 46rem; }
-  .answer-sub { color: var(--ink-2); max-width: 44rem; margin-top: 1rem; }
-  .vm { margin-top: 2rem; border-top: 2px solid var(--ink); max-width: 56rem; }
-  .vm-row { display: grid; grid-template-columns: 10rem repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--rule); text-decoration: none; color: var(--ink); }
-  a.vm-row:hover { background: var(--paper-2); }
-  .vm-row.head span { font-size: 0.92rem; color: var(--ink-3); padding: 0.6rem 0.75rem; }
-  .vm-st { padding: 0.9rem 0.75rem; display: flex; flex-direction: column; }
-  .vm-st b { font-family: var(--serif); }
-  .vm-st small { color: var(--ink-3); }
-  .vm-c { display: flex; flex-direction: column; justify-content: center; padding: 0.9rem 0.75rem; border-left: 1px solid var(--rule); }
-  .vm-c i { width: 1.1rem; height: 1.1rem; border: 1.5px dashed var(--rule); border-radius: 50%; }
-  .vm-c.hit { background: var(--paper-2); }
-  .vm-c.hit b { font-family: var(--serif); font-size: 1.15rem; }
-  .vm-c.hit small { color: var(--ink-3); }
-  .vm-c.ok { background: var(--teal-wash); box-shadow: inset 0 0 0 2px var(--teal); }
-  .vm-c.ok b { color: var(--teal); }
-  @media (max-width: 640px) { .vm-row { grid-template-columns: 4.6rem repeat(3, minmax(0, 1fr)); font-size: 0.9rem; } .vm-st small { display: none; } .vm-c { padding: 0.8rem 0.4rem; } .vm-c small { display: none; } .vm-c.hit b { font-size: 0.95rem; white-space: nowrap; } .vm-row.head span { padding: 0.5rem 0.4rem; font-size: 0.8rem; } }
+  .s1-in { width: 100%; max-width: var(--wide); margin: 0 auto; display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
+  @media (min-width: 1000px) { .s1-in { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 4rem; } }
+  .title { color: #fff; font-size: clamp(2.3rem, 7.5vw, 4.6rem); line-height: 1.22; margin: 0; letter-spacing: -0.01em; }
+  .title .accent { color: var(--teal-l); }
+  .lead { font-size: clamp(1.1rem, 2.2vw, 1.35rem); line-height: 1.75; margin-top: 1.5rem; max-width: 34rem; }
+  .cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0 1.75rem; }
+  .byline { font-size: 0.92rem; line-height: 1.7; color: var(--fg) !important; }
+  .byline span { display: block; color: var(--fg3); }
+  .term { margin: 0; background: #0a0e15; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7); overflow: hidden; }
+  .term-bar { display: flex; align-items: center; gap: 0.4rem; margin: 0; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--line); font-size: 0.82rem; color: var(--fg3) !important; }
+  .term-bar i { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: #2c3546; }
+  .term-bar span { margin-left: 0.5rem; font-family: var(--mono); }
+  .term-body { padding: 1.1rem 1.1rem 1.25rem; display: grid; gap: 0.55rem; align-content: start; min-height: 15rem; }
+  .t-line { margin: 0; display: grid; grid-template-columns: 3.2rem 1fr; gap: 0.6rem; font-size: 0.95rem; line-height: 1.6; overflow-wrap: anywhere; }
+  .t-tag { font-size: 0.78rem; color: var(--fg3); padding-top: 0.15rem; }
+  .story .t-line.user { color: #fff; font-size: 1.02rem; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--line); }
+  .t-line.user .t-tag { color: var(--teal-l); }
+  .story .t-line.ok { color: #9fe0d6; }
+  .story .t-line.warn { color: var(--brick-l); font-weight: 600; }
+  .t-line.warn .t-tag { color: var(--brick-l); }
+  .term figcaption { font-size: 0.82rem; color: var(--fg3); padding: 0 1.1rem 0.9rem; }
+  .cue { position: absolute; left: 50%; bottom: 1.25rem; width: 1.6rem; height: 2.6rem; margin-left: -0.8rem; border: 1.5px solid #4a5568; border-radius: 1rem; }
+  .cue span { position: absolute; left: 50%; top: 0.5rem; width: 3px; height: 0.55rem; margin-left: -1.5px; background: var(--fg2); border-radius: 2px; }
+  @media (max-width: 999px) { .cue { display: none; } }
 
-  /* ---------- ปัญหา ---------- */
-  .split { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; margin-top: 2rem; }
-  @media (min-width: 980px) { .split { grid-template-columns: minmax(0, 1fr) 26rem; } }
-  q { quotes: '“' '”'; color: var(--ink); }
-  .invoices { margin: 0; display: grid; gap: 1rem; }
-  .inv { background: #fff; border: 1px solid var(--rule); padding: 1.1rem 1.4rem; box-shadow: 0 1px 2px rgba(22, 27, 38, 0.05), 0 10px 30px -18px rgba(22, 27, 38, 0.25); }
-  .inv.changed { border-color: var(--brick); transform: translateX(1.5rem); }
-  .inv-h { font-family: var(--serif); font-weight: 600; margin: 0 0 0.5rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-  .inv-h span { font-family: var(--sans); font-weight: 400; font-size: 0.85rem; color: var(--ink-3); }
-  .changed .inv-h span { color: var(--brick); font-weight: 600; }
-  .inv dl { display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 1rem; margin: 0; border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; }
+  .two { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
+  @media (min-width: 980px) { .two { grid-template-columns: minmax(0, 1fr) 27rem; gap: 4rem; } }
+  .copy p { font-size: clamp(1.05rem, 2vw, 1.2rem); line-height: 1.8; max-width: 36rem; }
+  .inv-stage { margin: 0; display: grid; gap: 1rem; }
+  .inv { background: #f7f6f2; color: #161b26; padding: 1.1rem 1.4rem; border-radius: 3px; box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.8); }
+  .inv.after { box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.8), 0 0 0 2px var(--brick-l); transform: translateX(1.5rem); }
+  .story .inv-h { font-family: var(--serif); font-weight: 600; margin: 0 0 0.5rem; color: #161b26; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .inv-h span { font-family: var(--sans); font-weight: 400; font-size: 0.85rem; color: #6a7180; }
+  .inv-h .stamp { color: #b4561c; font-weight: 700; border: 2px solid #b4561c; padding: 0 0.5rem; border-radius: 3px; transform: rotate(-4deg); }
+  .inv dl { display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 1rem; margin: 0; padding-bottom: 0.5rem; border-bottom: 1px solid #d6d8dd; }
   .inv dd { margin: 0; text-align: right; }
-  .changed dd b { color: var(--brick); }
-  .inv-t { margin: 0.5rem 0 0; display: flex; justify-content: space-between; }
-  .inv-t b { font-family: var(--serif); font-size: 1.5rem; }
-  .changed .inv-t b { color: var(--brick); }
-  @media (max-width: 640px) { .inv.changed { transform: none; } }
+  .story .inv b { color: inherit; }
+  .story .after dd b { color: #b4561c; }
+  .story .inv-t { margin: 0.5rem 0 0; display: flex; justify-content: space-between; color: #161b26; }
+  .inv-t b { font-family: var(--serif); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+  .story .after .inv-t b { color: #b4561c; }
+  .inv-stage figcaption { font-size: 0.85rem; color: var(--fg3); }
+  @media (max-width: 640px) { .inv.after { transform: none; } }
 
-  /* ---------- สองวิธี ---------- */
-  .files { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); margin: 1.5rem 0; }
-  @media (min-width: 900px) { .files { grid-template-columns: 1fr 1fr; } }
-  .file { margin: 0; }
-  .file-h { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.88rem; margin: 0; padding: 0.6rem 1rem; background: #fff; border: 1px solid var(--rule); border-bottom: 0; overflow-wrap: anywhere; }
-  .file-b { background: #fff; border: 1px solid var(--rule); padding: 1rem 1.25rem; min-height: 15rem; }
-  .file-b p { margin: 0 0 0.35rem; font-size: 0.98rem; line-height: 1.6; }
-  .file-b .fh { font-family: var(--serif); font-weight: 600; margin-top: 0.4rem; }
-  .file-b .more { color: var(--ink-3); font-size: 0.9rem; margin-top: 0.8rem; border-top: 1px dashed var(--rule); padding-top: 0.6rem; }
+  .ways { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); margin: 2rem 0 1.5rem; }
+  @media (min-width: 900px) { .ways { grid-template-columns: 1fr 1fr; gap: 3rem; } }
+  .ctx { border: 1.5px solid #3a4558; border-radius: 6px; padding: 0.9rem; min-height: 13rem; background: var(--bg2); }
+  .story .ctx-h { font-size: 0.82rem; color: var(--fg3); margin: 0 0 0.6rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .chip { font-size: 0.88rem; padding: 0.3rem 0.6rem; border-radius: 3px; line-height: 1.4; }
+  .chip.all { background: #2f4f86; color: #fff; }
+  .chip.base { background: #0b6e69; color: #fff; }
+  .chip.desc { border: 1px dashed var(--teal-l); color: #9fe0d6; }
+  .chip.open { background: var(--teal-l); color: #0b1016; font-size: 0.8rem; }
+  .shelf { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; }
+  .card { font-size: 0.8rem; padding: 0.3rem 0.6rem; border-radius: 3px; border: 1px solid #3a4558; color: var(--fg3); }
+  .card.need { border-color: var(--teal-l); color: #9fe0d6; }
+  .note { font-size: 0.95rem; margin-top: 0.75rem; }
 
-  /* ---------- เส้นเวลา ---------- */
-  .timeline { list-style: none; padding: 0; margin: 2rem 0 0; }
-  .timeline li { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 1.5rem; padding: 1.75rem 0; border-top: 1px solid var(--rule); }
-  .timeline li:first-child { border-top: 2px solid var(--ink); }
-  .timeline li.last { border-bottom: 2px solid var(--ink); }
-  .tl-n { font-family: var(--serif); font-weight: 700; font-size: 1.5rem; color: var(--ink-3); }
-  .last .tl-n { color: var(--teal); }
-  .tl-body { max-width: var(--measure); }
-  .tl-body h3 { margin-top: 0; font-size: 1.35rem; }
-  .tl-body h3 a { color: var(--ink); text-decoration: none; }
-  .tl-body h3 a:hover { color: var(--teal); }
-  .tl-body dl { display: grid; grid-template-columns: 7rem 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 1rem; }
-  .tl-body dt { color: var(--ink-3); }
-  .tl-body dd { margin: 0; }
-  .tl-next { color: var(--ink-2); }
-  @media (max-width: 640px) { .timeline li { grid-template-columns: 1fr; gap: 0.25rem; } }
+  .field { display: flex; flex-wrap: wrap; gap: 1.5rem 2rem; align-items: flex-end; margin: 2.25rem 0 1.25rem; }
+  .blk { margin: 0; }
+  .blk figcaption { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.88rem; color: var(--fg3); margin-bottom: 0.45rem; }
+  .story .blk figcaption a { color: var(--fg); text-decoration: none; }
+  .blk figcaption b { font-family: var(--serif); }
+  .grid { display: grid; grid-template-columns: repeat(var(--cols), 0.62rem); gap: 2px; }
+  .d { display: block; width: 0.62rem; height: 0.62rem; border-radius: 1px; }
+  .d.gap { margin-left: 3px; }
+  @media (max-width: 640px) { .grid { grid-template-columns: repeat(var(--cols), 0.44rem); } .d { width: 0.44rem; height: 0.44rem; } .field { gap: 1.25rem; } }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; font-size: 0.92rem; }
+  .lg { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 1px; }
+  .lg.hi { background: #3fb3a6; } .lg.lo { background: #d9733a; margin-left: 0.6rem; }
 
-  .links-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
-  .finds { padding-left: 1.3rem; }
-  .finds li { margin-bottom: 1rem; line-height: 1.8; }
-  .finds b { font-family: var(--serif); }
-  .tl-n small { display: block; font-family: var(--sans); font-weight: 400; font-size: 0.9rem; color: var(--ink-3); }
-  .last .tl-n small { color: var(--teal); }
-  .explore { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 2px solid var(--ink); }
-  @media (min-width: 760px) { .explore { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  .explore a { display: flex; flex-direction: column; gap: 0.25rem; padding: 1.25rem 1rem 1.25rem 0; border-bottom: 1px solid var(--rule); text-decoration: none; color: var(--ink); }
-  .explore b { font-family: var(--serif); font-size: 1.1rem; }
-  .explore span { color: var(--ink-3); font-size: 0.95rem; }
-  .explore a:hover b { color: var(--teal); }
-  .report-dl { margin: 0 0 1.5rem; }
-  .report-dl a { font-family: var(--serif); font-weight: 600; font-size: 1.15rem; color: var(--teal); }
-  .report-dl span { display: block; color: var(--ink-3); font-size: 0.95rem; }
+  .story .big { font-size: clamp(2rem, 6vw, 3.6rem); max-width: none; }
+  .eq { color: var(--teal-l); padding: 0 0.15em; }
+  .must { color: var(--brick-l); padding-left: 0.15em; }
+  .story .but { margin-top: 4rem; }
+  .axis { margin: 1.5rem 0 0; max-width: 46rem; }
+  .axis svg { width: 100%; overflow: visible; font-family: var(--sans); }
+  .band { fill: rgba(63, 179, 166, 0.16); stroke: var(--teal-l); stroke-width: 1.5; }
+  .band-t { fill: #9fe0d6; font-size: 13px; }
+  .zero { stroke: #5a6578; stroke-dasharray: 3 4; }
+  .ci { stroke: #fff; stroke-width: 6; stroke-linecap: round; }
+  .pt { fill: var(--teal-l); stroke: #0e131c; stroke-width: 3; }
+  .tick { fill: var(--fg3); font-size: 13px; }
+  .dir { fill: var(--fg3); font-size: 12px; }
+  @media (max-width: 640px) { .band-t { font-size: 20px; } .tick { font-size: 19px; } .dir { font-size: 18px; } .ci { stroke-width: 8; } .pt { r: 12; } }
+  .axis figcaption { font-size: 1rem; line-height: 1.75; color: var(--fg2); margin-top: 0.5rem; max-width: 44rem; }
+  .bars { display: grid; gap: 0.7rem; margin: 1.75rem 0 1rem; max-width: 46rem; }
+  .bar-row { display: grid; grid-template-columns: 11rem 1fr 4rem; gap: 0.8rem; align-items: center; }
+  .bar-l { font-size: 0.98rem; color: var(--fg); }
+  .bar-t { height: 1.1rem; background: #1b2331; border-radius: 2px; overflow: hidden; }
+  .bar-t i { display: block; height: 100%; width: var(--w); background: var(--teal-l); transform-origin: left; }
+  .none .bar-t i { background: var(--brick-l); }
+  .bar-v { font-family: var(--serif); font-variant-numeric: tabular-nums; text-align: right; }
+  @media (max-width: 640px) { .bar-row { grid-template-columns: 1fr 3.6rem; } .bar-l { grid-column: 1 / -1; font-size: 0.92rem; } .bar-t { grid-column: 1; } }
+
+  .s6 { min-height: auto; }
+  .btn.xl { font-size: 1.15rem; padding: 1rem 2.2rem; margin: 1rem 0 2.5rem; }
+  .go { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--line); }
+  @media (min-width: 760px) { .go { grid-template-columns: 1fr 1fr; column-gap: 3rem; } }
+  .story .go a { display: flex; flex-direction: column; gap: 0.2rem; padding: 1rem 2rem 1rem 0; border-bottom: 1px solid var(--line); text-decoration: none; position: relative; }
+  .go a::after { content: ''; position: absolute; right: 0.4rem; top: 50%; width: 0.55rem; height: 0.55rem; border-top: 2px solid var(--fg3); border-right: 2px solid var(--fg3); transform: translateY(-50%) rotate(45deg); transition: transform 0.2s, border-color 0.2s; }
+  .go a:hover::after { transform: translate(4px, -50%) rotate(45deg); border-color: var(--teal-l); }
+  .go b { font-family: var(--serif); font-size: 1.15rem; }
+  .go span { color: var(--fg3); font-size: 0.95rem; }
+  .go a:hover b { color: var(--teal-l); }
+
+  /* การเคลื่อนไหว ทำงานเฉพาะเมื่อมี class motion ที่ html */
+  :global(.motion) .cue span { animation: cue 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
+  @keyframes cue { 0% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(0.9rem); } }
+  :global(.motion) .s1 .title, :global(.motion) .s1 .lead, :global(.motion) .s1 .cta, :global(.motion) .s1 .byline { animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  :global(.motion) .s1 .lead { animation-delay: 0.12s; }
+  :global(.motion) .s1 .cta { animation-delay: 0.22s; }
+  :global(.motion) .s1 .byline { animation-delay: 0.3s; }
+  :global(.motion) .s1 .term { animation: rise 1s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px); filter: blur(6px); } }
+  :global(.motion) .t-line.step { opacity: 0; transform: translateX(-6px); transition: opacity 0.4s, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transition-delay: calc(var(--i) * 420ms + 200ms); }
+  :global(.motion) .term.typed .t-line.step { opacity: 1; transform: none; }
+  :global(.motion) .type::after { content: ''; display: inline-block; width: 0.5em; height: 1.05em; margin-left: 2px; vertical-align: -0.15em; background: var(--teal-l); animation: blink 1s steps(1) infinite; }
+  :global(.motion) .typed .type::after { display: none; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  :global(.motion) [data-scene] h2, :global(.motion) [data-scene] .sub, :global(.motion) [data-scene] .copy p { transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), filter 0.8s; }
+  :global(.motion) [data-scene]:not(.in) h2, :global(.motion) [data-scene]:not(.in) .sub, :global(.motion) [data-scene]:not(.in) .copy p { opacity: 0; transform: translateY(16px); filter: blur(5px); }
+
+  :global(.motion) .inv { transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s; }
+  :global(.motion) .s2:not(.in) .inv { opacity: 0; transform: translateY(24px); }
+  :global(.motion) .s2:not(.in) .inv.after { transform: translate(1.5rem, 40px); }
+  :global(.motion) .inv.after { transition-delay: 0.25s; }
+  :global(.motion) .stamp { transition: opacity 0.3s 1.9s, transform 0.4s 1.9s cubic-bezier(0.16, 1, 0.3, 1); }
+  :global(.motion) .s2:not(.in) .stamp { opacity: 0; transform: rotate(-4deg) scale(1.6); }
+
+  :global(.motion) .chip.all { transition: opacity 0.5s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); transition-delay: calc(var(--i) * 90ms + 300ms); }
+  :global(.motion) .s3:not(.in) .chip.all { opacity: 0; transform: translateY(-28px); }
+  :global(.motion) .chip.open { transition: opacity 0.5s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); transition-delay: calc(var(--i) * 260ms + 900ms); }
+  :global(.motion) .s3:not(.in) .chip.open { opacity: 0; transform: translateY(70px); }
+  :global(.motion) .card { transition: opacity 0.6s; transition-delay: calc(var(--i) * 260ms + 900ms); }
+  :global(.motion) .s3.in .card.need { opacity: 0.35; }
+
+  :global(.motion) .d { transition: transform 1.1s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s; transition-delay: var(--dl); }
+  :global(.motion) .s4:not(.in) .d { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.4); }
+
+  :global(.motion) .band { transform-box: fill-box; transform-origin: center; transition: transform 0.9s 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s 0.3s; }
+  :global(.motion) .s5:not(.in) .band { transform: scaleX(0.05); opacity: 0; }
+  :global(.motion) .ci { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1s 1.1s cubic-bezier(0.16, 1, 0.3, 1); }
+  :global(.motion) .s5:not(.in) .ci { stroke-dashoffset: 1; }
+  :global(.motion) .pt { transform-box: fill-box; transform-origin: center; transition: transform 0.5s 1.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s 1.9s; }
+  :global(.motion) .s5:not(.in) .pt { transform: scale(0); opacity: 0; }
+  :global(.motion) .eq { transition: opacity 0.6s 2.2s; }
+  :global(.motion) .s5:not(.in) .eq { opacity: 0.15; }
+  :global(.motion) .bar-t i { transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1); transition-delay: calc(var(--i) * 150ms + 0.5s); }
+  :global(.motion) .rules-block:not(.in) .bar-t i { transform: scaleX(0); }
 </style>
