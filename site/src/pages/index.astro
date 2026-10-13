@@ -178,7 +178,7 @@ const ci = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(1)
           <h2>ใช้แบบไหนก็ได้ผล<span class="eq">เทียบเท่า</span>กัน</h2>
           <dl class="meter">
             <div><dt>ผลต่าง</dt><dd class="big">{pts(p.diff)}<small>จุด</small></dd></div>
-            <div><dt>ช่วงที่ค่าจริงน่าจะอยู่</dt><dd>{ci(d.ci90[0])} ถึง {ci(d.ci90[1])}</dd></div>
+            <div><dt>ช่วงที่ค่าจริงน่าจะอยู่ (90%)</dt><dd>{ci(d.ci90[0])} ถึง {ci(d.ci90[1])}</dd></div>
             <div><dt>เกณฑ์ที่ตั้งไว้ก่อนเริ่ม</dt><dd>±{(margin * 100).toFixed(1)}</dd></div>
           </dl>
           <p>Skills ได้ {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ช่วงของผลต่างอยู่ในแถบเกณฑ์ทั้งเส้น เทียบเท่าไม่ได้แปลว่าเหมือนกัน แต่มั่นใจได้ว่า Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</p>

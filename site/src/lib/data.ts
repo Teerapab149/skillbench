@@ -108,9 +108,9 @@ const STUDY_DEF = [
     role: 'ลองวัดครั้งแรก',
     metricName: 'CRIT', metricLabel: 'ต้องทำตามกฎสำคัญครบทุกข้อถึงได้คะแนน',
     verdict: 'สรุปไม่ได้',
-    summary: 'เราให้ AI ห้ากลุ่มทำโจทย์ 11 ข้อ และให้คะแนนแบบโหด คือต้องทำตามกฎสำคัญครบทุกข้อถึงจะได้คะแนน Skills ได้สูงกว่านิดหน่อย แต่ข้อมูลยังไม่พอจะสรุป',
+    summary: 'เราให้ AI ห้ากลุ่มทำโจทย์ 11 ข้อ และให้คะแนนแบบโหด คือต้องทำตามกฎสำคัญครบทุกข้อถึงจะได้คะแนน Skills ได้สูงกว่า แต่ข้อมูลยังไม่พอจะสรุป',
     why: [
-      'แต่ละโจทย์มีกฎสำคัญ 9 ถึง 10 ข้อ พลาดข้อเดียวก็ได้ศูนย์ เกือบทุก run เลยได้ศูนย์ และโจทย์ 6 จาก 11 ข้อได้คะแนนเท่ากันทั้งสองแบบ',
+      'แต่ละโจทย์มีกฎสำคัญ 9 ถึง 10 ข้อ พลาดข้อเดียวก็ได้ศูนย์ run ส่วนใหญ่เลยได้ศูนย์ และโจทย์ 6 จาก 11 ข้อได้คะแนนเท่ากันทั้งสองแบบ',
       'โจทย์ที่ได้เท่ากันบอกอะไรเราไม่ได้ เหลือโจทย์ที่ใช้ตัดสินได้แค่ 5 ข้อ ต่อให้ Skills ชนะครบทั้ง 5 ข้อ ทางสถิติก็ยังสรุปไม่ได้อยู่ดี (ค่า p ต่ำสุดที่ทำได้คือ 0.0625 ซึ่งไม่ถึง 0.05)',
       'แผนเดิมตั้งไว้ 6 รอบ แต่เวลาและโควตาไม่พอ เลยลดเหลือ 4 รอบเท่ากันทุกกลุ่มตามกฎสำรองที่เขียนไว้ก่อน (Amendment 14) ไม่ได้ลดเพราะเห็นผล',
     ],
@@ -195,7 +195,7 @@ export const scenarios = s3.scenarioIds.map((id) => {
   const usedIn = studies.filter((st) => st.scenarioIds.includes(id));
   return {
     id, code: id.split('-')[0], family: s.family, familyName: FAMILIES[s.family]?.name ?? s.family, trap: FAMILIES[s.family]?.trap ?? '',
-    difficulty: s.difficulty, reqs: s.reqs ?? [], prompt: s.prompt, note: clean(s._designNote ?? ''),
+    difficulty: s.difficulty, reqs: s.reqs ?? [], prompt: s.prompt, note: clean(s._designNote ?? '').replace(/([ก-๙])\.\s+/g, '$1 '),
     expectedSkills: s.expectedSkills ?? [], probes: s.probes ?? [], verify: s.verifyCommand,
     usedIn: usedIn.map((st) => st.n),
     perStudy: usedIn.map((st) => ({ study: st, ps: st.perScenario.find((x) => x.id === id)! })),
