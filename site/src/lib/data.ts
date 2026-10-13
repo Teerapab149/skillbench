@@ -16,7 +16,9 @@ const exists = (p: string) => fs.existsSync(path.join(ROOT, p));
 export const clean = (t: string) => String(t ?? '').replace(/([ก-๙])ๆ/g, '$1 ๆ').replace(/[ \t]+—[ \t]*(?=\r?$)/gm, '').replace(/[ \t]+[—–][ \t]+/g, ' ').replace(/[ \t]+·[ \t]+/g, ' ').replace(/^·\s*/gm, '').replace(/[ \t]+·[ \t]*(?=\r?$)/gm, '');
 // โน้ตออกแบบโจทย์เป็นบันทึกของผู้วิจัย เก็บเนื้อความเดิม แค่จัดรูปให้อ่านแบบภาษาไทย: ตัดจุดท้ายประโยค ลูกศร -> เป็น → ป้าย [Study 3] เป็นภาษาไทย
 // และ "กฎข้อ n" เป็น "กฎหมวด n" เพราะเลขนั้นคือหมวดในไฟล์กฎ ไม่ใช่ลำดับกฎ 20 ข้อ
+// ตัดประโยคที่พูดถึงตัวชี้วัด Requirement Drift ใน S10 ด้วย เพราะไม่ได้รายงานในเล่ม
 const tidyNote = (t: string) => clean(t)
+  .replace(/\s*ตัวชี้วัดพิเศษ:[^()]*\(ดู analyze\.mjs\)/g, '')
   .replace(/([^\d\s])\.\s+/g, '$1 ')
   .replace(/\s*->\s*/g, ' → ')
   .replace(/\[Study 3\]\s*/g, 'ในชุดที่ 3 ')
