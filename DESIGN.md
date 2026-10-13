@@ -24,7 +24,7 @@ Tokens are defined in `site/src/styles/global.css` (`:root`).
 
 Arm colors are used only when arms are compared side by side: A0 `#8a929e`, A1 `#2f4f86`, A2 `#0b6e69`, A3 `#7a5c99`, A4 `#a8506f`, A5 `#b7791f`. The same colors are used in the slides and the report figures.
 
-The landing page is the only dark surface: ink `#0b0f16` with rooms in ember `#24160f`, indigo `#111c3d` and deep teal `#0a2924`, ending on paper `#f2efe8`. The run colors and the single-file blue `#4a6fb0` stay the data hues. Every other page stays on white paper.
+The landing page is the only dark surface: ink `#0b0f16` with rooms in slate `#121826`, indigo `#111c3d` and deep teal `#0a2924`, ending on paper `#f2efe8`. The run colors and the single-file blue `#4a6fb0` stay the data hues. Every other page stays on white paper.
 
 ## Type
 
@@ -91,12 +91,13 @@ The landing (`src/pages/index.astro`) is a model of the evidence. It does not bo
   - The pillars stand on a graph-paper floor drawn in the same coordinates as the run grids. This is the only grid on the page: a CSS grid background was rejected as decoration.
   - The camera sways slightly in the hero.
 - **Lead-in.** An empty 80svh lead before the experiment lets the city rise to the center of the screen, clear of the rooms, before the camera moves.
+- **Answer hold.** The answer card is pinned at the middle of the screen for 70svh while the run tiles land in the band, so the card and the chart are complete together. The band sits at mid-screen on desktop.
 - **Camera move.** As `#experiment` scrolls, the camera turns and tilts down until it looks straight down, so the city becomes the three flat study grids. Progress `q` runs from 0 to 1:
   - 0.02 to 0.28: the camera flattens the city into the grids
   - 0.38 to 0.48: studies 1 and 2 dim, with their real verdicts
   - 0.64 to 0.8: the band opens and study 3's A1 and A2 runs fly into it
   - 0.8 to 0.93: those runs flatten into the CI90 line and the estimate lands
-- **Rooms.** Each other scene has its own dark tone, a gradient full-bleed band with no card edges: warm ember for the problem, indigo for the two ways, deep teal for the rules, then a light paper ending for Explore. Secondary text is tinted from each room's hue. Behind the canvas the ink turns deep teal as the answer appears. Each room shows its evidence in its native form:
+- **Rooms.** Each other scene has its own dark tone, a gradient full-bleed band with no card edges: cool slate for the problem, indigo for the two ways, deep teal for the rules, then a light paper ending for Explore. Secondary text is tinted from each room's hue. Behind the canvas the ink turns deep teal as the answer appears. Each room shows its evidence in its native form:
   - the real S09 agent log as a terminal
   - the invoice change as a code diff, with lines that strike and add on scroll
   - the two ways of giving rules as context tapes measured in real characters from the rule files (single file 4,518 at start; Skills 1,946 at start plus each expected skill, with `safe-shell` left unread)
