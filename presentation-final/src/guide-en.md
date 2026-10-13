@@ -30,7 +30,7 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 | "The two are the same" or "no difference" | "**equivalent** by the margin we set in advance" | Equivalent means within ±12.5 points, not zero difference (6.4 item 5) |
 | "Skills is better" | "Skills is **not worse**" | +2.8 is not significant (p = 0.148) |
 | "We proved rules beat no rules" | "The data **point that way**, but this part is exploratory" | A0 is not part of the main test |
-| "Without rules the agent changed old invoices 25% of the time" | "Without rules the agent **did not check or report** the impact 18 out of 72 times" | Past totals actually changed in only A0 1/54 and A2 2/54 runs |
+| "Without rules the agent changed old invoices 25% of the time" | "Without rules the agent missed 18 of 72 past-invoice checks, **almost all by not checking or not reporting**" | Past totals actually changed in only A0 1/54 and A2 2/54 runs |
 | "Skills is cheaper because of selective loading" | "Skills cost about 10% less, but **we cannot yet say why**" | A2 runs were also shorter |
 | "Selective loading has no effect" | "Whether the loading mechanism matters **is still open**; it was not tested under our plan" | A2 vs A5 was closed by the fixed-sequence plan |
 

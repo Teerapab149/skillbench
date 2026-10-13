@@ -30,7 +30,7 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 | "The two are the same" or "no difference" | "**equivalent** by the margin we set in advance" | Equivalent means within ±12.5 points, not zero difference (6.4 item 5) |
 | "Skills is better" | "Skills is **not worse**" | +2.8 is not significant (p = 0.148) |
 | "We proved rules beat no rules" | "The data **point that way**, but this part is exploratory" | A0 is not part of the main test |
-| "Without rules the agent changed old invoices 25% of the time" | "Without rules the agent **did not check or report** the impact 18 out of 72 times" | Past totals actually changed in only A0 1/54 and A2 2/54 runs |
+| "Without rules the agent changed old invoices 25% of the time" | "Without rules the agent missed 18 of 72 past-invoice checks, **almost all by not checking or not reporting**" | Past totals actually changed in only A0 1/54 and A2 2/54 runs |
 | "Skills is cheaper because of selective loading" | "Skills cost about 10% less, but **we cannot yet say why**" | A2 runs were also shorter |
 | "Selective loading has no effect" | "Whether the loading mechanism matters **is still open**; it was not tested under our plan" | A2 vs A5 was closed by the fixed-sequence plan |
 
@@ -227,7 +227,7 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 **On screen**
 
 - [ภาพ: Passed every critical rule: A0 53.0, A1 78.8, A2 80.3, A5 83.3 percent. Edited only in-scope files: A0 72.7, A1 87.9, A2 90.9, A5 90.9 percent]
-- On tasks that require checking the impact on past invoices, the agent with no rules did not check or report it 18 out of 72 times.
+- On the rules about past invoices, the agent with no rules missed 18 out of 72 checks, almost all by not checking or not reporting.
 - Groups with rules missed it at most 2 times.
 - Not the main question. We cannot tell whether it is the rules or just more text to read. Old invoices actually changed rarely: 1 of 54 runs with no rules, 2 of 54 with Skills (Tables 14 and 16 in the report).
 
@@ -235,7 +235,7 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 > [Speaker 2, 1:15] If we step back, the biggest difference in this work is not between the two formats. It is between having rules and having none.
 >
-> Without rules, the agent finished tasks almost as often, but passed every critical rule only about half the time, compared with about four in five with rules. It edited files outside the task more often. And on tasks where it had to check the impact on past invoices, it skipped the check or did not report it 18 times out of 72. Groups with rules missed it at most twice.
+> Without rules, the agent finished tasks almost as often, but passed every critical rule only about half the time, compared with about four in five with rules. It edited files outside the task more often. And on the rules about past invoices, it missed 18 checks out of 72, almost all by skipping the check or not reporting it. Groups with rules missed it at most twice.
 >
 > This part is an extra observation, not the main tested result. And we cannot tell whether the improvement comes from the content of the rules or just from having more text in context.
 >
