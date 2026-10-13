@@ -54,6 +54,9 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 <header class="masthead">
   <div class="masthead-in">
     <a class="brand" href={base}>SkillBench</a>
+    {theme === 'story' ? (
+    <nav class="story-nav" aria-label="หัวข้อหลัก"><a href={`${base}overview/`}>สำรวจทั้งหมด</a></nav>
+    ) : (<>
     <nav class="nav" aria-label="หัวข้อหลัก">
       {nav.map(([href, label]) => <a href={base + href} aria-current={current === href ? 'page' : undefined}>{label}</a>)}
     </nav>
@@ -63,6 +66,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
         {nav.map(([href, label]) => <a href={base + href} aria-current={current === href ? 'page' : undefined}>{label}</a>)}
       </nav>
     </details>
+    </>)}
   </div>
 </header>
 <main id="main" class="page">

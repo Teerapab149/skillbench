@@ -1,6 +1,9 @@
 ---
-// หน้าแรกแบบเรื่องเล่า 6 ฉาก พื้นมืดทั้งหน้า ขยับตามการเลื่อนจอ ทุกตัวเลขและข้อความกฎมาจากไฟล์จริง
-// ถ้าเครื่องตั้งค่าลดการเคลื่อนไหว หรือ JavaScript ไม่ทำงาน ทุกฉากแสดงสถานะสุดท้ายครบ
+// หน้าแรกแบบเรื่องเล่า "กองหลักฐานกลายเป็นคำตอบ"
+// จุด 660 จุดคือการทำงานจริงทุกครั้ง วาดบน canvas ที่ตรึงอยู่หลังทั้งเรื่อง แผงแต่ละฉากเลื่อนทับขึ้นมา
+// พอถึงช่วงการทดลอง กองจุดเรียงตัวเป็นตารางสามชุด แล้วชุดที่ 3 ยุบลงเป็นเส้นผลในแถบเกณฑ์ ทุกอย่างผูกกับการเลื่อนจอ
+// ถ้าไม่มี JavaScript จะเห็นรูปนิ่งแทน ถ้าเครื่องตั้งค่าลดการเคลื่อนไหว canvas จะเปลี่ยนเป็นทีละสถานะโดยไม่ขยับ
+import '@fontsource/noto-serif-thai/200.css';
 import Base from '../layouts/Base.astro';
 import { studies, s3, scenarios, arms, pct, pts } from '../lib/data';
 
@@ -26,145 +29,167 @@ const sections = a1.files[0].body.split(/\r?\n/).filter((l) => /^## /.test(l)).m
 const a2 = arms.find((a) => a.id === 'A2')!;
 const skills = a2.files.filter((f) => !f.always).map((f) => ({ name: f.name, needed: s09.expectedSkills.includes(f.name) }));
 const neededN = skills.filter((s) => s.needed).length;
+let nj = 0;
+const shelf = skills.map((s) => ({ ...s, j: s.needed ? nj++ : -1 }));
 
-// จุดทุกครั้งที่ทำงาน ตำแหน่งเริ่มต้นแบบสุ่มแต่คงที่ทุก build
-const hash = (i: number) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
-let dotIndex = 0;
+// จุดทุกครั้งที่ทำงาน เรียงแบบเดียวกับตารางของแต่ละชุด แถวคือโจทย์ คอลัมน์คือกลุ่มและรอบ
+const shade = (v: number) => `color-mix(in oklab, #3fb3a6 ${Math.round(v * 100)}%, #d9733a)`;
 const fieldStudies = studies.map((st) => ({
   st,
-  cells: st.perScenario.flatMap((ps) => st.armIds.flatMap((a, ai) => ps.byArm[a].runs.map((r, ri) => {
-    const i = dotIndex++;
-    return { r, gap: ri === 0 && ai > 0, dx: Math.round((hash(i) - 0.5) * 520), dy: Math.round((hash(i + 999) - 0.5) * 420), delay: Math.round(hash(i + 7) * 650) };
-  }))),
+  cells: st.perScenario.flatMap((ps) => st.armIds.flatMap((a, ai) => ps.byArm[a].runs.map((r, ri) => ({ r, a, gap: ri === 0 && ai > 0 })))),
 }));
-const shade = (v: number) => `color-mix(in oklab, #3fb3a6 ${Math.round(v * 100)}%, #d9733a)`;
+const payload = {
+  studies: fieldStudies.map(({ st, cells }) => ({ n: st.n, usable: st.usable, verdict: st.verdict, cols: st.armIds.length * st.reps, reps: st.reps, rows: st.perScenario.length, n0: cells.length })),
+  dots: fieldStudies.flatMap(({ st, cells }, si) => cells.map((c, i) => [si, i, Math.round(c.r.score * 100), si === 2 && (c.a === p.armA || c.a === p.armB) ? 1 : 0])),
+  axis: { lo: -0.15, hi: 0.15, margin, ci: d.ci90, diff: p.diff },
+};
 
-// แกนผลหลัก
+// แกนผลหลัก ใช้ในรูปนิ่งเมื่อไม่มี JavaScript
 const lo = -0.15, hi = 0.15, AX = { x0: 20, x1: 580 };
 const X = (v: number) => AX.x0 + ((v - lo) / (hi - lo)) * (AX.x1 - AX.x0);
 const crit = (['A0', 'A1', 'A2', 'A5'] as const).map((a) => ({ a, v: s3.nums.perArm[a].CRIT as number }));
 const critName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A5: 'Skills แบบอ่านทุกครั้ง' };
+const withRules = crit.filter((c) => c.a !== 'A0').map((c) => c.v);
+const noRules = crit.find((c) => c.a === 'A0')!.v;
 ---
 <Base title="SkillBench เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม" current="" theme="story">
   <div class="story">
-    <section class="scene s1 in" data-scene id="top">
-      <div class="s1-in">
-        <div class="s1-text">
-          <h1 class="title"><span class="nw">เขียนกฎให้ AI</span> <span class="nw">แบบไหน</span> <span class="nw accent">AI ถึงจะทำตาม</span></h1>
-          <p class="lead">เราให้ AI เขียนโค้ดทำงานจริง <b>{totalRuns} ครั้ง</b> เพื่อหาคำตอบว่า กฎชุดเดียวกัน ถ้าส่งเป็น <b>Agent Skills</b> กับ<b class="nw">ไฟล์เดียว</b> AI จะทำตามต่างกันไหม</p>
-          <div class="cta">
-            <a class="btn" href="#problem">เลื่อนดูเรื่องทั้งหมด</a>
-            <a class="btn ghost" href={`${base}overview/`}>ข้ามไปสำรวจ</a>
-          </div>
-          <p class="byline">งานสัมมนา 477-401 สัมมนาระบบสารสนเทศทางธุรกิจ มหาวิทยาลัยสงขลานครินทร์<span>ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด</span></p>
+    <div class="stage" aria-hidden="true"><canvas id="heap"></canvas></div>
+    <script is:inline type="application/json" id="story-data" set:html={JSON.stringify(payload)}></script>
+
+    <section class="hero" id="top">
+      <div class="hero-in">
+        <h1 class="title"><span class="nw">เขียนกฎให้ AI</span> <span class="nw">แบบไหน</span> <span class="nw accent">AI ถึงจะทำตาม</span></h1>
+        <p class="lead">เราให้ AI เขียนโค้ดทำงานจริง <b>{totalRuns} ครั้ง</b> เพื่อหาคำตอบว่า กฎชุดเดียวกัน ถ้าส่งเป็น <b>Agent Skills</b> กับ<b class="nw">ไฟล์เดียว</b> AI จะทำตามต่างกันไหม</p>
+        <div class="hero-act">
+          <a class="btn" href="#problem">เลื่อนดูเรื่องทั้งหมด</a>
+          <p class="quick"><b>คำตอบสั้น ๆ</b> ได้ผลเทียบเท่ากัน <a href="#answer">ข้ามไปดูคำตอบ</a></p>
         </div>
-        <figure class="term" aria-label="บันทึกการทำงานจริงของ AI ในโจทย์ S09">
-          <p class="term-bar"><i></i><i></i><i></i><span>Claude Code</span></p>
-          <div class="term-body">
-            <p class="t-line user"><span class="t-tag">ผู้ใช้</span><span class="type" data-text={s09.prompt}>{s09.prompt}</span></p>
-            <p class="t-line step" style="--i:0"><span class="t-tag">AI</span>อ่านข้อกำหนดและโค้ดที่เกี่ยวข้อง</p>
-            {demo.files.map((f, i) => <p class="t-line step" style={`--i:${i + 1}`}><span class="t-tag">แก้</span><span class="mono">{f}</span></p>)}
-            {demo.done && <p class="t-line step ok" style={`--i:${demo.files.length + 1}`}><span class="t-tag">ผล</span>งานเสร็จ เทสผ่าน</p>}
-            {demoMissed && <p class="t-line step warn" style={`--i:${demo.files.length + 2}`}><span class="t-tag">แต่</span>ไม่ได้เช็กและไม่ได้บอกว่าใบแจ้งหนี้เก่าเปลี่ยน</p>}
-          </div>
-          <figcaption>บันทึกจริงของ AI กลุ่มไม่มีกฎ โจทย์ S09 รอบที่ {demo.rep + 1} ย่อเหลือเฉพาะขั้นสำคัญ</figcaption>
-        </figure>
+        <p class="byline">งานสัมมนา 477-401 สัมมนาระบบสารสนเทศทางธุรกิจ มหาวิทยาลัยสงขลานครินทร์<span>ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด</span></p>
+        <p class="heap-note">จุดทุกจุดข้างหลังคือการทำงานจริงหนึ่งครั้ง สีเขียวคือทำตามกฎได้ครบ สีส้มคือพลาด</p>
       </div>
-      <a class="cue" href="#problem" aria-label="เลื่อนลง"><span></span></a>
     </section>
 
-    <section class="scene s2" data-scene id="problem">
+    <section class="panel paper" id="problem">
       <div class="wrap two">
         <div class="copy">
           <h2>แก้ถูก แต่ใบแจ้งหนี้เดือนที่แล้วแพงขึ้นเอง</h2>
           <p>ระบบนี้คิดใบแจ้งหนี้ใหม่ทุกครั้งที่เปิดดู พอ AI แก้อัตราค่าบริการ ใบที่ส่งให้ลูกค้าไปแล้วก็เปลี่ยนตาม ไม่มี error ขึ้น เทสเดิมก็ยังผ่านหมด</p>
           <p>ปัญหาไม่ได้อยู่ที่ AI เขียนโค้ดไม่เป็น แต่อยู่ที่มัน<b>ทำเกินที่ขอโดยไม่บอกใคร</b> ทีมพัฒนาเลยต้องเขียนกฎให้ AI</p>
         </div>
-        <figure class="inv-stage">
-          <div class="inv">
-            <p class="inv-h">ใบแจ้งหนี้เดือนที่แล้ว <span>ส่งให้ลูกค้าแล้ว</span></p>
-            <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd>{rateFrom} บาท/ชม.</dd></dl>
-            <p class="inv-t">ยอดรวม <b>{hours * rateFrom} บาท</b></p>
-          </div>
-          <div class="inv after">
-            <p class="inv-h">ใบเดิม หลัง AI แก้อัตรา <span class="stamp">ไม่มีใครรู้</span></p>
-            <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd><b>{rateTo} บาท/ชม.</b></dd></dl>
-            <p class="inv-t">ยอดรวม <b><span class="count" data-from={hours * rateFrom} data-to={hours * rateTo}>{hours * rateTo}</span> บาท</b></p>
-          </div>
-          <figcaption>อัตรา {rateFrom} เป็น {rateTo} บาทมาจากโจทย์จริง ส่วนจำนวนชั่วโมงเป็นตัวอย่าง</figcaption>
-        </figure>
+        <div class="evidence">
+          <figure class="term" aria-label="บันทึกการทำงานจริงของ AI ในโจทย์ S09">
+            <span class="tag t-dark">S09 กลุ่มไม่มีกฎ รอบที่ {demo.rep + 1}</span>
+            <p class="term-bar">Claude Code</p>
+            <div class="term-body">
+              <p class="t-line user"><span class="t-tag">ผู้ใช้</span><span class="type" data-text={s09.prompt}>{s09.prompt}</span></p>
+              <p class="t-line step" style="--i:0"><span class="t-tag">AI</span>อ่านข้อกำหนดและโค้ดที่เกี่ยวข้อง</p>
+              {demo.files.map((f, i) => <p class="t-line step" style={`--i:${i + 1}`}><span class="t-tag">แก้</span><span class="mono">{f}</span></p>)}
+              {demo.done && <p class="t-line step ok" style={`--i:${demo.files.length + 1}`}><span class="t-tag">ผล</span>งานเสร็จ เทสผ่าน</p>}
+              {demoMissed && <p class="t-line step warn" style={`--i:${demo.files.length + 2}`}><span class="t-tag">แต่</span>ไม่ได้เช็กและไม่ได้บอกว่าใบแจ้งหนี้เก่าเปลี่ยน</p>}
+            </div>
+          </figure>
+          <figure class="inv-stage changed" data-scrub="enter">
+            <div class="inv">
+              <p class="inv-h">ใบแจ้งหนี้เดือนที่แล้ว <span>ส่งให้ลูกค้าแล้ว</span></p>
+              <dl><dt>เครื่อง V100</dt><dd>{hours} ชม.</dd><dt>อัตรา</dt><dd class="rate" data-from={`${rateFrom} บาท/ชม.`} data-to={`${rateTo} บาท/ชม.`}>{rateTo} บาท/ชม.</dd></dl>
+              <p class="inv-t">ยอดรวม <b><span class="count" data-from={hours * rateFrom} data-to={hours * rateTo}>{hours * rateTo}</span> บาท</b></p>
+              <span class="tag t-brick">ยอดเปลี่ยนเอง ไม่มีใครรู้</span>
+            </div>
+            <figcaption>ใบเดิมใบเดียวกัน ก่อนและหลัง AI แก้อัตรา อัตรา {rateFrom} เป็น {rateTo} บาทมาจากโจทย์จริง ส่วนจำนวนชั่วโมงเป็นตัวอย่าง</figcaption>
+          </figure>
+        </div>
       </div>
     </section>
 
-    <section class="scene s3" data-scene id="two-ways">
-      <div class="wrap">
-        <h2>กฎชุดเดียวกัน ส่งให้ AI ได้สองแบบ</h2>
-        <p class="sub">กล่องคือสิ่งที่ AI เห็นตอนเริ่มทำโจทย์ใบแจ้งหนี้ข้อเดิม กฎในสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่ง</p>
-        <div class="ways">
-          <div class="way">
-            <h3>ไฟล์เดียว</h3>
-            <div class="ctx">
-              <p class="ctx-h">สิ่งที่ AI เห็นตอนเริ่มงาน</p>
-              <div class="chips">{sections.map((t, i) => <span class="chip all" style={`--i:${i}`}>{t}</span>)}</div>
-            </div>
-            <p class="note">ทั้ง {sections.length} หมวดเข้าไปตั้งแต่เริ่ม แม้หมวดที่ไม่เกี่ยวกับงานนี้</p>
-          </div>
-          <div class="way">
-            <h3>Agent Skills</h3>
-            <div class="ctx">
-              <p class="ctx-h">สิ่งที่ AI เห็นตอนเริ่มงาน</p>
-              <div class="chips">
-                <span class="chip base">กฎพื้นฐานไม่กี่ข้อ</span>
-                <span class="chip desc">ชื่อและคำอธิบายของ skill {skills.length} ชุด</span>
-                {skills.filter((s) => s.needed).map((s, i) => <span class="chip open mono" style={`--i:${i}`}>{s.name}</span>)}
+    <section class="panel deep" id="two-ways" data-pin>
+      <div class="pin-in">
+        <div class="wrap">
+          <h2>กฎชุดเดียวกัน ส่งให้ AI ได้สองแบบ</h2>
+          <p class="sub">กล่องคือสิ่งที่ AI เห็นตอนทำโจทย์ใบแจ้งหนี้ข้อเดิม กฎในสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่ง</p>
+          <div class="ways">
+            <div class="way" data-scrub="way">
+              <h3>ไฟล์เดียว <span class="tag t-blue">A1</span></h3>
+              <div class="ctx">
+                <div class="chips">{sections.map((t, i) => <span class="chip all" style={`--i:${i};--r:${((i * 37) % 13) - 6}`}>{t}</span>)}</div>
               </div>
+              <p class="note">ทั้ง {sections.length} หมวดเข้าไปตั้งแต่เริ่ม แม้หมวดที่ไม่เกี่ยวกับงานนี้</p>
             </div>
-            <div class="shelf">{skills.map((s, i) => <span class={`card mono ${s.needed ? 'need' : 'skip'}`} style={`--i:${i}`}>{s.name}</span>)}</div>
-            <p class="note">โจทย์นี้ควรเปิด {neededN} จาก {skills.length} ชุด ชุดที่ไม่เกี่ยวไม่ต้องเข้ามากวน</p>
+            <div class="way" data-scrub="way">
+              <h3>Agent Skills <span class="tag t-teal">A2</span></h3>
+              <div class="ctx">
+                <div class="chips">
+                  <span class="chip base" style="--i:0">กฎพื้นฐานไม่กี่ข้อ</span>
+                  <span class="chip desc" style="--i:1">ชื่อและคำอธิบายของ skill {skills.length} ชุด</span>
+                  {shelf.filter((s) => s.needed).map((s) => <span class="chip open mono" style={`--j:${s.j}`}>{s.name}</span>)}
+                </div>
+              </div>
+              <div class="shelf" aria-label="skill ทั้งหมดที่มีให้เปิด">{shelf.map((s) => <span class={`card mono ${s.needed ? 'need' : 'idle'}`} style={`--j:${s.j}`}>{s.name}{!s.needed && <span class="idle-l"> ไม่ต้องเปิด</span>}</span>)}</div>
+              <p class="note">โจทย์นี้ควรเปิด {neededN} จาก {skills.length} ชุด ชุดที่ไม่เกี่ยวไม่ต้องเข้ามากวน</p>
+            </div>
+          </div>
+          <p class="sub small">ไอเดียของ Skills คือกฎที่ไม่เกี่ยวไม่ควรมากวน AI ฟังดูดี แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ <a href={`${base}background/`}>อ่านว่าสองแบบนี้มาจากไหน</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="seq" id="experiment">
+      <div class="beat">
+        <div class="slab">
+          <p class="numeral" aria-hidden="true">{totalRuns}</p>
+          <h2>ครั้ง ที่เราให้ AI ทำงานจริงแล้ววัดผล</h2>
+          <p>โจทย์ {scenarios.length} ข้อ {trapped} ข้อซ่อนกับดัก ให้ AI ตัวเดียวกันทำทุกกลุ่มทุกรอบ ทดลองสามชุด แล้วให้โปรแกรมตรวจทีละกฎ ไม่มีคนหรือ AI ตัวอื่นให้คะแนน</p>
+          <p class="legend"><i class="lg hi"></i><span class="nw">ทำตามกฎได้ครบ</span> <i class="lg lo"></i><span class="nw">พลาด</span> <a href={`${base}runs/`} class="nw">กดดูทีละครั้ง</a></p>
+          <div class="fb field" aria-label={`การทำงานทั้ง ${totalRuns} ครั้งของการทดลองสามชุด`}>
+            {fieldStudies.map(({ st, cells }) => (
+              <figure class="blk">
+                <figcaption><b>ชุดที่ {st.n}</b><span>{st.usable} ครั้ง</span></figcaption>
+                <div class="grid" aria-hidden="true" style={`--cols:${st.armIds.length * st.reps}`}>
+                  {cells.map((c) => <i class={`d ${c.gap ? 'gap' : ''}`} style={`background:${shade(c.r.score)}`}></i>)}
+                </div>
+              </figure>
+            ))}
           </div>
         </div>
-        <p class="sub small">ไอเดียของ Skills คือกฎที่ไม่เกี่ยวไม่ควรมากวน AI ฟังดูดี แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ <a href={`${base}background/`}>อ่านว่าสองแบบนี้มาจากไหน</a></p>
       </div>
-    </section>
-
-    <section class="scene s4" data-scene id="experiment">
-      <div class="wrap">
-        <h2>เราเลยลองวัดดู {totalRuns} ครั้ง</h2>
-        <p class="sub">โจทย์ {scenarios.length} ข้อ {trapped} ข้อซ่อนกับดัก ให้ AI ตัวเดียวกันทำทุกกลุ่มทุกรอบ ทดลองสามชุด แล้วให้โปรแกรมตรวจทีละกฎ ไม่มีคนหรือ AI ตัวอื่นให้คะแนน</p>
-        <div class="field" aria-label={`การทำงานทั้ง ${totalRuns} ครั้งของการทดลองสามชุด`}>
-          {fieldStudies.map(({ st, cells }) => (
-            <figure class="blk">
-              <figcaption><a href={`${base}study-${st.n}/`}><b>ชุดที่ {st.n}</b></a><span>{st.usable} ครั้ง</span></figcaption>
-              <div class="grid" aria-hidden="true" style={`--cols:${st.armIds.length * st.reps}`}>
-                {cells.map((c) => <i class={`d ${c.gap ? 'gap' : ''}`} style={`background:${shade(c.r.score)};--dx:${c.dx}px;--dy:${c.dy}px;--dl:${c.delay}ms`}></i>)}
-              </div>
-            </figure>
-          ))}
+      <div class="beat">
+        <div class="slab">
+          <h2>สองชุดแรกยังสรุปไม่ได้</h2>
+          <p>ชุดที่ 1 ให้คะแนนโหดเกินไป ชุดที่ 2 โจทย์ที่ใช้ตัดสินได้ยังน้อยและตัวตรวจบางข้อผิด เราจดไว้ทุกจุด แล้วแก้เครื่องมือวัดจนไว้ใจได้ก่อนเก็บ<b>ชุดที่ 3</b> ซึ่งเป็นชุดที่ใช้ตอบคำถาม</p>
+          <p class="links"><a href={`${base}study-1/`}>ชุดที่ 1</a> <a href={`${base}study-2/`}>ชุดที่ 2</a> <a href={`${base}study-3/`}>ชุดที่ 3</a></p>
         </div>
-        <p class="legend"><i class="lg hi"></i>ทำตามกฎได้ครบ <i class="lg lo"></i>พลาด หนึ่งจุดคือการทำงานหนึ่งครั้ง <a href={`${base}runs/`}>กดดูทีละครั้ง</a></p>
       </div>
+      <div class="beat answer" id="answer">
+        <div class="slab">
+          <h2>ใช้แบบไหนก็ได้ผล<span class="eq">เทียบเท่า</span>กัน</h2>
+          <p class="numeral">{pts(p.diff)}<span>จุด</span></p>
+          <p>Skills ได้ {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน <b>{pts(p.diff)} จุด</b> เส้นคือช่วงที่ค่าจริงน่าจะอยู่ ซึ่งอยู่ในแถบเกณฑ์ ±{(margin * 100).toFixed(1)} จุดที่ตั้งไว้ก่อนเริ่มทั้งเส้น เทียบเท่าไม่ได้แปลว่าเหมือนกัน แต่มั่นใจได้ว่า Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</p>
+          <figure class="fb axis">
+            <svg viewBox="0 0 600 150" role="img" aria-label={`Skills ได้ ${pct(p.rateA)}% ไฟล์เดียว ${pct(p.rateB)}% ต่างกัน ${pts(p.diff)} จุด อยู่ในเกณฑ์ ±${(margin * 100).toFixed(1)} จุด`}>
+              <rect class="band" x={X(-margin)} y="34" width={X(margin) - X(-margin)} height="56" />
+              <text class="band-t" x={X(0)} y="24" text-anchor="middle">เกณฑ์ ±{(margin * 100).toFixed(1)} จุดที่ตั้งไว้ก่อนเริ่ม</text>
+              <line x1={X(0)} x2={X(0)} y1="34" y2="90" class="zero" />
+              <line class="ci" x1={X(d.ci90[0])} x2={X(d.ci90[1])} y1="62" y2="62" />
+              <circle class="pt" cx={X(p.diff)} cy="62" r="9" />
+              {[-15, -10, -5, 0, 5, 10, 15].map((t) => <text class="tick" x={X(t / 100)} y="116" text-anchor="middle">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>)}
+              <text class="dir" x={AX.x0} y="142">ไฟล์เดียวดีกว่า</text>
+              <text class="dir" x={AX.x1} y="142" text-anchor="end">Skills ดีกว่า</text>
+            </svg>
+          </figure>
+        </div>
+      </div>
+      <div class="beat tail" aria-hidden="true"></div>
     </section>
 
-    <section class="scene s5" data-scene id="answer">
+    <section class="panel brick" id="rules">
       <div class="wrap">
-        <h2 class="big">ใช้แบบไหนก็ได้ผล<span class="eq">เทียบเท่า</span>กัน</h2>
-        <figure class="axis">
-          <svg viewBox="0 0 600 150" role="img" aria-label={`Skills ได้ ${pct(p.rateA)}% ไฟล์เดียว ${pct(p.rateB)}% ต่างกัน ${pts(p.diff)} จุด อยู่ในเกณฑ์ ±${(margin * 100).toFixed(1)} จุด`}>
-            <rect class="band" x={X(-margin)} y="34" width={X(margin) - X(-margin)} height="56" />
-            <text class="band-t" x={X(0)} y="24" text-anchor="middle">เกณฑ์ ±{(margin * 100).toFixed(1)} จุดที่ตั้งไว้ก่อนเริ่ม</text>
-            <line x1={X(0)} x2={X(0)} y1="34" y2="90" class="zero" />
-            <line class="ci" x1={X(d.ci90[0])} x2={X(d.ci90[1])} y1="62" y2="62" pathLength="1" />
-            <circle class="pt" cx={X(p.diff)} cy="62" r="9" />
-            {[-15, -10, -5, 0, 5, 10, 15].map((t) => <text class="tick" x={X(t / 100)} y="116" text-anchor="middle">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>)}
-            <text class="dir" x={AX.x0} y="142">ไฟล์เดียวดีกว่า</text>
-            <text class="dir" x={AX.x1} y="142" text-anchor="end">Skills ดีกว่า</text>
-          </svg>
-          <figcaption>Skills ได้ {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน <b>{pts(p.diff)} จุด</b> เส้นคือช่วงที่ค่าจริงน่าจะอยู่ ซึ่งอยู่ในแถบเกณฑ์ทั้งเส้น เทียบเท่าไม่ได้แปลว่าเหมือนกัน แต่มั่นใจได้ว่า Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</figcaption>
-        </figure>
-
-        <div class="rules-block" data-scene>
-        <h2 class="big but">แต่<span class="must">ต้องมีกฎ</span></h2>
-        <div class="bars" role="img" aria-label="สัดส่วนครั้งที่ทำตามกฎสำคัญครบทุกข้อของแต่ละกลุ่ม">
+        <h2>แต่ต้องมีกฎ</h2>
+        <p class="versus">
+          <span class="vs-item"><span class="numeral">{pct(noRules)}<span class="pc">%</span></span><span class="vs-l">ไม่มีกฎ</span></span>
+          <svg class="vs-arrow" viewBox="0 0 64 24" aria-hidden="true"><path d="M2 12h56M48 3l10 9-10 9" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+          <span class="vs-item"><span class="numeral">{pct(Math.min(...withRules))}<span class="to">ถึง</span>{pct(Math.max(...withRules))}<span class="pc">%</span></span><span class="vs-l">กลุ่มที่มีกฎ</span></span>
+        </p>
+        <div class="bars" role="img" aria-label="สัดส่วนครั้งที่ทำตามกฎสำคัญครบทุกข้อของแต่ละกลุ่ม" data-scrub="enter">
           {crit.map(({ a, v }, i) => (
             <div class={`bar-row ${a === 'A0' ? 'none' : ''}`} style={`--i:${i}`}>
               <span class="bar-l">{critName[a]}</span>
@@ -173,22 +198,21 @@ const critName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไ
             </div>
           ))}
         </div>
-        <p class="sub small">สัดส่วนครั้งที่ AI ทำตามกฎสำคัญครบทุกข้อ ในการทดลองชุดที่ 3 ข้อนี้เป็นข้อสังเกตเพิ่ม ยังไม่ได้ทดสอบยืนยัน</p>
-        </div>
+        <p class="sub small">สัดส่วนครั้งที่ AI ทำตามกฎสำคัญครบทุกข้อ ในการทดลองชุดที่ 3 <span class="tag t-cream">ข้อสังเกตเพิ่ม ยังไม่ได้ทดสอบยืนยัน</span></p>
       </div>
     </section>
 
-    <section class="scene s6" data-scene id="explore">
+    <section class="panel bright" id="explore">
       <div class="wrap">
-        <h2 class="big">อยากรู้มากกว่านี้</h2>
+        <h2>อยากรู้มากกว่านี้</h2>
         <p class="sub">ทุกตัวเลขในเว็บนี้ดึงจากไฟล์ผลการทดลองโดยตรง กดเข้าไปดูได้ถึงการทำงานทีละครั้ง</p>
-        <a class="btn xl" href={`${base}overview/`}>สำรวจทั้งหมด</a>
+        <a class="big-go" href={`${base}overview/`}>
+          <span>สำรวจทั้งหมด</span>
+          <svg viewBox="0 0 64 24" aria-hidden="true"><path d="M2 12h56M48 3l10 9-10 9" fill="none" stroke="currentColor" stroke-width="2.5" /></svg>
+        </a>
         <nav class="go" aria-label="ไปต่อ">
-          <a href={`${base}study-3/`}><b>ผลรอบสุดท้าย</b><span>ตัวเลขเต็มของชุดที่ 3 และสิ่งที่เราเห็นเพิ่ม</span></a>
-          <a href={`${base}background/`}><b>เรื่องพื้นฐาน</b><span>Context Engineering กับ Agent Skills คืออะไร มาจากไหน</span></a>
-          <a href={`${base}arms/`}><b>กลุ่มและกฎ</b><span>ไฟล์กฎจริงที่ AI แต่ละกลุ่มได้</span></a>
-          <a href={`${base}scenarios/`}><b>โจทย์ {scenarios.length} ข้อ</b><span>คำสั่ง กับดัก และผลของแต่ละกลุ่ม</span></a>
-          <a href={`${base}runs/`}><b>ทุกครั้งที่ทำงาน</b><span>{totalRuns} ครั้ง ดูได้ว่า AI ทำอะไรไปบ้าง</span></a>
+          <a href={`${base}study-3/`}><b>ผลรอบสุดท้าย</b><span>ตัวเลขเต็มของชุดที่ 3</span></a>
+          <a href={`${base}background/`}><b>เรื่องพื้นฐาน</b><span>Context Engineering กับ Agent Skills</span></a>
           <a href={`${base}skillbench-report.pdf`}><b>รายงานฉบับเต็ม</b><span>PDF ภาษาไทย</span></a>
         </nav>
       </div>
@@ -196,216 +220,463 @@ const critName: Record<string, string> = { A0: 'ไม่มีกฎ', A1: 'ไ
   </div>
 
   <script>
+    type Dot = [number, number, number, number];
+    type Data = {
+      studies: { n: number; usable: number; verdict: string; cols: number; reps: number; rows: number; n0: number }[];
+      dots: Dot[];
+      axis: { lo: number; hi: number; margin: number; ci: [number, number]; diff: number };
+    };
     const root = document.documentElement;
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!reduce) {
-      root.classList.add('motion');
-      // พิมพ์คำสั่งของผู้ใช้ทีละตัวอักษร ตัดตามกลุ่มตัวอักษรไทยไม่ให้สระลอย
-      const type = document.querySelector<HTMLElement>('.type');
-      if (type) {
-        const text = type.dataset.text ?? '';
-        const seg = 'Segmenter' in Intl ? [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(text)].map((s) => s.segment) : [...text];
-        type.textContent = '';
-        let n = 0;
-        const tick = () => { n++; type.textContent = seg.slice(0, n).join(''); if (n < seg.length) setTimeout(tick, 34); else type.closest('.term')?.classList.add('typed'); };
-        setTimeout(tick, 500);
+    const data: Data = JSON.parse(document.getElementById('story-data')!.textContent || '{}');
+    const canvas = document.getElementById('heap') as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d');
+    const seq = document.querySelector<HTMLElement>('.seq')!;
+    const hero = document.querySelector<HTMLElement>('.hero')!;
+    if (!reduce) root.classList.add('motion');
+    if (ctx) root.classList.add('cv');
+
+    const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    const hash = (i: number) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
+    const HI = [63, 179, 166], LO = [217, 115, 58];
+    const col = (v: number) => `rgb(${HI.map((h, k) => Math.round(LO[k] + (h - LO[k]) * v)).join(',')})`;
+
+    // ---------- เตรียมจุด ----------
+    type P = { s: number; g: number; c: string; dl: number; hx: number; hy: number; hs: number; hr: number; gx: number; gy: number; ax: number; jy: number; i: number };
+    const pts: P[] = data.dots.map(([s, i, sc, g], k) => ({ s, g, c: col(sc / 100), dl: hash(k + 7), hx: 0, hy: 0, hs: 0.7 + hash(k * 7 + 3) * 0.75, hr: (hash(k * 11 + 5) - 0.5) * 1.8, gx: 0, gy: 0, ax: 0, jy: hash(k * 13 + 1) - 0.5, i }));
+    const order = pts.map((_, k) => k).sort((a, b) => pts[a].hs - pts[b].hs);
+    const ansIdx = pts.map((_, k) => k).filter((k) => pts[k].g).sort((a, b) => hash(a * 3 + 2) - hash(b * 3 + 2));
+
+    let W = 0, H = 0, dpr = 1, mobile = false;
+    let cell = 10, dotSz = 8, heapSz = 10;
+    let grids: { x: number; top: number; w: number; s: number }[] = [];
+    let axis = { x0: 0, x1: 0, yc: 0, bh: 0 };
+    const AX = (v: number) => axis.x0 + ((v - data.axis.lo) / (data.axis.hi - data.axis.lo)) * (axis.x1 - axis.x0);
+
+    function layout() {
+      W = canvas.clientWidth; H = canvas.clientHeight;
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      mobile = W < 900;
+      const top = 72;
+      // พื้นที่วาดตารางและแกน มือถือใช้ครึ่งบนของจอ จอใหญ่ใช้ฝั่งขวา
+      const R = mobile ? { x: 16, y: top + 8, w: W - 32, h: H * 0.5 - top } : { x: W * 0.47, y: H * 0.16, w: W * 0.5 - 24, h: H * 0.68 };
+      const Hp = mobile ? { x: -10, y: H * 0.62, w: W + 20, h: H * 0.38 } : { x: W * 0.46, y: H * 0.2, w: W * 0.56, h: H * 0.8 };
+      // ตาราง
+      const span = data.studies.map((st) => st.cols + (st.cols / st.reps - 1) * 0.35);
+      const totalCols = span.reduce((a, b) => a + b, 0) + 2 * 2.5;
+      const maxRows = Math.max(...data.studies.map((s) => s.rows));
+      cell = Math.min(R.w / totalCols, (R.h - 70) / maxRows, 15);
+      dotSz = cell * 0.8;
+      heapSz = mobile ? 9 : 12;
+      const gw = cell * totalCols;
+      let x = R.x + (R.w - gw) / 2;
+      const baseY = R.y + 30 + maxRows * cell + (R.h - 70 - maxRows * cell) / 2;
+      grids = data.studies.map((st, s) => { const g = { x, top: baseY - st.rows * cell, w: span[s] * cell, s }; x += (span[s] + 2.5) * cell; return g; });
+      // แกนผล
+      axis = { x0: R.x + 8, x1: R.x + R.w - 8, yc: R.y + R.h * (mobile ? 0.34 : 0.46), bh: Math.min(96, R.h * (mobile ? 0.22 : 0.26)) };
+      let start = 0;
+      const startOf = data.studies.map((st) => { const v = start; start += st.n0; return v; });
+      pts.forEach((p, k) => {
+        const st = data.studies[p.s];
+        const idx = k - startOf[p.s];
+        const c = idx % st.cols, r = Math.floor(idx / st.cols);
+        const cx = c + Math.floor(c / st.reps) * 0.35;
+        p.gx = grids[p.s].x + cx * cell + cell / 2;
+        p.gy = grids[p.s].top + r * cell + cell / 2;
+        // กอง: เนินที่สูงตรงกลาง กระจายลงด้านข้าง
+        const u = hash(k * 3 + 1) * 2 - 1;
+        const mound = Hp.h * Math.pow(1 - u * u, 0.75);
+        const v = Math.pow(hash(k * 5 + 2), 0.8);
+        p.hx = Hp.x + Hp.w / 2 + u * Hp.w * 0.5;
+        p.hy = Hp.y + Hp.h - v * mound + 6;
+      });
+      const [c0, c1] = data.axis.ci;
+      ansIdx.forEach((k, n) => { pts[k].ax = AX(c0 + (c1 - c0) * (n / (ansIdx.length - 1))); });
+    }
+
+    // ---------- ความคืบหน้าของการเลื่อน ----------
+    function seqProgress() {
+      const r = seq.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const q = clamp((vh * 0.85 - r.top) / (r.height - vh * 0.3));
+      if (!reduce) return q;
+      return q < 0.04 ? 0 : q < 0.36 ? 0.3 : q < 0.62 ? 0.5 : 1;
+    }
+
+    function label(text: string, x: number, y: number, font: string, color: string, align: CanvasTextAlign = 'left') {
+      ctx!.font = font; ctx!.fillStyle = color; ctx!.textAlign = align; ctx!.fillText(text, x, y);
+    }
+
+    function draw(now: number) {
+      if (!ctx) return;
+      const q = seqProgress();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      const fade12 = clamp((q - 0.38) / 0.1);
+      const ans = clamp((q - 0.64) / 0.08);
+      const lineP = ease(clamp((q - 0.8) / 0.08));
+      const ptP = ease(clamp((q - 0.88) / 0.05));
+      const wob = !reduce && q < 0.3;
+      const heroFade = mobile ? 0.55 : 0.75;
+
+      // แถบเกณฑ์ บนพื้นของตัวเอง
+      if (ans > 0) {
+        const m = mobile ? 10 : 24, fx = m, fw = W - 2 * m, fy = mobile ? 70 : 76, fh = H - fy - m;
+        ctx.globalAlpha = ans; ctx.fillStyle = '#0b3a38';
+        ctx.beginPath(); ctx.roundRect ? ctx.roundRect(fx, fy, fw, fh, mobile ? 20 : 36) : ctx.rect(fx, fy, fw, fh); ctx.fill();
+        const x0 = AX(-data.axis.margin), x1 = AX(data.axis.margin);
+        ctx.globalAlpha = ans;
+        ctx.fillStyle = 'rgba(63,179,166,0.14)'; ctx.strokeStyle = '#3fb3a6'; ctx.lineWidth = 1.5;
+        const w = (x1 - x0) * (reduce ? 1 : ease(ans));
+        ctx.fillRect((x0 + x1) / 2 - w / 2, axis.yc - axis.bh / 2, w, axis.bh);
+        ctx.strokeRect((x0 + x1) / 2 - w / 2, axis.yc - axis.bh / 2, w, axis.bh);
+        ctx.setLineDash([3, 4]); ctx.strokeStyle = '#5a6578'; ctx.beginPath(); ctx.moveTo(AX(0), axis.yc - axis.bh / 2); ctx.lineTo(AX(0), axis.yc + axis.bh / 2); ctx.stroke(); ctx.setLineDash([]);
+        const fs = mobile ? 12 : 13;
+        label(`เกณฑ์ ±${(data.axis.margin * 100).toFixed(1)} จุดที่ตั้งไว้ก่อนเริ่ม`, AX(0), axis.yc - axis.bh / 2 - 10, `${fs}px Sarabun`, '#9fe0d6', 'center');
+        [-15, -10, -5, 0, 5, 10, 15].forEach((t) => label(t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0', AX(t / 100), axis.yc + axis.bh / 2 + 20, `${fs}px Sarabun`, '#a9cbc6', 'center'));
+        label('ไฟล์เดียวดีกว่า', axis.x0, axis.yc + axis.bh / 2 + 40, `${fs}px Sarabun`, '#a9cbc6', 'left');
+        label('Skills ดีกว่า', axis.x1, axis.yc + axis.bh / 2 + 40, `${fs}px Sarabun`, '#a9cbc6', 'right');
+        ctx.globalAlpha = 1;
       }
-      // นับยอดใบแจ้งหนี้เมื่อฉากเข้าจอ
-      const runCount = (el: HTMLElement) => {
-        const from = Number(el.dataset.from), to = Number(el.dataset.to), t0 = performance.now(), dur = 1400;
-        el.textContent = String(from);
-        const step = (t: number) => { const k = Math.min(1, (t - t0 - 500) / dur); const e = k <= 0 ? 0 : 1 - Math.pow(1 - k, 3); el.textContent = String(Math.round(from + (to - from) * e)); if (k < 1) requestAnimationFrame(step); };
-        requestAnimationFrame(step);
-      };
-      const io = new IntersectionObserver((entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          e.target.classList.add('in');
-          e.target.querySelectorAll<HTMLElement>('.count').forEach(runCount);
-          io.unobserve(e.target);
+
+      // จุด
+      for (const k of order) {
+        const p = pts[k];
+        const e1 = ease(clamp((q - 0.02 - p.dl * 0.1) / 0.18));
+        let x = lerp(p.hx, p.gx, e1), y = lerp(p.hy, p.gy, e1);
+        if (wob && e1 < 1) { x += Math.sin(now * 0.0009 + k) * 1.6 * (1 - e1); y += Math.cos(now * 0.0011 + k * 1.7) * 1.6 * (1 - e1); }
+        let sz = lerp(heapSz * p.hs, dotSz, e1);
+        let rot = p.hr * (1 - e1);
+        let a = lerp(heroFade * (0.5 + 0.5 * (p.hs - 0.7) / 0.75), 1, e1);
+        if (p.s < 2) a *= (1 - 0.72 * fade12) * (1 - ans);
+        else if (!p.g) a *= 1 - ans;
+        else {
+          const e3 = ease(clamp((q - 0.66 - p.dl * 0.05) / 0.13));
+          x = lerp(x, p.ax, e3);
+          y = lerp(y, axis.yc + p.jy * axis.bh * (0.55 - 0.36 * lineP), e3);
+          sz = lerp(sz, dotSz * 0.85, e3);
+          a *= 1 - 0.15 * lineP;
+          sz = lerp(sz, dotSz * 0.7, lineP);
         }
-      }, { threshold: 0.28 });
-      document.querySelectorAll('[data-scene]:not(.s1)').forEach((s) => io.observe(s));
-      document.querySelectorAll<HTMLElement>('.count').forEach((el) => { el.textContent = el.dataset.from ?? ''; });
-    } else {
-      document.querySelectorAll('[data-scene]').forEach((s) => s.classList.add('in'));
+        if (a < 0.01) continue;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = p.c;
+        if (rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillRect(-sz / 2, -sz / 2, sz, sz); ctx.restore(); }
+        else ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+      }
+      ctx.globalAlpha = 1;
+
+      // ป้ายชื่อตาราง
+      const la = clamp((q - 0.16) / 0.1);
+      if (la > 0) {
+        const fs = mobile ? 12 : 14;
+        grids.forEach((g) => {
+          const st = data.studies[g.s];
+          let a = la;
+          if (g.s < 2) a *= (1 - 0.5 * fade12) * (1 - ans); else a *= 1 - ans;
+          if (a <= 0) return;
+          ctx.globalAlpha = a;
+          label(`ชุดที่ ${st.n}`, g.x, g.top - 10, `600 ${fs}px "Noto Serif Thai"`, '#ecedf0');
+          if (!mobile || g.s === 2) label(`${st.usable} ครั้ง`, g.x + g.w, g.top - 10, `${fs - 1}px Sarabun`, '#8b95a7', 'right');
+          if (fade12 > 0) { ctx.globalAlpha = a * fade12; label(st.verdict, g.x, g.top + data.studies[g.s].rows * cell + fs + 8, `600 ${fs}px Sarabun`, g.s === 2 ? '#3fb3a6' : '#8b95a7'); }
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      // เส้นช่วงและจุดผล
+      if (lineP > 0) {
+        const [c0, c1] = data.axis.ci;
+        const xl = AX(c0), xr = AX(c1), mid = (xl + xr) / 2;
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = mobile ? 2.5 : 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(lerp(mid, xl, lineP), axis.yc); ctx.lineTo(lerp(mid, xr, lineP), axis.yc); ctx.stroke();
+      }
+      if (ptP > 0) {
+        ctx.beginPath(); ctx.arc(AX(data.axis.diff), axis.yc, (mobile ? 8 : 10) * ptP, 0, Math.PI * 2);
+        ctx.fillStyle = '#3fb3a6'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#0e131c'; ctx.stroke();
+      }
+    }
+
+    // ---------- แผงที่ขยับตามการเลื่อน ----------
+    const scrubs = [...document.querySelectorAll<HTMLElement>('[data-scrub]')];
+    const pin = document.querySelector<HTMLElement>('[data-pin]');
+    const wide = window.matchMedia('(min-width: 900px) and (min-height: 640px)');
+    const count = document.querySelector<HTMLElement>('.count');
+    const rate = document.querySelector<HTMLElement>('.rate');
+    function scrub() {
+      if (reduce) return;
+      const vh = window.innerHeight;
+      const pinned = wide.matches && pin;
+      if (pinned) {
+        const r = pin.getBoundingClientRect();
+        pin.style.setProperty('--p', String(clamp(-r.top / Math.max(1, r.height - vh)) * 1.15));
+      }
+      for (const el of scrubs) {
+        if (pinned && el.dataset.scrub === 'way') { el.style.removeProperty('--p'); continue; }
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--p', String(clamp((vh * 0.92 - r.top) / (vh * 0.55))));
+      }
+      if (count && rate) {
+        const st = count.closest<HTMLElement>('[data-scrub]')!;
+        const t = clamp((Number(st.style.getPropertyValue('--p')) - 0.35) / 0.5);
+        const from = Number(count.dataset.from), to = Number(count.dataset.to);
+        count.textContent = String(Math.round(from + (to - from) * ease(t)));
+        rate.textContent = t > 0.02 ? rate.dataset.to! : rate.dataset.from!;
+        st.classList.toggle('changed', t > 0.02);
+      }
+    }
+
+    // ---------- วนวาด ----------
+    let raf = 0;
+    const heroVisible = () => window.scrollY < hero.offsetTop + hero.offsetHeight + window.innerHeight;
+    function frame(now: number) {
+      raf = 0;
+      scrub();
+      draw(now);
+      if (!reduce && heroVisible()) raf = requestAnimationFrame(frame);
+    }
+    const kick = () => { if (!raf) raf = requestAnimationFrame(frame); };
+    if (ctx) {
+      layout();
+      new ResizeObserver(() => { layout(); kick(); }).observe(canvas);
+      document.fonts?.ready.then(kick);
+    }
+    window.addEventListener('scroll', kick, { passive: true });
+    window.addEventListener('resize', kick);
+    kick();
+
+    // พิมพ์คำสั่งของผู้ใช้ทีละตัวอักษรเมื่อหน้าจอ terminal เข้าจอ ตัดตามกลุ่มตัวอักษรไทยไม่ให้สระลอย
+    const term = document.querySelector<HTMLElement>('.term');
+    const type = document.querySelector<HTMLElement>('.type');
+    if (!reduce && term && type) {
+      const text = type.dataset.text ?? '';
+      const seg = 'Segmenter' in Intl ? [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(text)].map((s) => s.segment) : [...text];
+      type.textContent = '';
+      const io = new IntersectionObserver((es) => {
+        if (!es.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        let n = 0;
+        const tick = () => { n++; type.textContent = seg.slice(0, n).join(''); if (n < seg.length) setTimeout(tick, 30); else term.classList.add('typed'); };
+        setTimeout(tick, 300);
+      }, { threshold: 0.5 });
+      io.observe(term);
     }
   </script>
 </Base>
 <style>
-  /* โลกของหน้า: ห้องมืดของคนดูจอ ตัวอักษรขาวนวล เขียวหัวเป็ดคือผลหลัก ส้มอิฐคือสิ่งที่พลาด */
-  .story { --bg: #0e131c; --bg2: #141b27; --fg: #ecedf0; --fg2: #b4bccb; --fg3: #8b95a7; --line: #2a3344; --teal-l: #3fb3a6; --brick-l: #e0874f; margin-inline: calc(50% - 50vw); background: var(--bg); color: var(--fg); overflow: hidden; }
+  /* โลกของหน้า: ห้องมืดที่มีกองหลักฐานอยู่ข้างหลัง แผงแต่ละฉากเป็นวัสดุของตัวเอง กระดาษ เขียวหัวเป็ดเข้ม อิฐ และเขียวสว่าง */
+  .story { --bg: #0e131c; --fg: #ecedf0; --fg2: #b4bccb; --fg3: #8b95a7; --line: #2a3344; --teal-l: #3fb3a6; --brick-l: #e0874f; --ease: cubic-bezier(0.16, 1, 0.3, 1); margin-inline: calc(50% - 50vw); background: var(--bg); color: var(--fg); overflow-x: clip; position: relative; }
   .story ::selection { background: var(--teal-l); color: #0e131c; }
-  .scene { position: relative; min-height: 100svh; display: flex; align-items: center; padding: clamp(4rem, 9vw, 7rem) 1.25rem; border-top: 1px solid var(--line); }
-  .s1 { border-top: 0; padding-top: clamp(2.5rem, 6vw, 4rem); }
+  .stage { position: sticky; top: 0; height: 100svh; margin-bottom: -100svh; z-index: 0; pointer-events: none; }
+  .stage canvas { display: block; width: 100%; height: 100%; }
+  :global(html:not(.cv)) .stage { display: none; }
+  .story > section { position: relative; z-index: 1; }
   .wrap { width: 100%; max-width: var(--wide); margin: 0 auto; }
-  .story h2 { color: var(--fg); font-size: clamp(1.8rem, 5vw, 3.1rem); line-height: 1.3; margin: 0 0 1.25rem; max-width: 22ch; }
-  .story h3 { color: var(--fg); font-size: 1.3rem; margin: 0 0 0.8rem; }
+  .story h2, .story h3 { color: var(--fg); }
+  .story h2 { font-size: clamp(1.9rem, 5vw, 3.2rem); line-height: 1.3; margin: 0 0 1.25rem; max-width: 20ch; }
+  .story h3 { font-size: 1.3rem; margin: 0 0 0.8rem; display: flex; align-items: center; gap: 0.6rem; }
   .story p { color: var(--fg2); }
   .story b { color: var(--fg); font-weight: 600; }
   .story a { color: var(--teal-l); text-underline-offset: 3px; }
+  .story a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
   .sub { font-size: clamp(1.05rem, 2vw, 1.2rem); line-height: 1.8; max-width: 44rem; }
   .small { font-size: 0.98rem; }
   .nw { white-space: nowrap; }
   .mono { font-family: var(--mono); }
+  .numeral { font-family: var(--serif); font-weight: 200; font-size: clamp(4.5rem, 15vw, 8.5rem); line-height: 1; letter-spacing: -0.03em; color: #fff !important; margin: 0 0 0.25rem; font-variant-numeric: lining-nums; }
+  .numeral span { font-size: 0.3em; font-weight: 500; letter-spacing: 0; margin-left: 0.3em; }
 
-  .btn { display: inline-block; padding: 0.8rem 1.5rem; background: var(--teal-l); color: #0b1016 !important; font-weight: 600; text-decoration: none; border-radius: 3px; transition: background 0.2s, transform 0.2s; }
+  /* ป้ายบอกรหัสจริง ใช้เฉพาะชื่อที่มีในข้อมูล */
+  .tag { display: inline-block; font-family: var(--mono); font-size: 0.78rem; font-weight: 500; line-height: 1.3; padding: 0.3rem 0.7rem; border-radius: 999px; transform: rotate(-3deg); white-space: nowrap; letter-spacing: 0; }
+  .t-dark { background: #161b26; color: #ecedf0; }
+  .t-brick { background: #b4561c; color: #fff; }
+  .t-blue { background: #2f4f86; color: #fff; transform: rotate(2deg); }
+  .t-teal { background: var(--teal-l); color: #0b1016; transform: rotate(-2deg); }
+  .t-cream { background: #fbefe4; color: #6b2a0c; font-family: var(--sans); font-size: 0.85rem; margin-left: 0.3rem; }
+
+  .btn { display: inline-flex; align-items: center; min-height: 48px; padding: 0.8rem 1.6rem; background: var(--teal-l); color: #0b1016 !important; font-weight: 600; text-decoration: none; border-radius: 999px; transition: background 0.2s, transform 0.2s var(--ease); }
   .btn:hover { background: #5fcabd; }
   .btn:active { transform: translateY(1px); }
-  .btn.ghost { background: transparent; color: var(--fg) !important; box-shadow: inset 0 0 0 1px #4a5568; }
-  .btn.ghost:hover { box-shadow: inset 0 0 0 1px var(--fg); }
-  .story a:focus-visible { outline: 2px solid var(--teal-l); outline-offset: 3px; }
 
-  .s1-in { width: 100%; max-width: var(--wide); margin: 0 auto; display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
-  @media (min-width: 1000px) { .s1-in { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 4rem; } }
-  .title { color: #fff; font-size: clamp(2.3rem, 7.5vw, 4.6rem); line-height: 1.22; margin: 0; letter-spacing: -0.01em; }
+  /* ---------- ฉากเปิด: ตัวหนังสืออยู่หน้ากองจุด ---------- */
+  .hero { min-height: 100svh; display: flex; align-items: center; padding: clamp(2rem, 6vw, 4rem) 1.25rem clamp(3rem, 8vh, 5rem); }
+  .hero-in { width: 100%; max-width: var(--wide); margin: 0 auto; }
+  .hero-in > * { max-width: 36rem; }
+  .title { color: #fff; font-size: clamp(2.5rem, 8vw, 5.4rem); line-height: 1.2; margin: 0; letter-spacing: -0.015em; max-width: 12ch !important; text-shadow: 0 2px 24px rgba(14, 19, 28, 0.9); }
   .title .accent { color: var(--teal-l); }
-  .lead { font-size: clamp(1.1rem, 2.2vw, 1.35rem); line-height: 1.75; margin-top: 1.5rem; max-width: 34rem; }
-  .cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 2rem 0 1.75rem; }
-  .byline { font-size: 0.92rem; line-height: 1.7; color: var(--fg) !important; }
+  .lead { font-size: clamp(1.1rem, 2.2vw, 1.35rem); line-height: 1.75; margin-top: 1.5rem; text-shadow: 0 1px 14px rgba(14, 19, 28, 0.95); }
+  .hero-act { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin: 2rem 0 1.75rem; }
+  .story .quick { margin: 0; font-size: 1rem; line-height: 1.6; color: var(--fg); text-shadow: 0 1px 12px rgba(14, 19, 28, 0.95); }
+  .quick b { color: var(--teal-l); margin-right: 0.35rem; }
+  .quick a { white-space: nowrap; margin-left: 0.35rem; }
+  .byline { font-size: 0.92rem; line-height: 1.7; color: var(--fg) !important; text-shadow: 0 1px 12px rgba(14, 19, 28, 0.95); }
   .byline span { display: block; color: var(--fg3); }
-  .term { margin: 0; background: #0a0e15; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7); overflow: hidden; }
-  .term-bar { display: flex; align-items: center; gap: 0.4rem; margin: 0; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--line); font-size: 0.82rem; color: var(--fg3) !important; }
-  .term-bar i { width: 0.6rem; height: 0.6rem; border-radius: 50%; background: #2c3546; }
-  .term-bar span { margin-left: 0.5rem; font-family: var(--mono); }
-  .term-body { padding: 1.1rem 1.1rem 1.25rem; display: grid; gap: 0.55rem; align-content: start; min-height: 15rem; }
-  .t-line { margin: 0; display: grid; grid-template-columns: 3.2rem 1fr; gap: 0.6rem; font-size: 0.95rem; line-height: 1.6; overflow-wrap: anywhere; }
+  .story .heap-note { font-size: 0.85rem; color: var(--fg3); margin: 0; }
+  :global(html:not(.cv)) .heap-note { display: none; }
+  @media (max-width: 899px) {
+    .hero { align-items: flex-start; padding-top: 1.75rem; }
+    .hero-in { display: flex; flex-direction: column; min-height: calc(100svh - 7rem); }
+    .heap-note { order: 9; margin-top: auto !important; }
+    .byline { display: none; }
+    .story .heap-note { color: var(--fg2); background: rgba(14, 19, 28, 0.86); padding: 0.55rem 0.85rem; border-radius: 12px; box-shadow: 0 0 0 1px var(--line); }
+  }
+
+  /* ---------- แผง: เลื่อนทับกองจุดขึ้นมา ---------- */
+  .panel { margin: 0 clamp(0.6rem, 2vw, 1.5rem); border-radius: clamp(20px, 3vw, 36px); padding: clamp(3.5rem, 8vw, 6.5rem) clamp(1.1rem, 4vw, 3.5rem); box-shadow: 0 -30px 80px -30px rgba(0, 0, 0, 0.75); }
+  .panel + .panel, .seq + .panel { margin-top: clamp(0.6rem, 2vw, 1.5rem); }
+
+  /* ปัญหา: กระดาษ */
+  .paper { --ink: #161b26; background-color: #f4f1ea; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.25 0 0 0 0 0.2 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); color: var(--ink); }
+  .story .paper h2 { color: var(--ink); }
+  .story .paper .copy p { color: #3f4756; }
+  .story .paper b { color: var(--ink); }
+  .two { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
+  @media (min-width: 980px) { .two { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 4rem; } }
+  .copy p { font-size: clamp(1.05rem, 2vw, 1.2rem); line-height: 1.8; max-width: 34rem; }
+  .evidence { display: grid; gap: 1.25rem; }
+  .term { position: relative; margin: 0; background: #0e131c; border-radius: 14px; box-shadow: 0 30px 60px -28px rgba(22, 27, 38, 0.65); }
+  .term .tag { position: absolute; top: -0.85rem; right: 1rem; }
+  .story .term-bar { margin: 0; padding: 0.7rem 1.1rem; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 0.8rem; color: var(--fg3); }
+  .term-body { padding: 1rem 1.1rem 1.2rem; display: grid; gap: 0.5rem; align-content: start; }
+  .t-line { margin: 0; display: grid; grid-template-columns: 3rem 1fr; gap: 0.6rem; font-size: 0.93rem; line-height: 1.6; overflow-wrap: anywhere; }
   .t-tag { font-size: 0.78rem; color: var(--fg3); padding-top: 0.15rem; }
-  .story .t-line.user { color: #fff; font-size: 1.02rem; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--line); }
+  .story .t-line { color: var(--fg2); }
+  .story .t-line.user { color: #fff; font-size: 1rem; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--line); }
   .t-line.user .t-tag { color: var(--teal-l); }
   .story .t-line.ok { color: #9fe0d6; }
   .story .t-line.warn { color: var(--brick-l); font-weight: 600; }
   .t-line.warn .t-tag { color: var(--brick-l); }
-  .term figcaption { font-size: 0.82rem; color: var(--fg3); padding: 0 1.1rem 0.9rem; }
-  .cue { position: absolute; left: 50%; bottom: 1.25rem; width: 1.6rem; height: 2.6rem; margin-left: -0.8rem; border: 1.5px solid #4a5568; border-radius: 1rem; }
-  .cue span { position: absolute; left: 50%; top: 0.5rem; width: 3px; height: 0.55rem; margin-left: -1.5px; background: var(--fg2); border-radius: 2px; }
-  @media (max-width: 999px) { .cue { display: none; } }
-
-  .two { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
-  @media (min-width: 980px) { .two { grid-template-columns: minmax(0, 1fr) 27rem; gap: 4rem; } }
-  .copy p { font-size: clamp(1.05rem, 2vw, 1.2rem); line-height: 1.8; max-width: 36rem; }
-  .inv-stage { margin: 0; display: grid; gap: 1rem; }
-  .inv { background: #f7f6f2; color: #161b26; padding: 1.1rem 1.4rem; border-radius: 3px; box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.8); }
-  .inv.after { box-shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.8), 0 0 0 2px var(--brick-l); transform: translateX(1.5rem); }
+  .inv-stage { margin: 0; }
+  .inv { position: relative; background: #fffdf8; color: #161b26; padding: 1.1rem 1.4rem 1.2rem; border-radius: 4px; box-shadow: 0 1px 2px rgba(22, 27, 38, 0.12), 0 22px 40px -22px rgba(22, 27, 38, 0.45); transform: rotate(-1.2deg); transition: box-shadow 0.4s; }
+  .changed .inv { box-shadow: 0 1px 2px rgba(22, 27, 38, 0.12), 0 22px 40px -22px rgba(22, 27, 38, 0.45), 0 0 0 2px #b4561c; }
   .story .inv-h { font-family: var(--serif); font-weight: 600; margin: 0 0 0.5rem; color: #161b26; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
   .inv-h span { font-family: var(--sans); font-weight: 400; font-size: 0.85rem; color: #6a7180; }
-  .inv-h .stamp { color: #b4561c; font-weight: 700; border: 2px solid #b4561c; padding: 0 0.5rem; border-radius: 3px; transform: rotate(-4deg); }
   .inv dl { display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 1rem; margin: 0; padding-bottom: 0.5rem; border-bottom: 1px solid #d6d8dd; }
-  .inv dd { margin: 0; text-align: right; }
-  .story .inv b { color: inherit; }
-  .story .after dd b { color: #b4561c; }
-  .story .inv-t { margin: 0.5rem 0 0; display: flex; justify-content: space-between; color: #161b26; }
-  .inv-t b { font-family: var(--serif); font-size: 1.6rem; font-variant-numeric: tabular-nums; }
-  .story .after .inv-t b { color: #b4561c; }
-  .inv-stage figcaption { font-size: 0.85rem; color: var(--fg3); }
-  @media (max-width: 640px) { .inv.after { transform: none; } }
+  .inv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+  .changed .rate { color: #b4561c; font-weight: 600; }
+  .story .inv-t { margin: 0.5rem 0 0; display: flex; justify-content: space-between; align-items: baseline; color: #161b26; }
+  .inv-t b { font-family: var(--serif); font-size: 1.9rem; font-variant-numeric: tabular-nums; }
+  .story .changed .inv-t b { color: #b4561c; }
+  .inv .tag { position: absolute; right: 1rem; bottom: -0.9rem; opacity: 1; transition: opacity 0.3s, transform 0.4s var(--ease); }
+  :global(.motion) .inv-stage:not(.changed) .inv .tag { opacity: 0; transform: rotate(-3deg) scale(1.3); }
+  .inv-stage figcaption { font-size: 0.85rem; color: #5a6270; margin-top: 1.6rem; }
 
+  /* สองแบบ: เขียวหัวเป็ดเข้ม จอใหญ่ตรึงไว้ระหว่างเลื่อน */
+  .deep { background: #0b3a38; }
+  .story .deep p { color: #b9d6d2; }
+  .story .deep .note { color: #9cc4bf; }
+  .story .deep a { color: #8fe3d8; }
+  @media (min-width: 900px) and (min-height: 640px) {
+    .deep { height: 240svh; padding-block: 0; }
+    .pin-in { position: sticky; top: 0; min-height: 100svh; display: flex; align-items: center; padding-block: 4.5rem 3rem; }
+  }
   .ways { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); margin: 2rem 0 1.5rem; }
   @media (min-width: 900px) { .ways { grid-template-columns: 1fr 1fr; gap: 3rem; } }
-  .ctx { border: 1.5px solid #3a4558; border-radius: 6px; padding: 0.9rem; min-height: 13rem; background: var(--bg2); }
-  .story .ctx-h { font-size: 0.82rem; color: var(--fg3); margin: 0 0 0.6rem; }
-  .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-  .chip { font-size: 0.88rem; padding: 0.3rem 0.6rem; border-radius: 3px; line-height: 1.4; }
+  .ctx { border: 1.5px solid #2c6a65; border-radius: 16px; padding: 1rem; min-height: 11rem; background: rgba(5, 25, 24, 0.55); }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+  .chip { font-size: 0.88rem; padding: 0.35rem 0.75rem; border-radius: 999px; line-height: 1.4; }
   .chip.all { background: #2f4f86; color: #fff; }
-  .chip.base { background: #0b6e69; color: #fff; }
-  .chip.desc { border: 1px dashed var(--teal-l); color: #9fe0d6; }
+  .chip.base { background: #e6f3f1; color: #0b3a38; }
+  .chip.desc { box-shadow: inset 0 0 0 1px #6fc9be; color: #c7ebe6; }
   .chip.open { background: var(--teal-l); color: #0b1016; font-size: 0.8rem; }
-  .shelf { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.8rem; }
-  .card { font-size: 0.8rem; padding: 0.3rem 0.6rem; border-radius: 3px; border: 1px solid #3a4558; color: var(--fg3); }
-  .card.need { border-color: var(--teal-l); color: #9fe0d6; }
+  .shelf { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.8rem; }
+  .card { font-size: 0.8rem; padding: 0.3rem 0.7rem; border-radius: 999px; box-shadow: inset 0 0 0 1px #2c6a65; color: #9cc4bf; }
+  .card.need { box-shadow: inset 0 0 0 1px var(--teal-l); color: #c7ebe6; }
+  .card.idle { box-shadow: none; outline: 1px dashed #5f8f8a; outline-offset: -1px; color: #b9d6d2; }
+  .idle-l { font-family: var(--sans); font-size: 0.78rem; color: #9cc4bf; }
   .note { font-size: 0.95rem; margin-top: 0.75rem; }
+  /* ค่า --p มาจากการเลื่อน ถ้าไม่มีจะเป็น 1 คือสถานะสุดท้าย */
+  .chip.all { --k: clamp(0, (var(--p, 1) - 0.04 - var(--i) * 0.035) * 4, 1); opacity: var(--k); transform: translateY(calc((1 - var(--k)) * -56px)) rotate(calc((1 - var(--k)) * var(--r) * 3deg)); }
+  .chip.base, .chip.desc { --k: clamp(0, (var(--p, 1) - 0.04 - var(--i) * 0.05) * 4, 1); opacity: var(--k); transform: translateY(calc((1 - var(--k)) * -40px)); }
+  .chip.open { --k: clamp(0, (var(--p, 1) - 0.5 - var(--j) * 0.1) * 4, 1); opacity: var(--k); transform: translateY(calc((1 - var(--k)) * 16px)) scale(calc(0.9 + var(--k) * 0.1)); }
+  .card.need { --k: clamp(0, (var(--p, 1) - 0.5 - var(--j) * 0.1) * 4, 1); opacity: calc(1 - var(--k) * 0.6); }
 
-  .field { display: flex; flex-wrap: wrap; gap: 1.5rem 2rem; align-items: flex-end; margin: 2.25rem 0 1.25rem; }
-  .blk { margin: 0; }
-  .blk figcaption { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.88rem; color: var(--fg3); margin-bottom: 0.45rem; }
-  .story .blk figcaption a { color: var(--fg); text-decoration: none; }
-  .blk figcaption b { font-family: var(--serif); }
-  .grid { display: grid; grid-template-columns: repeat(var(--cols), 0.62rem); gap: 2px; }
-  .d { display: block; width: 0.62rem; height: 0.62rem; border-radius: 1px; }
-  .d.gap { margin-left: 3px; }
-  @media (max-width: 640px) { .grid { grid-template-columns: repeat(var(--cols), 0.44rem); } .d { width: 0.44rem; height: 0.44rem; } .field { gap: 1.25rem; } }
-  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; font-size: 0.92rem; }
-  .lg { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 1px; }
-  .lg.hi { background: #3fb3a6; } .lg.lo { background: #d9733a; margin-left: 0.6rem; }
-
-  .story .big { font-size: clamp(2rem, 6vw, 3.6rem); max-width: none; }
+  /* ---------- การทดลอง: ไม่มีแผง ให้เห็นกองจุดเต็มจอ ---------- */
+  .seq { padding: 0 1.25rem; }
+  .beat { min-height: 100svh; display: flex; align-items: center; max-width: var(--wide); margin: 0 auto; }
+  .beat.tail { min-height: 45svh; }
+  .beat > .slab { background: rgba(14, 19, 28, 0.78); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 22px; padding: 1.5rem 1.6rem; box-shadow: 0 0 0 1px var(--line); max-width: 29rem; }
+  .beat h2 { font-size: clamp(1.6rem, 4vw, 2.4rem); }
+  .beat p { font-size: 1.02rem; line-height: 1.75; }
+  .beat .numeral { font-size: clamp(4.5rem, 12vw, 7.5rem); }
   .eq { color: var(--teal-l); padding: 0 0.15em; }
-  .must { color: var(--brick-l); padding-left: 0.15em; }
-  .story .but { margin-top: 4rem; }
-  .axis { margin: 1.5rem 0 0; max-width: 46rem; }
+  .answer .numeral { color: var(--teal-l) !important; }
+  :global(html.cv) .beat.answer > .slab { background: none; backdrop-filter: none; -webkit-backdrop-filter: none; box-shadow: none; }
+  :global(html.cv) .story .answer .slab p { color: #c7e3df; }
+  .links { display: flex; gap: 1rem; }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.5rem; font-size: 0.95rem; }
+  .lg { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 2px; }
+  .lg.hi { background: #3fb3a6; } .lg.lo { background: #d9733a; margin-left: 0.5rem; }
+  @media (max-width: 899px) {
+    .beat { align-items: flex-end; padding-bottom: 4svh; }
+    .beat > .slab { padding: 1.2rem 1.25rem; }
+    .beat .numeral { font-size: clamp(3.6rem, 18vw, 5rem); }
+  }
+  /* รูปนิ่งเมื่อไม่มี canvas */
+  :global(html.cv) .fb { display: none; }
+  :global(html:not(.cv)) .beat { min-height: auto; padding: 3rem 0; }
+  :global(html:not(.cv)) .beat > .slab { max-width: 44rem; }
+  .field { display: flex; flex-wrap: wrap; gap: 1.25rem 1.5rem; align-items: flex-end; margin: 1.5rem 0 0; }
+  .blk { margin: 0; }
+  .blk figcaption { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; color: var(--fg3); margin-bottom: 0.4rem; }
+  .grid { display: grid; grid-template-columns: repeat(var(--cols), 0.44rem); gap: 2px; }
+  .d { display: block; width: 0.44rem; height: 0.44rem; border-radius: 1px; }
+  .d.gap { margin-left: 3px; }
+  .axis { margin: 1.25rem 0 0; }
   .axis svg { width: 100%; overflow: visible; font-family: var(--sans); }
   .band { fill: rgba(63, 179, 166, 0.16); stroke: var(--teal-l); stroke-width: 1.5; }
-  .band-t { fill: #9fe0d6; font-size: 13px; }
+  .band-t { fill: #9fe0d6; font-size: 16px; }
   .zero { stroke: #5a6578; stroke-dasharray: 3 4; }
-  .ci { stroke: #fff; stroke-width: 6; stroke-linecap: round; }
+  .ci { stroke: #fff; stroke-width: 7; stroke-linecap: round; }
   .pt { fill: var(--teal-l); stroke: #0e131c; stroke-width: 3; }
-  .tick { fill: var(--fg3); font-size: 13px; }
-  .dir { fill: var(--fg3); font-size: 12px; }
-  @media (max-width: 640px) { .band-t { font-size: 20px; } .tick { font-size: 19px; } .dir { font-size: 18px; } .ci { stroke-width: 8; } .pt { r: 12; } }
-  .axis figcaption { font-size: 1rem; line-height: 1.75; color: var(--fg2); margin-top: 0.5rem; max-width: 44rem; }
-  .bars { display: grid; gap: 0.7rem; margin: 1.75rem 0 1rem; max-width: 46rem; }
+  .tick { fill: var(--fg3); font-size: 16px; }
+  .dir { fill: var(--fg3); font-size: 15px; }
+
+  /* ---------- ต้องมีกฎ: อิฐ ---------- */
+  .brick { background: #7c3414; }
+  .story .brick h2 { color: #fff; }
+  .story .brick p { color: #f6d9c6; }
+  .versus { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.5rem; margin: 1.5rem 0 2.25rem; }
+  .vs-item { display: flex; flex-direction: column; }
+  .vs-item .numeral { margin: 0; }
+  .vs-item .to { font-size: 0.3em; font-weight: 500; margin: 0 0.35em; letter-spacing: 0; }
+  .vs-item .pc { font-size: 0.45em; font-weight: 300; margin-left: 0.08em; letter-spacing: 0; }
+  .vs-l { font-size: 1rem; color: #f6d9c6; margin-top: 0.4rem; }
+  .vs-arrow { width: clamp(2.5rem, 6vw, 4rem); color: #f6d9c6; }
+  .bars { display: grid; gap: 0.75rem; margin: 0 0 1.25rem; max-width: 46rem; }
   .bar-row { display: grid; grid-template-columns: 11rem 1fr 4rem; gap: 0.8rem; align-items: center; }
-  .bar-l { font-size: 0.98rem; color: var(--fg); }
-  .bar-t { height: 1.1rem; background: #1b2331; border-radius: 2px; overflow: hidden; }
-  .bar-t i { display: block; height: 100%; width: var(--w); background: var(--teal-l); transform-origin: left; }
-  .none .bar-t i { background: var(--brick-l); }
-  .bar-v { font-family: var(--serif); font-variant-numeric: tabular-nums; text-align: right; }
+  .bar-l { font-size: 0.98rem; color: #fff; }
+  .bar-t { height: 0.85rem; background: rgba(255, 255, 255, 0.14); border-radius: 999px; overflow: hidden; }
+  .bar-t i { display: block; height: 100%; width: var(--w); background: #fbefe4; border-radius: 999px; transform-origin: left; transform: scaleX(clamp(0, var(--p, 1) * 1.6, 1)); }
+  .none .bar-t i { background: transparent; box-shadow: inset 0 0 0 2px #fbefe4; }
+  .story .bar-v { font-family: var(--serif); font-variant-numeric: tabular-nums; text-align: right; color: #fff; }
   @media (max-width: 640px) { .bar-row { grid-template-columns: 1fr 3.6rem; } .bar-l { grid-column: 1 / -1; font-size: 0.92rem; } .bar-t { grid-column: 1; } }
 
-  .s6 { min-height: auto; }
-  .btn.xl { font-size: 1.15rem; padding: 1rem 2.2rem; margin: 1rem 0 2.5rem; }
-  .go { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--line); }
-  @media (min-width: 760px) { .go { grid-template-columns: 1fr 1fr; column-gap: 3rem; } }
-  .story .go a { display: flex; flex-direction: column; gap: 0.2rem; padding: 1rem 2rem 1rem 0; border-bottom: 1px solid var(--line); text-decoration: none; position: relative; }
-  .go a::after { content: ''; position: absolute; right: 0.4rem; top: 50%; width: 0.55rem; height: 0.55rem; border-top: 2px solid var(--fg3); border-right: 2px solid var(--fg3); transform: translateY(-50%) rotate(45deg); transition: transform 0.2s, border-color 0.2s; }
-  .go a:hover::after { transform: translate(4px, -50%) rotate(45deg); border-color: var(--teal-l); }
+  /* ---------- ไปต่อ: เขียวสว่าง ---------- */
+  .bright { background: #3fb3a6; margin-bottom: clamp(0.6rem, 2vw, 1.5rem); }
+  .story .bright h2, .story .bright b { color: #0b1016; }
+  .story .bright p { color: #0f3532; }
+  .big-go { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 2rem 0 1.5rem; padding: 0.4rem 0 1rem; border-bottom: 3px solid #0b1016; color: #0b1016 !important; text-decoration: none; font-family: var(--serif); font-weight: 600; font-size: clamp(2.2rem, 8vw, 5.2rem); line-height: 1.2; }
+  .big-go svg { width: clamp(3rem, 9vw, 6rem); flex: none; transition: transform 0.35s var(--ease); }
+  .big-go:hover svg { transform: translateX(10px); }
+  .go { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 2rem; }
+  @media (min-width: 760px) { .go { grid-template-columns: repeat(3, 1fr); } }
+  .story .go a { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.9rem 0; border-bottom: 1px solid rgba(11, 16, 22, 0.25); text-decoration: none; color: #0b1016; }
   .go b { font-family: var(--serif); font-size: 1.15rem; }
-  .go span { color: var(--fg3); font-size: 0.95rem; }
-  .go a:hover b { color: var(--teal-l); }
+  .go span { color: #0f3532; font-size: 0.95rem; }
+  .go a:hover b { text-decoration: underline; text-underline-offset: 4px; }
 
-  /* การเคลื่อนไหว ทำงานเฉพาะเมื่อมี class motion ที่ html */
-  :global(.motion) .cue span { animation: cue 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite; }
-  @keyframes cue { 0% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(0.9rem); } }
-  :global(.motion) .s1 .title, :global(.motion) .s1 .lead, :global(.motion) .s1 .cta, :global(.motion) .s1 .byline { animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  :global(.motion) .s1 .lead { animation-delay: 0.12s; }
-  :global(.motion) .s1 .cta { animation-delay: 0.22s; }
-  :global(.motion) .s1 .byline { animation-delay: 0.3s; }
-  :global(.motion) .s1 .term { animation: rise 1s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  /* ---------- การเคลื่อนไหวที่ไม่ผูกกับการเลื่อน ---------- */
+  :global(.motion) .hero-in > * { animation: rise 0.9s var(--ease) both; }
+  :global(.motion) .hero-in > :nth-child(2) { animation-delay: 0.12s; }
+  :global(.motion) .hero-in > :nth-child(3) { animation-delay: 0.22s; }
+  :global(.motion) .hero-in > :nth-child(n + 4) { animation-delay: 0.32s; }
   @keyframes rise { from { opacity: 0; transform: translateY(18px); filter: blur(6px); } }
-  :global(.motion) .t-line.step { opacity: 0; transform: translateX(-6px); transition: opacity 0.4s, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transition-delay: calc(var(--i) * 420ms + 200ms); }
+  :global(.motion) .t-line.step { opacity: 0; transform: translateX(-6px); transition: opacity 0.4s, transform 0.4s var(--ease); transition-delay: calc(var(--i) * 380ms + 150ms); }
   :global(.motion) .term.typed .t-line.step { opacity: 1; transform: none; }
   :global(.motion) .type::after { content: ''; display: inline-block; width: 0.5em; height: 1.05em; margin-left: 2px; vertical-align: -0.15em; background: var(--teal-l); animation: blink 1s steps(1) infinite; }
   :global(.motion) .typed .type::after { display: none; }
   @keyframes blink { 50% { opacity: 0; } }
-
-  :global(.motion) [data-scene] h2, :global(.motion) [data-scene] .sub, :global(.motion) [data-scene] .copy p { transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), filter 0.8s; }
-  :global(.motion) [data-scene]:not(.in) h2, :global(.motion) [data-scene]:not(.in) .sub, :global(.motion) [data-scene]:not(.in) .copy p { opacity: 0; transform: translateY(16px); filter: blur(5px); }
-
-  :global(.motion) .inv { transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s; }
-  :global(.motion) .s2:not(.in) .inv { opacity: 0; transform: translateY(24px); }
-  :global(.motion) .s2:not(.in) .inv.after { transform: translate(1.5rem, 40px); }
-  :global(.motion) .inv.after { transition-delay: 0.25s; }
-  :global(.motion) .stamp { transition: opacity 0.3s 1.9s, transform 0.4s 1.9s cubic-bezier(0.16, 1, 0.3, 1); }
-  :global(.motion) .s2:not(.in) .stamp { opacity: 0; transform: rotate(-4deg) scale(1.6); }
-
-  :global(.motion) .chip.all { transition: opacity 0.5s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1); transition-delay: calc(var(--i) * 90ms + 300ms); }
-  :global(.motion) .s3:not(.in) .chip.all { opacity: 0; transform: translateY(-28px); }
-  :global(.motion) .chip.open { transition: opacity 0.5s, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1); transition-delay: calc(var(--i) * 260ms + 900ms); }
-  :global(.motion) .s3:not(.in) .chip.open { opacity: 0; transform: translateY(70px); }
-  :global(.motion) .card { transition: opacity 0.6s; transition-delay: calc(var(--i) * 260ms + 900ms); }
-  :global(.motion) .s3.in .card.need { opacity: 0.35; }
-
-  :global(.motion) .d { transition: transform 1.1s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s; transition-delay: var(--dl); }
-  :global(.motion) .s4:not(.in) .d { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.4); }
-
-  :global(.motion) .band { transform-box: fill-box; transform-origin: center; transition: transform 0.9s 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s 0.3s; }
-  :global(.motion) .s5:not(.in) .band { transform: scaleX(0.05); opacity: 0; }
-  :global(.motion) .ci { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1s 1.1s cubic-bezier(0.16, 1, 0.3, 1); }
-  :global(.motion) .s5:not(.in) .ci { stroke-dashoffset: 1; }
-  :global(.motion) .pt { transform-box: fill-box; transform-origin: center; transition: transform 0.5s 1.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s 1.9s; }
-  :global(.motion) .s5:not(.in) .pt { transform: scale(0); opacity: 0; }
-  :global(.motion) .eq { transition: opacity 0.6s 2.2s; }
-  :global(.motion) .s5:not(.in) .eq { opacity: 0.15; }
-  :global(.motion) .bar-t i { transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1); transition-delay: calc(var(--i) * 150ms + 0.5s); }
-  :global(.motion) .rules-block:not(.in) .bar-t i { transform: scaleX(0); }
 </style>

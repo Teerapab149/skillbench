@@ -24,7 +24,7 @@ Tokens are defined in `site/src/styles/global.css` (`:root`).
 
 Arm colors are used only when arms are compared side by side: A0 `#8a929e`, A1 `#2f4f86`, A2 `#0b6e69`, A3 `#7a5c99`, A4 `#a8506f`, A5 `#b7791f`. The same colors are used in the slides and the report figures.
 
-The landing page is the only dark surface: a six-scene story on ink (`#0e131c`) with light teal `#3fb3a6` and light brick `#e0874f` as the result and miss colors. Every other page stays on white paper.
+The landing page is the only dark surface: ink (`#0e131c`) behind a canvas of all 660 runs, with panels in paper, deep teal `#0b3a38`, brick `#7c3414` and bright teal `#3fb3a6`. Every other page stays on white paper.
 
 ## Type
 
@@ -65,7 +65,7 @@ The landing page is the only dark surface: a six-scene story on ink (`#0e131c`) 
 
 | Path | Content |
 |---|---|
-| `/` | dark scroll story in six scenes: the question with a real agent log, the invoice problem, the two ways of giving rules, all 660 runs, the answer, and Explore |
+| `/` | dark scroll story: the 660 real runs heaped behind the title, the invoice problem with a real agent log, the two ways of giving rules, the heap sorting into the three studies and collapsing into the answer, the rules finding, and Explore |
 | `/overview/` | the full overview: answer, three-study chart, invoice example, real rule files, findings, the three studies, links |
 | `/background/` | what context engineering and Agent Skills are, where they came from, with a dated timeline and sources |
 | `/study-1/`, `/study-2/`, `/study-3/` | design, flow diagram, primary result, per-scenario results, what changed next |
@@ -84,7 +84,30 @@ The landing page is the only dark surface: a six-scene story on ink (`#0e131c`) 
 
 ## Landing story and motion
 
-- `src/pages/index.astro` is a scroll story. Each scene is a `[data-scene]` section; an IntersectionObserver adds `.in` once, and CSS transitions run from that class. Motion only applies under `html.motion`, which the script sets unless the visitor prefers reduced motion. Without JavaScript or with reduced motion every scene shows its final state.
-- One authored moment per scene: the user prompt types out and the agent steps appear (scene 1), the invoice total counts from the old to the new amount (2), rule chips fall into the context box while only the needed skills rise into it (3), the 660 run dots fly into the three study grids (4), the equivalence band opens, the interval draws in and the estimate lands, then the rule bars grow (5).
-- All content is real: the terminal shows the files a real no-rules run changed on S09, the skills that move are S09's expected skills, and every number comes from `lib/data.ts`.
-- Easing is `cubic-bezier(0.16, 1, 0.3, 1)` throughout; no bounce.
+The landing (`src/pages/index.astro`) is built around one idea: the heap of evidence becomes the answer.
+
+- **One continuous object.** A sticky `<canvas>` behind the whole story draws all 660 real runs, colored from miss (`#d9733a`) to full compliance (`#3fb3a6`) by each run's real score. In the hero they lie in a loose heap of rotated tiles, with size and alpha giving depth and a slow wobble.
+- **Panels slide over the heap.** Each scene is a rounded panel with its own field, and the heap shows through between panels:
+  - problem: grained paper, holding the real S09 log and the invoice
+  - two ways: deep teal `#0b3a38`, pinned on desktop
+  - rules: brick `#7c3414`
+  - explore: bright teal `#3fb3a6`
+- **Scroll-scrubbed experiment.** `#experiment` has no panel. Its progress `q`, from 0 to 1, drives the canvas:
+  - 0.02 to 0.3: the heap sorts into the three study grids
+  - 0.38 to 0.48: studies 1 and 2 dim, and each grid shows its real verdict
+  - 0.64 to 0.72: the answer field and the ±12.5 band open
+  - 0.66 to 0.8: study 3's A1 and A2 runs fly into the band
+  - 0.8 to 0.88: those tiles flatten into the CI90 line
+  - 0.88 to 0.93: the estimate lands
+- **Text cards.** Text sits on dark cards. They are on the left on desktop and at the bottom on a phone, where the drawing uses the top half of the screen.
+- **Other scrubs.** CSS reads `--p` from scroll:
+  - rule chips fall into the context box
+  - the needed skills rise in while `safe-shell` stays on the shelf
+  - the invoice total runs from 200 to 250
+  - the rule bars grow together
+- **Display type.** Numerals are Noto Serif Thai 200 at up to 8.5rem: 660, +2.8 จุด, and 53.0% → 78.8 ถึง 83.3%. Headings stay Noto Serif Thai 600 to 700.
+- **Stickers.** Rotated pills that name only real identifiers (S09, A1, A2) and the "ข้อสังเกตเพิ่ม" label.
+- **Nav.** On the landing, the nav collapses to the brand plus one "สำรวจทั้งหมด" pill (`theme="story"` in `Base.astro`).
+- **Fallbacks.** With reduced motion, the canvas snaps to whole states (heap, grids, studies, answer) and `--p` stays at its final value. Without JavaScript, the canvas is hidden and static figures show instead.
+- **Easing.** `cubic-bezier(0.16, 1, 0.3, 1)` throughout, with no bounce.
+- **Hero answer line.** It states only the primary verdict.

@@ -237,6 +237,11 @@ body.story .mnav nav { background: #0e131c; border-bottom-color: #3fb3a6; }
 body.story .mnav nav a { color: #ecedf0; border-bottom-color: #2a3344; }
 body.story .mnav nav a[aria-current='page'] { color: #3fb3a6; }
 body.story .page { padding-top: 0; padding-bottom: 0; }
+body.story .masthead { border-bottom-color: transparent; }
+body.story .story-nav { margin-left: auto; }
+body.story .story-nav a { display: inline-flex; align-items: center; min-height: 40px; padding: 0.3rem 1rem; border-radius: 999px; color: #ecedf0; text-decoration: none; font-size: 0.95rem; box-shadow: inset 0 0 0 1px #4a5568; transition: box-shadow 0.2s, color 0.2s; }
+body.story .story-nav a:hover { box-shadow: inset 0 0 0 1px #3fb3a6; color: #fff; }
+body.story .story-nav a:focus-visible { outline: 2px solid #3fb3a6; outline-offset: 2px; }
 body.story .footer { background: #0a0e15; color: #8b95a7; border-top-color: #2a3344; margin-top: 0; }
 body.story .footer strong { color: #ecedf0; }
 body.story .footer a { color: #3fb3a6; }
