@@ -147,11 +147,44 @@ const demote = (md, by) => md.replace(/^(#{1,5}) /gm, (m, h) => '#'.repeat(Math.
 const stripComments = (md) => md.replace(/<!--[\s\S]*?-->/g, '');
 const fence = (txt) => '```text\n' + txt.replace(/```/g, "'''") + '\n```';
 /*
+ * รูปแบบเครื่องหมายของเล่ม: เนื้อความที่คัดจากเอกสารทำงานไม่ใช้จุดกึ่งกลาง ลูกศร em dash และตัวหนา
+ * แทนด้วยจุลภาค คำเชื่อม หรือช่องว่าง ไม่แตะบล็อกโค้ดและโค้ดใน backtick (ข้อความที่ส่งให้เอเจนต์ต้องตรงตัวอักษร)
+ */
+const ARROW_FIX = [
+  [/`src\/stats\.mjs → decidePrimary`/g, '`decidePrimary` ใน `src/stats.mjs`'],
+  [/(`study3-prereg`) → commit/g, '$1 หมายถึง commit'],
+  [/ในรอบใดรอบหนึ่ง → ทิ้ง/g, 'ในรอบใดรอบหนึ่ง ให้ทิ้ง'],
+  [/ชนเพดาน turn → นับ/g, 'ชนเพดาน turn ให้นับ'],
+  [/ที่แค่ค้นหา → จับเฉพาะ/g, 'ที่แค่ค้นหา จึงเปลี่ยนเป็นจับเฉพาะ'],
+  [/(ไม่(?:เสร็จ|สำเร็จ)(?:หลัง)?รอบแรก) → ((?:เสร็จ|สำเร็จ)(?:หลัง)?รอบ)/g, '$1แต่$2'],
+  [/((?:เสร็จ|สำเร็จ)รอบแรก) → (พัง)/g, '$1แต่$2'],
+  [/ → (\d{3})\b/g, ' ได้ $1'],
+  // รายการตัวตรวจที่แก้ในแผน: "ปัญหา → วิธีแก้"
+  [/^(\s+- \*\*S[^\n]*?) → /gm, '$1 แก้โดย'],
+];
+const plainSeg = (t) => t
+  .replace(/\*\*/g, '')
+  .replace(/ → /g, ' แล้ว ').replace(/[→←]/g, ' ')
+  .replace(/^(\s*)· /, '$1').replace(/ · /g, ', ').replace(/·/g, ', ')
+  .replace(/^(\s*)— /, '$1').replace(/\| —(?= \|)/g, '| -').replace(/ — /g, ' ').replace(/—/g, ' ')
+  // "+" ที่ใช้แทน "และ" (ไม่แตะเลขที่มีเครื่องหมายบวก เช่น +2.8)
+  .replace(/(^|[^\d\s(\[,=]) \+ (?!\d)/g, '$1 และ ');
+function plainMarks(md) {
+  for (const [re, to] of ARROW_FIX) md = md.replace(re, to);
+  let inFence = false;
+  return md.split('\n').map((line) => {
+    if (/^```/.test(line)) { inFence = !inFence; return line; }
+    if (inFence) return line;
+    line = line.replace(/` \+ `/g, '` และ `');
+    return line.split(/(`[^`]*`)/).map((x, i) => (i % 2 ? x : plainSeg(x))).join('');
+  }).join('\n');
+}
+/*
  * เก็บกวาดบทผลที่สคริปต์สร้าง (report/ch5*.md) ก่อนใส่ภาคผนวก — ไม่แก้ไฟล์ต้นทาง
  * ตัดป้ายสคริปต์ · ตัด ⚠️ · เลขหัวข้อ 5ค./5ก./5ข. → จ./ฉ.1./ฉ.2. · ป้ายวิธีของ CI แบบ bootstrap · หน่วยเกณฑ์เป็น "จุด"
  */
 function cleanResults(md, from, to) {
-  return md
+  return plainMarks(md
     .replace(/^\*เอกสารนี้สร้างอัตโนมัติ[^\n]*\*\s*$/gm, '')
     .replace(/^> ⚠️ ชุดนี้ใช้กฎสำรองของ Amendment 14 — ตัดรอบจาก 4 เหลือ 3 เท่ากันทุก arm/m,
       '> ชุดนี้ใช้ข้อมูล 3 รอบเท่ากันทุกกลุ่ม (แผนกำหนด 2–4 รอบ ส่วนเบี่ยงเบน D3 และ D6 อยู่ในภาคผนวก ข)')
@@ -163,7 +196,7 @@ function cleanResults(md, from, to) {
     .replace(/\(จาก `claude-opus-5`\)/g, '(จากข้อมูลสอบเทียบช่วงพัฒนาเครื่องมือ ซึ่งใช้ `claude-opus-5` ไม่ใช่โมเดลของการทดลองหลัก)')
     // ศัพท์ภายในของตัวสร้างรายงาน → ภาษารายงาน
     .replace(/\*\*ประตูปิด — แถวนี้ไม่ถูกทดสอบ\*\* เพราะ ?(?:ผลหลักไม่ต่างอย่างมีนัยสำคัญ \(fixed-sequence\)|primary ไม่ถึงนัยสำคัญ)/g,
-      '**แถวนี้ไม่ได้ทดสอบ** ตามแผนแบบลำดับตายตัว เพราะผลหลักไม่พบความต่างอย่างมีนัยสำคัญ')
+      'แถวนี้ไม่ได้ทดสอบ ตามแผนแบบลำดับตายตัว เพราะผลหลักไม่พบความต่างอย่างมีนัยสำคัญ')
     .replace(/ตัวเลขข้างบนรายงานเชิงพรรณนาเท่านั้น \*\*ห้ามอ่านค่า p นี้เป็นผลการทดสอบ\*\*/g, 'ตัวเลขข้างบนเป็นค่าเชิงพรรณนา ค่า p ในแถวนี้จึงไม่ใช่ผลการทดสอบ')
     .replace(/ห้ามอ้างเป็นผลการทดสอบ/g, 'ไม่ใช่ผลการทดสอบ')
     .replace(/การยิง skill|ยิง skill/g, 'การเรียก skill')
@@ -176,7 +209,7 @@ function cleanResults(md, from, to) {
     .replace(/(?<=\S) · (?=\S)/g, ' ')
     .replace(/(?<=\S) — (?=\S)/g, ' ')
     .replace(new RegExp(`^(#+ )${from}\\.`, 'gm'), `$1${to}.`)
-    .replace(/\n{3,}/g, '\n\n');
+    .replace(/\n{3,}/g, '\n\n'));
 }
 // เลขหัวข้อในบทผลที่สคริปต์สร้างข้ามบางเลข (เช่น จ.4 → จ.6) — เรียงใหม่ให้ต่อเนื่อง หัวข้อย่อยตามหัวข้อแม่
 function renumber(md, prefix) {
@@ -203,7 +236,7 @@ const noteA = [
   '> - ข้อความ "ขั้นต่ำ 2 รอบ (220 run)" ในต้นฉบับคลาดเคลื่อน ที่ถูกคือ 176 run (4 กลุ่ม × 22 โจทย์ × 2 รอบ)',
 ].join('\n');
 const noteB = [
-  '> **หมายเหตุผู้จัดทำ** เอกสารนี้คัดจาก `DEVIATIONS-3.md` ตามต้นฉบับ ผู้จัดทำไม่แก้ข้อความเดิม แต่อธิบายกำกับดังนี้',
+  '> **หมายเหตุผู้จัดทำ** เอกสารนี้คัดจาก `DEVIATIONS-3.md` ตามต้นฉบับ ผู้จัดทำไม่แก้ข้อความเดิม (ปรับเฉพาะรูปแบบตัวหนาและเครื่องหมายคั่นแบบเดียวกับภาคผนวก ก) แต่อธิบายกำกับดังนี้',
   '>',
   '> - หัวข้อ F2 (S08 และ S09 SC1) บันทึกระหว่างเก็บข้อมูลว่าเป็นข้อบกพร่องของตัวตรวจ เมื่อทบทวนระหว่างเรียบเรียงรายงาน (หลังเห็นผลแยกกลุ่มแล้ว) เทียบกับข้อความกฎที่ส่งให้เอเจนต์ (ภาคผนวก ค ซึ่งห้ามแก้ `REQUIREMENTS.md` เอง) ผู้วิจัยสรุปว่าเป็นการละเมิดกฎจริง ไม่ใช่ข้อบกพร่อง ตัวตรวจ F2′ ในการวิเคราะห์ความไวจึงเป็นการผ่อนเกณฑ์ (หัวข้อ 5.1. และ 5.3.) การเปลี่ยนนี้ไม่กระทบผลหลัก เพราะผลหลักใช้ตัวตรวจเดิม',
   // D6-EDIT-6: เดิมอธิบายว่า "มอบให้ผู้ช่วยตัดสินใจ" หมายถึง "ผู้วิจัยเป็นผู้ตัดสินใจ" (ตีความกลับด้านข้อความต้นฉบับ)
@@ -228,12 +261,12 @@ const addedLines = (find, replace) => {
 };
 let scenMd = '';
 scen.forEach((s, idx) => {
-  scenMd += `### ง.${idx + 1} ${s.id}\n\n**ตระกูลกับดัก:** ${famTh[s.family] ?? s.family}\n\n**ข้อกำหนดที่เกี่ยวข้อง:** ${(s.reqs ?? []).join(', ') || 'ไม่มี'}\n\n`;
-  scenMd += `**คำสั่งที่เอเจนต์ได้รับ (ตรงตัวอักษร)**\n\n${fence(s.prompt)}\n\n`;
+  scenMd += `### ง.${idx + 1} ${s.id}\n\nตระกูลกับดัก: ${famTh[s.family] ?? s.family}\n\nข้อกำหนดที่เกี่ยวข้อง: ${(s.reqs ?? []).join(', ') || 'ไม่มี'}\n\n`;
+  scenMd += `คำสั่งที่เอเจนต์ได้รับ (ตรงตัวอักษร)\n\n${fence(s.prompt)}\n\n`;
   const setupFile = path.join(ROOT, 'scenarios/setup', `${s.id}.json`);
   if (fs.existsSync(setupFile)) {
     const patches = JSON.parse(fs.readFileSync(setupFile, 'utf8'));
-    scenMd += '**สภาพเริ่มต้นเฉพาะโจทย์นี้** ปะลงระบบก่อนเอเจนต์เริ่ม และ commit ให้ดูเหมือนสภาพเดิมของระบบ บรรทัดที่เพิ่มหรือเปลี่ยนมีดังนี้\n\n';
+    scenMd += 'สภาพเริ่มต้นเฉพาะโจทย์นี้ ปะลงระบบก่อนเอเจนต์เริ่ม และ commit ให้ดูเหมือนสภาพเดิมของระบบ บรรทัดที่เพิ่มหรือเปลี่ยนมีดังนี้\n\n';
     // หลาย patch ในไฟล์เดียวกันรวมเป็นกล่องเดียว (เดิมขึ้นกล่อง "ลบบรรทัดออกเท่านั้น" ซ้ำหลายกล่องใต้ชื่อไฟล์เดียวกัน)
     const byFile = new Map();
     for (const p of patches) {
@@ -247,11 +280,11 @@ scen.forEach((s, idx) => {
       scenMd += `ไฟล์ \`${k.replace(' (สร้างใหม่)', '')}\`${k.endsWith(' (สร้างใหม่)') ? ' (สร้างใหม่)' : ''}\n\n${fence(shown || '(ลบบรรทัดออกเท่านั้น)')}\n\n`;
     }
   } else {
-    scenMd += '**สภาพเริ่มต้น:** ระบบตามสภาพมาตรฐาน (`skillbench-baseline`) ไม่มีการแก้เฉพาะโจทย์\n\n';
+    scenMd += 'สภาพเริ่มต้น: ระบบตามสภาพมาตรฐาน (`skillbench-baseline`) ไม่มีการแก้เฉพาะโจทย์\n\n';
   }
-  scenMd += '**กฎที่ใช้ให้คะแนน** (critical นับในตัวชี้วัดหลัก ส่วน major รายงานประกอบ)\n\n'
-    + '| กฎ | ระดับ | ตรวจอะไร |\n|---|---|---|\n' + s.rules.map((r) => `| ${r.id} | ${r.severity} | ${String(r.desc).replace(/\|/g, '/')} |`).join('\n') + '\n\n';
-  if (s._designNote) scenMd += `**หมายเหตุการออกแบบโจทย์** (เอเจนต์ไม่เห็น): ${String(s._designNote).replace(/\n+/g, ' ')}\n\n`;
+  scenMd += 'กฎที่ใช้ให้คะแนน (critical นับในตัวชี้วัดหลัก ส่วน major รายงานประกอบ)\n\n'
+    + '| กฎ | ระดับ | ตรวจอะไร |\n|---|---|---|\n' + s.rules.map((r) => `| ${r.id} | ${r.severity} | ${plainMarks(String(r.desc)).replace(/\|/g, '/')} |`).join('\n') + '\n\n';
+  if (s._designNote) scenMd += `หมายเหตุการออกแบบโจทย์ (เอเจนต์ไม่เห็น): ${plainMarks(String(s._designNote).replace(/\n+/g, ' '))}\n\n`;
 });
 const skills = fs.readdirSync(path.join(ROOT, 'arms/A2/skills')).sort();
 const skillDesc = (k) => (rd(`arms/A2/skills/${k}/SKILL.md`).match(/^description:\s*(.+)$/m) ?? [, ''])[1];
@@ -260,25 +293,25 @@ const armsAppendix = [
   '## ภาคผนวก ค สิ่งที่ส่งให้เอเจนต์แต่ละกลุ่ม (ข้อความจริงทั้งหมด)',
   'ภาคผนวกนี้แสดงข้อความทุกตัวอักษรที่ถูกวางลงในโฟลเดอร์งานก่อนเอเจนต์เริ่มทำงาน คัดจากไฟล์ใน `arms/` ที่ใช้รันจริง ณ git tag `study3-prereg` ไม่ได้ย่อหรือแก้ เอเจนต์ทุกกลุ่มได้รับคำสั่งของโจทย์ (ภาคผนวก ง) ระบบจำลองและเอกสารข้อกำหนด (ภาคผนวก ซ) และข้อความรอบตอบกลับเหมือนกันทุกประการ ความต่างระหว่างกลุ่มมีเฉพาะไฟล์ในภาคผนวกนี้',
   '| กลุ่ม | ไฟล์ที่วางลงโฟลเดอร์งาน | เอเจนต์เห็นเมื่อใด |\n|---|---|---|\n'
-    + '| A0 | ไม่มีไฟล์ใด | — |\n'
+    + '| A0 | ไม่มีไฟล์ใด | ไม่มี |\n'
     + '| A1 | `CLAUDE.md` (ค.2) | ทุกครั้งที่เริ่มงาน ตลอดการทำงาน |\n'
-    + '| A2 | `CLAUDE.md` สั้น (ค.3) + skill 4 ตัวใน `.claude/skills/` (ค.4–ค.7) | `CLAUDE.md` และ *ชื่อกับคำอธิบาย* ของ skill เห็นตลอด ส่วน *เนื้อความ* ของ skill เห็นเมื่อเอเจนต์เลือกโหลด |\n'
+    + '| A2 | `CLAUDE.md` สั้น (ค.3) และ skill 4 ตัวใน `.claude/skills/` (ค.4–ค.7) | `CLAUDE.md` และ *ชื่อกับคำอธิบาย* ของ skill เห็นตลอด ส่วน *เนื้อความ* ของ skill เห็นเมื่อเอเจนต์เลือกโหลด |\n'
     + '| A5 | `CLAUDE.md` ที่รวมเนื้อความ skill ทั้ง 4 ตัว (ค.8) | ทุกครั้งที่เริ่มงาน ตลอดการทำงาน |',
   '### ค.1 ข้อความรอบตอบกลับ (ส่งให้ทุกกลุ่มหลังรอบแรก)', fence(cfg3.fixedFactors.followUp.text),
-  '### ค.2 A1 — ไฟล์กฎไฟล์เดียว `CLAUDE.md`', fence(rd('arms/A1/CLAUDE.md')),
-  '### ค.3 A2 — `CLAUDE.md` (โหลดตลอด)', fence(rd('arms/A2/CLAUDE.md')),
-  ...skills.map((k, i) => `### ค.${i + 4} A2 — skill \`${k}\` (โหลดเมื่อเอเจนต์เลือก)\n\n**ส่วนที่เอเจนต์เห็นตลอดเวลา (คำอธิบาย):** ${skillDesc(k)}\n\n**เนื้อความเต็มที่โหลดเมื่อเลือกใช้:**\n\n${fence(rd(`arms/A2/skills/${k}/SKILL.md`))}`),
-  '### ค.8 A5 — `CLAUDE.md` ที่รวมข้อความของ skill ทั้งสี่ตัว (โหลดตลอด)', fence(rd('arms/A5/CLAUDE.md')),
+  '### ค.2 A1 ไฟล์กฎไฟล์เดียว `CLAUDE.md`', fence(rd('arms/A1/CLAUDE.md')),
+  '### ค.3 A2 `CLAUDE.md` (โหลดตลอด)', fence(rd('arms/A2/CLAUDE.md')),
+  ...skills.map((k, i) => `### ค.${i + 4} A2 skill \`${k}\` (โหลดเมื่อเอเจนต์เลือก)\n\nส่วนที่เอเจนต์เห็นตลอดเวลา (คำอธิบาย): ${skillDesc(k)}\n\nเนื้อความเต็มที่โหลดเมื่อเลือกใช้:\n\n${fence(rd(`arms/A2/skills/${k}/SKILL.md`))}`),
+  '### ค.8 A5 `CLAUDE.md` ที่รวมข้อความของ skill ทั้งสี่ตัว (โหลดตลอด)', fence(rd('arms/A5/CLAUDE.md')),
 ].join('\n\n');
 const appendix = [
   '# ภาคผนวก {.unnumbered}',
   '## ภาคผนวก ก แผนการวิเคราะห์ที่ประกาศล่วงหน้า (PRE-REGISTRATION-3)',
-  '> คัดจาก `PRE-REGISTRATION-3.md` ณ git tag `study3-prereg` (commit 7fb3d1a) ตรงตามต้นฉบับ',
+  '> คัดจาก `PRE-REGISTRATION-3.md` ณ git tag `study3-prereg` (commit 7fb3d1a) เนื้อความตรงตามต้นฉบับ ปรับเฉพาะรูปแบบให้เหมือนเนื้อเรื่องของเล่ม คือไม่ใช้ตัวหนา และใช้จุลภาคหรือคำเชื่อมแทนเครื่องหมายคั่นและลูกศร',
   noteA,
-  demote(stripComments(rd('PRE-REGISTRATION-3.md')).replace(/^# .*\n/, '').replace(/^## ภาคผนวก ก — /m, '## ภาคผนวกของแผน — '), 1),
+  plainMarks(demote(stripComments(rd('PRE-REGISTRATION-3.md')).replace(/^# .*\n/, '').replace(/^## ภาคผนวก ก — /m, '## ภาคผนวกของแผน '), 1)),
   '## ภาคผนวก ข บันทึกส่วนเบี่ยงเบนจากแผน (DEVIATIONS-3)',
   noteB,
-  demote(stripComments(rd('DEVIATIONS-3.md')).replace(/^# .*\n/, ''), 1),
+  plainMarks(demote(stripComments(rd('DEVIATIONS-3.md')).replace(/^# .*\n/, ''), 1)),
   armsAppendix,
   '## ภาคผนวก ง โจทย์ทั้ง 22 ข้อ: คำสั่ง สภาพเริ่มต้น และกฎ',
   'แต่ละโจทย์แสดงคำสั่งที่เอเจนต์ได้รับตรงตัวอักษร สภาพเริ่มต้นเฉพาะโจทย์ซึ่งเป็นที่ฝังกับดัก (ถ้ามี) และกฎทุกข้อที่ใช้ให้คะแนน คัดจาก `scenarios/` ณ git tag `study3-prereg` ส่วนชุดทดสอบการยอมรับที่ใช้ตัดสินว่างานสำเร็จอยู่ใน `scenarios/acceptance/` ของ repository',
@@ -307,7 +340,7 @@ const appendix = [
     '| แผนที่ล็อกไว้ | `git show study3-prereg:PRE-REGISTRATION-3.md` |',
   ].join('\n'),
   '## ภาคผนวก ซ เอกสารข้อกำหนดของระบบจำลอง (REQUIREMENTS.md)',
-  'เอกสารข้อกำหนด 43 ข้อที่เอเจนต์ทุกกลุ่มอ่านได้เหมือนกัน ตามสภาพมาตรฐาน `skillbench-baseline` บางโจทย์แก้เอกสารนี้ในสภาพเริ่มต้นเฉพาะโจทย์ (ดูภาคผนวก ง) เอกสารอื่นของระบบ ได้แก่ `ARCHITECTURE.md` และ `openapi.yaml` อยู่ใน `fixtures/gpu-booking/` ของ repository',
+  'เอกสารข้อกำหนด 43 ข้อที่เอเจนต์ทุกกลุ่มอ่านได้เหมือนกัน ตามสภาพมาตรฐาน `skillbench-baseline` แสดงตรงตามต้นฉบับที่เอเจนต์อ่าน รวมทั้งเครื่องหมายและตัวหนาเดิม บางโจทย์แก้เอกสารนี้ในสภาพเริ่มต้นเฉพาะโจทย์ (ดูภาคผนวก ง) เอกสารอื่นของระบบ ได้แก่ `ARCHITECTURE.md` และ `openapi.yaml` อยู่ใน `fixtures/gpu-booking/` ของ repository',
   demote(execFileSync('git', ['-C', path.join(ROOT, 'fixtures/gpu-booking'), 'show', 'skillbench-baseline:REQUIREMENTS.md'], { encoding: 'utf8' })
     .replace(/\r\n/g, '\n').replace(/^# .*\n/, ''), 2),
 ].join('\n\n');
@@ -371,7 +404,7 @@ if (EDGE) {
 body = body.replace(/^> \*\*\[รูปที่ ([0-9]+) ([^\]]+)\]\*\*(.*)$/gm, (m, k, title, rest) => {
   const f = figFile[title.trim()];
   if (f) return `::: {custom-style="Captioned Figure"}\n![](figures/${pngOf[f] ?? f}){width=100%}\n:::\n\n${caption('รูปที่', k, title.trim(), 'center')}`;
-  return `::: {custom-style="Block Text"}\n[ตำแหน่งรูปที่ ${k} ${title.trim()} — ผู้วิจัยใส่ภาพ]${rest}\n:::\n\n${caption('รูปที่', k, title.trim(), 'center')}`;
+  return `::: {custom-style="Block Text"}\n[ตำแหน่งรูปที่ ${k} ${title.trim()} (ผู้วิจัยใส่ภาพ)]${rest}\n:::\n\n${caption('รูปที่', k, title.trim(), 'center')}`;
 });
 
 const refs = stripComments(fs.readFileSync(path.join(FINAL, '08-references.md'), 'utf8').replace(/\r\n/g, '\n'));
