@@ -1,0 +1,14 @@
+import fs from 'fs';
+import { execFileSync } from 'child_process';
+const S=process.argv[2]; const hs=JSON.parse(process.argv[3]);
+const EDGE='C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
+const base=fs.readFileSync(S+'/script-print.html','utf8');
+const n=(base.match(/<section>/g)||[]).length; if(n+1!==hs.length) throw new Error('count '+n);
+let css='';
+hs.forEach((h,i)=>{const H=Math.max(150,h+14+10);const sel=i===0?'.cover':`section:nth-of-type(${i})`;css+=`@page p${i}{size:100mm ${H}mm;margin:7mm 6mm}${sel}{page:p${i}}`;});
+const out=base.replace('</style>',css+'.cover{break-after:auto;padding-top:20mm}</style>');
+fs.writeFileSync(S+'/script-fit.html',out);
+const pdf='E:/Seminar/skillbench/presentation-final/SCRIPT-TH.pdf'; if(fs.existsSync(pdf)) fs.rmSync(pdf);
+execFileSync(EDGE,['--headless','--disable-gpu','--no-pdf-header-footer','--virtual-time-budget=10000',`--print-to-pdf=${pdf}`,'file:///'+S+'/script-fit.html'],{stdio:'ignore'});
+for(let k=0;k<60&&!fs.existsSync(pdf);k++) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,250);
+console.log(fs.existsSync(pdf)?'ok':'missing');

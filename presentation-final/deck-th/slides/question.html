@@ -1,16 +1,17 @@
-<section id="question" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:56px">
-<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">เราเทียบ 4 กลุ่ม คู่หลักได้กฎ 20 ข้อชุดเดียวกัน ต่างกันแค่ส่งเป็นไฟล์เดียวหรือเป็น Skills</h2>
-<table style="font-size:32px;width:1500px">
-<tr><th style="width:28%">กลุ่ม</th><th style="width:38%">AI ได้อะไร</th><th style="width:34%">มีไว้ตอบอะไร</th></tr>
+<section id="question" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:44px">
+<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">คำถามของเรา: กฎชุดเดียวกัน เขียนสองแบบนี้<br>AI ทำตามต่างกันไหม</h2>
+<table style="font-size:32px;width:1560px">
+<tr><th style="width:30%">กลุ่ม AI</th><th style="width:40%">ได้กฎแบบไหน</th><th style="width:30%">มีไว้ทำอะไร</th></tr>
 <tr><td>ไม่มีกฎ</td><td>ไม่ได้กฎเลย</td><td>จุดเริ่มต้นไว้เทียบ</td></tr>
-<tr style="background:#F3E3DF"><td><b>ไฟล์เดียว</b></td><td><b>กฎ 20 ข้อในไฟล์เดียว</b></td><td><b>คำถามหลัก</b></td></tr>
-<tr style="background:#F3E3DF"><td><b>Agent Skills</b></td><td><b>กฎชุดเดียวกัน แบ่งเป็น skill</b></td><td><b>คำถามหลัก</b></td></tr>
-<tr><td>Skills แบบอ่านทุกครั้ง</td><td>ข้อความของ Skills รวมเป็นไฟล์เดียว</td><td>การเปิดอ่านทีละชุดมีผลไหม</td></tr>
+<tr style="background:#E8EDF5"><td><b>ไฟล์เดียว</b></td><td><b>กฎ 20 ข้อในไฟล์เดียว</b></td><td><b>คู่หลักที่เราเทียบ</b></td></tr>
+<tr style="background:#F3E3DF"><td><b>Agent Skills</b></td><td><b>กฎชุดเดียวกัน แยกเป็น 4 ชุด</b></td><td><b>คู่หลักที่เราเทียบ</b></td></tr>
+<tr><td>Skills แบบอ่านทุกครั้ง</td><td>ข้อความของ Skills รวมเป็นไฟล์เดียว</td><td>ดูว่าการเปิดอ่านทีละชุดมีผลไหม</td></tr>
 </table>
-<p style="font-size:30px;line-height:1.5;color:#3A4152;width:1400px">กฎ 20 ข้อนี้แตกเป็นสิ่งที่ต้องทำหรือห้ามทำได้ 47 อย่าง ทั้งสองแบบมีครบเท่ากัน ก่อนเริ่มเราเขียนไว้บน GitHub ว่าผลออกได้สามทาง คือ ต่างกัน เทียบเท่า หรือสรุปไม่ได้</p>
-<aside>[คนที่ 1, 1:00] คำถามหลักคือ ถ้าให้กฎชุดเดียวกัน 20 ข้อ แตกออกมาเป็นสิ่งที่ต้องทำหรือห้ามทำได้ 47 อย่างเท่ากันทุกอย่าง แต่ส่งแบบ Skills กับแบบไฟล์เดียว AI จะทำตามกฎต่างกันไหม
+<p style="font-size:30px;line-height:1.5;width:1560px">ทุกกลุ่มเป็น AI ตัวเดียวกัน (Claude Sonnet 5 ผ่าน Claude Code) ต่างกันแค่วิธีให้กฎ</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">กฎ 20 ข้อแตกเป็นสิ่งที่ต้องทำหรือห้ามทำได้ 47 ข้อ เท่ากันทั้งไฟล์เดียวและ Skills เกณฑ์ตัดสินล็อกไว้ก่อนเก็บข้อมูล</p>
+<aside>[คนที่ 1, 0:50] แล้วเราเทียบยังไงครับ ในการทดลองชุดที่ 3 ซึ่งเป็นชุดที่ใช้ตอบคำถาม เราแบ่ง AI เป็น 4 กลุ่ม ทุกกลุ่มเป็น AI ตัวเดียวกัน คือ Claude Sonnet 5 ผ่าน Claude Code ต่างกันแค่วิธีให้กฎ
 
-เราตั้งไว้ 4 กลุ่ม กลุ่มแรกไม่มีกฎเลย ไว้เป็นจุดเริ่มต้นเทียบ ไฟล์เดียวกับ Skills คือคู่หลัก ส่วนกลุ่มสุดท้ายเอาข้อความของ Skills มารวมเป็นไฟล์เดียวให้อ่านทุกครั้ง ไว้ดูว่าถ้าต่าง ต่างเพราะวิธีเปิดอ่านทีละชุด หรือเพราะถ้อยคำ
+กลุ่มแรก ไม่มีกฎเลย ไว้เป็นจุดเริ่มต้นเทียบ กลุ่มที่สอง ไฟล์เดียว กลุ่มที่สาม Agent Skills สองกลุ่มนี้คือคู่หลักที่เราอยากรู้ กลุ่มที่สี่ Skills แบบอ่านทุกครั้ง คือเอาข้อความของ Skills ทั้ง 4 ชุดมาต่อเป็นไฟล์เดียวให้อ่านทุกครั้ง เนื้อหาเหมือน Skills ทุกตัวอักษร ต่างแค่ไม่ได้เปิดทีละชุด ไว้ดูว่าถ้า Skills ดีกว่า ดีเพราะวิธีเปิดอ่าน หรือเพราะถ้อยคำที่เขียน
 
-และสำคัญคือ เราเขียนเกณฑ์ตัดสินไว้ก่อนเก็บข้อมูล ล็อกไว้บน GitHub ว่าผลจะออกได้สามทาง คือ ต่างกัน เทียบเท่า หรือสรุปไม่ได้ ตัดสินตามนั้น ไม่ปรับทีหลัง</aside>
+กฎ 20 ข้อแตกออกมาเป็นสิ่งที่ต้องทำหรือห้ามทำได้ 47 ข้อ ไฟล์เดียวกับ Skills มีครบเท่ากัน และเกณฑ์ตัดสินผล เราล็อกไว้ก่อนเก็บข้อมูล ไม่ปรับทีหลังครับ</aside>
 </section>

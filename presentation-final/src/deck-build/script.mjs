@@ -1,0 +1,32 @@
+import fs from 'fs';
+const D='E:/Seminar/skillbench/presentation-final';
+const j=JSON.parse(fs.readFileSync(D+'/deck-th/deck.json','utf8'));
+const strip=s=>s.replace(/<br\s*\/?>/g,' ').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
+let out='# บทพูด SkillBench (ฉบับ 17 ต.ค. 2569)\n\nรวมจากบทพูดในสไลด์ deck-th/slides ถ้าแก้บทพูด ให้แก้ในไฟล์สไลด์แล้วสร้างไฟล์นี้ใหม่\n\n';
+let mainSec=0, total=0;
+const toSec=t=>{const m=t.match(/(\d+):(\d+)/);return m?(+m[1])*60+(+m[2]):0};
+const main=j.order.filter(id=>!id.startsWith('b'));
+const rows=[];
+j.order.forEach((id,i)=>{
+  const h=fs.readFileSync(`${D}/deck-th/slides/${id}.html`,'utf8');
+  const title=strip((h.match(/<h[12][^>]*>([\s\S]*?)<\/h[12]>/)||['',''])[1]);
+  const aside=(h.match(/<aside>([\s\S]*?)<\/aside>/)||['',''])[1].trim();
+  const backup=id.startsWith('b');
+  if(i===main.length) out+='\n---\n\n# สไลด์สำรอง (ใช้ตอนถูกถาม)\n\n';
+  const head=aside.match(/^\[([^\]]+)\]\s*/);
+  const meta=head?head[1]:'';
+  const body=head?aside.slice(head[0].length):aside;
+  const paras=body.split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean);
+  const say=paras.filter(p=>!/^(ถ้าถูกถาม|ห้ามพูด)/.test(p));
+  const qa=paras.filter(p=>/^(ถ้าถูกถาม|ห้ามพูด)/.test(p));
+  const num=backup?id.split('-')[0].toUpperCase():String(i+1);
+  out+=`## ${backup?'สำรอง ':'หน้า '}${num} ${title}\n\n`;
+  if(meta) out+=`${meta}\n\n`;
+  if(!backup){ rows.push([num,meta]); total+=toSec(meta); }
+  out+=say.map(p=>p).join('\n\n')+'\n\n';
+  if(qa.length) out+='เตรียมไว้ตอบ\n\n'+qa.map(p=>'- '+p).join('\n')+'\n\n';
+});
+const mm=Math.floor(total/60), ss=String(total%60).padStart(2,'0');
+out=out.replace('\n\n## หน้า 1', `\n\nเวลารวมตามบทราว ${mm}:${ss} นาที คนที่ 1 พูดหน้า 1 ถึง 8 คนที่ 2 พูดหน้า 9 ถึง 14\n\n## หน้า 1`);
+fs.writeFileSync(D+'/SCRIPT-TH.md',out);
+console.log('total',mm+':'+ss, out.length);

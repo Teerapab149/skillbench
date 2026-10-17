@@ -1,30 +1,12 @@
-<section id="two-ways" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
-<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">กฎชุดเดียวกัน เขียนได้สองแบบ: ไฟล์เดียวที่ AI อ่านทุกครั้ง หรือ Skills ที่ AI เปิดเมื่องานเกี่ยว</h2>
-<div style="display:flex;gap:64px">
-<div style="flex:1;display:flex;flex-direction:column;gap:16px">
-<p style="font-size:30px;font-weight:700;color:#3B5B92">ไฟล์เดียว</p>
-<p style="font-family:'IBM Plex Mono', 'Courier New', monospace;font-size:24px;color:#6B7180">CLAUDE.md</p>
-<div style="display:flex;flex-direction:column;gap:12px;background:#F0EEE6;padding:36px">
-<p style="font-size:28px;font-weight:700">## 1. ขอบเขตของงาน</p>
-<p style="font-size:26px;line-height:1.5">- ทำเฉพาะสิ่งที่ผู้ใช้ขอในข้อความล่าสุด ไม่ทำมากกว่านั้น</p>
-<p style="font-size:26px;line-height:1.5">- ห้ามเพิ่มฟีเจอร์ที่ไม่มีข้อกำหนดรองรับ แม้จะเห็นคอมเมนต์ TODO ค้างอยู่</p>
-<p style="font-size:28px;font-weight:700">## 2. การสืบย้อนไปยังข้อกำหนด</p>
-</div>
-<p style="font-size:28px;line-height:1.5">ตอนเริ่มงาน AI อ่าน<b>กฎครบทั้ง 20 ข้อ</b>ทุกครั้ง</p>
-</div>
-<div style="flex:1;display:flex;flex-direction:column;gap:16px">
-<p style="font-size:30px;font-weight:700;color:#C0392B">Agent Skills</p>
-<p style="font-family:'IBM Plex Mono', 'Courier New', monospace;font-size:24px;color:#6B7180">skills/impact-analysis/SKILL.md</p>
-<div style="display:flex;flex-direction:column;gap:12px;background:#F0EEE6;padding:36px">
-<p style="font-size:26px;line-height:1.5"><b>description:</b> ใช้ก่อนแก้โมดูลคำนวณ ตรรกะธุรกิจ หรือค่าคงที่ที่มีผลต่อตัวเลขในระบบ …</p>
-<p style="font-size:28px;font-weight:700"># ประเมินผลกระทบก่อนแก้</p>
-<p style="font-size:26px;line-height:1.5">การแก้ตรรกะการคำนวณจึงเปลี่ยนตัวเลขของข้อมูลในอดีตทั้งหมดทันที</p>
-</div>
-<p style="font-size:28px;line-height:1.5">ตอนเริ่มงาน AI เห็นแค่<b>กฎพื้นฐาน 4 ข้อกับคำอธิบายสั้น ๆ ของ skill 4 ชุด</b> แล้วค่อยเปิดอ่านชุดที่เกี่ยวกับงาน</p>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">ตัดมาจากไฟล์จริงที่เราใช้ เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ ตอนที่กฎเหมือนกัน</p>
-<aside>[คนที่ 1, 1:00] วิธีบอกกฎมีสองแบบหลักครับ แบบแรก เขียนกฎทุกข้อไว้ในไฟล์เดียว อย่างทางซ้ายนี่คือไฟล์จริงที่เราใช้ AI อ่านทั้งหมดทุกครั้งที่เริ่มงาน แบบที่สอง คือ Agent Skills ที่ Anthropic เปิดตัวปี 2025 แยกกฎเป็นชุด ๆ ทางขวา ตอนเริ่ม AI เห็นแค่กฎพื้นฐานไม่กี่ข้อกับบรรทัด description ของแต่ละชุด แล้วเปิดอ่านเนื้อหาเต็มเฉพาะเมื่องานตรงกับคำอธิบาย
+<section id="two-ways" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:44px">
+<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">วิธีที่คนใช้กันคือเขียนกฎให้ AI อ่านก่อนเริ่มงาน<br>ซึ่งเขียนได้สองแบบ</h2>
+<img src="../../figures/fig-two-ways.png" alt="ซ้าย ไฟล์เดียว CLAUDE.md มี 9 หมวด 20 ข้อ AI อ่านครบทุกครั้ง ขวา Agent Skills ไฟล์กลางมีกฎพื้นฐาน 4 ข้อ และสารบัญ 4 ชุด AI เปิดเต็มเฉพาะชุดที่เกี่ยว เช่น impact-analysis ที่มีกฎเรื่องใบแจ้งหนี้" style="width:1664px;height:624px;object-fit:contain">
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">ตัดมาจากไฟล์จริงที่เราใช้ ทั้งสองแบบมีกฎเรื่องใบแจ้งหนี้เหมือนกัน ต่างกันแค่ที่อยู่ของกฎ</p>
+<aside>[คนที่ 1, 1:15] กฎที่ว่านี้ เขียนให้ AI ได้สองแบบหลัก ๆ ครับ
 
-แนวคิดคือ ถ้าไม่ยัดกฎที่ไม่เกี่ยวเข้าไป AI น่าจะโฟกัสกฎที่เกี่ยวได้ดีกว่า ฟังดูมีเหตุผล แต่เท่าที่เราค้นถึงเดือนนี้ ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ เมื่อเนื้อหากฎเท่ากัน เราเลยลองวัดดูครับ</aside>
+แบบแรก ไฟล์เดียว ใน Claude Code ชื่อ CLAUDE.md ใน Codex ชื่อ AGENTS.md เราเขียนกฎทุกข้อไว้ในไฟล์นี้ไฟล์เดียว ทางซ้ายคือหัวข้อทั้ง 9 หมวดในไฟล์จริงของเรา หมวด 4 คือกฎเรื่องใบแจ้งหนี้ AI อ่านทั้งไฟล์ทุกครั้งที่เริ่มงาน เหมือนให้พนักงานใหม่อ่านคู่มือทั้งเล่มทุกเช้า
+
+แบบที่สอง Agent Skills มีไฟล์กลางสั้น ๆ เก็บกฎพื้นฐาน แล้วแยกกฎที่เหลือออกเป็น skill เป็นชุด ๆ ตอนเริ่มงาน AI เห็นแค่ชื่อกับคำอธิบายสั้น ๆ ของแต่ละชุด เหมือนดูสารบัญ แล้วเปิดอ่านเต็มเฉพาะชุดที่เกี่ยวกับงาน อย่างงานขึ้นราคา ชุดที่ต้องเปิดก็มี impact-analysis ทางขวา ซึ่งมีกฎเรื่องใบแจ้งหนี้ข้อเดียวกับหมวด 4 ทางซ้าย การเปิดเฉพาะชุดที่เกี่ยวแบบนี้ ในเล่มเราเรียกว่า การเปิดอ่านทีละชุด
+
+สรุปคือกฎเหมือนกัน ต่างกันแค่ที่อยู่ของกฎ แนวคิดของ Skills คือ ถ้าไม่ยัดกฎที่ไม่เกี่ยวเข้าไป AI น่าจะโฟกัสได้ดีกว่า ฟังดูมีเหตุผล แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ เราเลยลองวัดดูครับ</aside>
 </section>
