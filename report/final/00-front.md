@@ -58,8 +58,6 @@ Controlling LLM Agent Behavior in Software Development via Context Engineering a
 นายธีรภาพ บุญศรี
 
 นายธีรภัทร์ ชินวุฒิวงศ์
-
-ตุลาคม 2569
 :::
 
 ::: {custom-style="Front Heading"}

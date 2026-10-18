@@ -3,7 +3,6 @@
 # เอกสารอ้างอิง {.unnumbered}
 
 ::: {custom-style="Bibliography"}
-ศุภกร กรอบเพ็ชร และ ศศิชา โสมวิภาต. (2568). *การศึกษา Context Engineering ในเอเจนต์โมเดลภาษาขนาดใหญ่สำหรับงานพัฒนาระบบ* [รายงานสัมมนาที่ไม่ได้ตีพิมพ์]. วิชาเอกระบบสารสนเทศทางธุรกิจ คณะวิทยาการจัดการ มหาวิทยาลัยสงขลานครินทร์.
 
 Aleithan, R., Xue, H., Mohajer, M. M., Nnorom, E., Uddin, G., & Wang, S. (2024). *SWE-Bench+: Enhanced coding benchmark for LLMs* (arXiv:2410.06992). arXiv. https://doi.org/10.48550/arXiv.2410.06992
 
