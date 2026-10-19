@@ -53,24 +53,23 @@ const slides = main.map((id, i) => {
 const mm = Math.floor(total / 60), ss = String(total % 60).padStart(2, '0');
 
 // markdown
-const enMd = (rows) => rows.map(([e, r]) => `> **${e}**  \n> ${r}`).join('\n>\n');
+const enMd = (rows) => rows.map(([e]) => `> **${e}**`).join('\n>\n');
 let md = `# สคริปต์นำเสนอฉบับเต็ม (พูดไทย ใช้สไลด์อังกฤษ)\n\nวันที่ 22 ต.ค. 2569 ช่วงบ่าย ใช้ไฟล์ SkillBench-final-EN.pptx\n\n`;
 md += `เวลาพูดรวมราว ${mm}:${ss} นาที บวกประโยคอังกฤษตอนเปิดและปิดราว 30 วินาที คนที่ 1 พูดหน้า 1 ถึง 8 คนที่ 2 พูดหน้า 9 ถึง 14\n\n`;
-md += `วิธีอ่าน: บล็อกที่มีเส้นด้านซ้ายคือประโยคภาษาอังกฤษพร้อมคำอ่าน ข้อความปกติคือบทพูดภาษาไทย "เตรียมไว้ตอบ" ไม่ต้องพูด ใช้ตอนถูกถาม\n\n---\n\n`;
+md += `บล็อกที่มีเส้นด้านซ้ายคือประโยคภาษาอังกฤษ ข้อความปกติคือบทพูดภาษาไทย คำตอบเตรียมไว้สำหรับช่วงถามตอบอยู่ใน SCRIPT-TH.md และ QA-COMMITTEE.md\n\n---\n\n`;
 for (const s of slides) {
   md += `## หน้า ${s.n} ${s.title}\n\n${s.meta}\n\n`;
   if (s.id === 'cover') md += `พูดภาษาอังกฤษก่อน\n\n${enMd(OPEN)}\n\nแล้วต่อด้วยภาษาไทย\n\n`;
   md += s.say.join('\n\n') + '\n\n';
   if (s.id === 'close') md += `ปิดด้วยภาษาอังกฤษ\n\n${enMd(CLOSE)}\n\n`;
-  if (s.qa.length) md += 'เตรียมไว้ตอบ\n\n' + s.qa.map((p) => '- ' + p).join('\n') + '\n\n';
 }
-md += `---\n\n## ช่วงถามตอบ\n\nถ้าถูกถามเป็นภาษาอังกฤษ\n\n` + QA_EN.map(([e, r, w]) => `> **${e}**  \n> ${r}  \n> (${w})`).join('\n>\n') + '\n\n';
+md += `---\n\n## ช่วงถามตอบ\n\nถ้าถูกถามเป็นภาษาอังกฤษ\n\n` + QA_EN.map(([e, r, w]) => `> **${e}**  \n> (${w})`).join('\n>\n') + '\n\n';
 md += `สไลด์สำรองที่เปิดตอบได้ทันที\n\n` + BACKUP.map(([q, b]) => `- ${q}: เปิด ${b}`).join('\n') + '\n\n';
 md += `คำที่ห้ามหลุด: "เหมือนกัน" (ใช้ "เทียบเท่า"), "Skills ดีกว่า" (ใช้ "ไม่ด้อยกว่า"), "การเปิดอ่านทีละชุดไม่มีผล" (ใช้ "ยังไม่ได้ทดสอบ")\n`;
 fs.writeFileSync(P + '/SCRIPT-FULL.md', md);
 
 // PDF ขนาดอ่านบนมือถือ
-const enHtml = (rows, cls = '') => `<div class="en ${cls}">${rows.map(([e, r, w]) => `<p><b>${esc(e)}</b><br><span class="rd">${esc(r)}</span>${w ? `<br><span class="w">${esc(w)}</span>` : ''}</p>`).join('')}</div>`;
+const enHtml = (rows, cls = '') => `<div class="en ${cls}">${rows.map(([e, r, w]) => `<p><b>${esc(e)}</b>${w ? `<br><span class="w">${esc(w)}</span>` : ''}</p>`).join('')}</div>`;
 let pages = '';
 for (const s of slides) {
   const img = `file:///${S}/render-en/s${String(s.n).padStart(2, '0')}.png`;
@@ -78,7 +77,6 @@ for (const s of slides) {
   if (s.id === 'cover') pages += `<div class="lbl">พูดภาษาอังกฤษก่อน</div>${enHtml(OPEN)}<div class="lbl">แล้วต่อด้วยภาษาไทย</div>`;
   pages += s.say.map((p) => `<p>${esc(p)}</p>`).join('');
   if (s.id === 'close') pages += `<div class="lbl">ปิดด้วยภาษาอังกฤษ</div>${enHtml(CLOSE)}`;
-  if (s.qa.length) pages += `<div class="qa"><div class="qh">เตรียมไว้ตอบ ไม่ต้องพูด</div>${s.qa.map((p) => `<p>${esc(p)}</p>`).join('')}</div>`;
   pages += '</section>';
 }
 pages += `<section><h2>ช่วงถามตอบ</h2><div class="lbl">ถ้าถูกถามเป็นภาษาอังกฤษ</div>${enHtml(QA_EN)}<div class="lbl">สไลด์สำรองที่เปิดตอบได้ทันที</div>${BACKUP.map(([q, b]) => `<p>${esc(q)}: <b>${b}</b></p>`).join('')}<div class="qa"><div class="qh">คำที่ห้ามหลุด</div><p>"เหมือนกัน" ใช้ "เทียบเท่า"</p><p>"Skills ดีกว่า" ใช้ "ไม่ด้อยกว่า"</p><p>"การเปิดอ่านทีละชุดไม่มีผล" ใช้ "ยังไม่ได้ทดสอบ"</p></div></section>`;
@@ -103,7 +101,7 @@ p{margin:0 0 3mm}
 .qa p{break-inside:avoid}
 .qh{font-weight:700;font-size:10pt;color:#5A6070;margin-bottom:2mm}
 </style></head><body>
-<div class="cover"><h1>สคริปต์นำเสนอฉบับเต็ม</h1><p>พูดภาษาไทย ใช้สไลด์ภาษาอังกฤษ (SkillBench-final-EN.pptx)</p><p>หน้าละหนึ่งสไลด์ กรอบสีแดงคือประโยคภาษาอังกฤษพร้อมคำอ่าน ข้อความปกติคือบทพูดภาษาไทย กล่องสีเทาคือคำตอบเตรียมไว้</p><p>เวลาพูดรวมราว ${mm}:${ss} นาที บวกประโยคอังกฤษราว 30 วินาที คนที่ 1 พูดหน้า 1 ถึง 8 คนที่ 2 พูดหน้า 9 ถึง 14</p><p>ฉบับ 19 ต.ค. 2569</p></div>
+<div class="cover"><h1>สคริปต์นำเสนอฉบับเต็ม</h1><p>พูดภาษาไทย ใช้สไลด์ภาษาอังกฤษ (SkillBench-final-EN.pptx)</p><p>หน้าละหนึ่งสไลด์ กรอบสีแดงคือประโยคภาษาอังกฤษ ข้อความปกติคือบทพูดภาษาไทย</p><p>เวลาพูดรวมราว ${mm}:${ss} นาที บวกประโยคอังกฤษราว 30 วินาที คนที่ 1 พูดหน้า 1 ถึง 8 คนที่ 2 พูดหน้า 9 ถึง 14</p><p>ฉบับ 19 ต.ค. 2569</p></div>
 ${pages}</body></html>`;
 fs.writeFileSync(S + '/script-full.html', html);
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
