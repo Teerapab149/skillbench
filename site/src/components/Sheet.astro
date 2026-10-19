@@ -1,28 +1,40 @@
 ---
-// แผ่นเอกสาร: ไฟล์กฎจริงที่ส่งให้เอเจนต์ เรนเดอร์จาก markdown ตัวไฟล์แสดงตามต้นฉบับ ไม่แปล
+// แผ่นเอกสาร: ไฟล์กฎจริงที่ส่งให้เอเจนต์ เรนเดอร์จาก markdown
+// หน้าอังกฤษแสดงคำแปล และเก็บไฟล์ต้นฉบับภาษาไทยไว้ในกล่องที่พับไว้ จำนวนตัวอักษรนับจากไฟล์ต้นฉบับเสมอ
 import { renderDoc } from '../lib/md';
+import { ruleFileEn } from '../lib/i18n';
 interface Props { path: string; always: boolean; body: string; open?: boolean; id?: string; lang?: 'th' | 'en' }
 const { path, always, body, open = false, id, lang = 'th' } = Astro.props;
-const L = lang === 'en'
-  ? { more: 'Show the whole file', less: 'Collapse', always: 'Loaded every time a task starts', od: 'Opened when the task matches its description', chars: 'characters' }
-  : { more: 'แสดงทั้งไฟล์', less: 'ย่อกลับ', always: 'โหลดทุกครั้งที่เริ่มงาน', od: 'เปิดเมื่องานตรงกับคำอธิบาย', chars: 'ตัวอักษร' };
-const html = renderDoc(body);
-const long = body.length > 2600;
-// ไฟล์กฎเขียนเป็นภาษาไทย ในหน้าภาษาอังกฤษบอกเบราว์เซอร์ว่าเนื้อหานี้เป็นภาษาไทย
-const docLang = /[฀-๿]/.test(body) ? 'th' : undefined;
+const en = lang === 'en';
+const L = en
+  ? { more: 'Show the whole file', less: 'Collapse', always: 'Loaded every time a task starts', od: 'Opened when the task matches its description', chars: 'characters in the original file', note: 'English translation. The AI received the file in Thai.' }
+  : { more: 'แสดงทั้งไฟล์', less: 'ย่อกลับ', always: 'โหลดทุกครั้งที่เริ่มงาน', od: 'เปิดเมื่องานตรงกับคำอธิบาย', chars: 'ตัวอักษร', note: '' };
+const shown = en ? ruleFileEn(path) : body;
+const html = renderDoc(shown);
+const long = shown.length > 2600;
 ---
 <div class="sheet" id={id}>
   <div class="sheet-head">
     <span class="mono">{path}</span>
     <span class={`load ${always ? 'always' : 'ondemand'}`}>{always ? L.always : L.od}, {body.length.toLocaleString('en-US')} {L.chars}</span>
   </div>
-  <div class={`sheet-body doc ${open || !long ? 'open' : ''}`} lang={docLang} set:html={html} />
+  {en && <p class="tr-note">{L.note}</p>}
+  <div class={`sheet-body doc ${open || !long ? 'open' : ''}`} set:html={html} />
   {long && !open && <button class="more" type="button" data-expand data-more={L.more} data-less={L.less}>{L.more}</button>}
+  {en && (
+    <details class="orig">
+      <summary>Original (Thai)</summary>
+      <div class="doc" lang="th" set:html={renderDoc(body)} />
+    </details>
+  )}
 </div>
 <style>
   .sheet { margin: 1.25rem 0 2rem; }
   .more { font: inherit; font-size: 0.95rem; color: var(--teal); background: none; border: 0; border-top: 1px solid var(--rule); width: 100%; padding: 0.6rem; cursor: pointer; }
   .more:hover { background: var(--paper-2); }
+  .tr-note { font-size: 0.88rem; color: var(--ink-3); margin: 0; padding: 0.5rem 1.4rem 0; }
+  .sheet-head .load { white-space: normal; }
+  .orig { margin: 0; padding: 0.5rem 1.4rem 0.7rem; }
 </style>
 <script>
   document.querySelectorAll<HTMLButtonElement>('[data-expand]').forEach((b) => b.addEventListener('click', () => {

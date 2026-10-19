@@ -2,23 +2,56 @@
 import Base from '../layouts/Base.astro';
 import { renderDoc } from '../lib/md';
 import { docs } from '../lib/data';
-import type { Lang } from '../lib/i18n';
+import { requirementsEn, type Lang } from '../lib/i18n';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const en = lang === 'en';
+// หน้าอังกฤษ: แผนสามฉบับและบันทึกส่วนเบี่ยงเบนยาวมาก จึงสรุปเป็นภาษาอังกฤษ และเก็บต้นฉบับไทยทั้งฉบับไว้ในกล่องที่พับไว้
+// ข้อกำหนดของระบบแปลทั้งฉบับ
+const SUMMARY_EN: Record<string, string[]> = {
+  'prereg-1': [
+    'Declared on 9 Aug 2026, before any run of the main experiment. At that point only calibration runs of A1 existed.',
+    'Planned design: 5 groups (A0 to A4), 11 tasks and 6 repetitions, 330 runs in total, with the model claude-sonnet-5 and a limit of 80 turns per run (raised from 50 by Amendment 6).',
+    'Primary comparison: CRIT (a run scores only if it follows every critical rule), A2 against A1, tested with an exact paired sign-flip test at the task level, inside a fixed sequence of comparisons. Section 2 explains why CRIT was chosen over RCR.',
+    'Amendments 1 to 17 were recorded before any comparison data. They cover the choice of model, the allocation of runs, checks that every controlled setting is asserted in every run, the equivalence test (TOST), repairs to the measuring tools, closing the content gaps between the A1 and A2 rule files, the Trigger F1 measure, freezing the test system and its clock, and how failed attempts are handled. Amendment 14 is the fallback rule that later cut every group from 6 to 4 repetitions.',
+  ],
+  'prereg-2': [
+    'Drafted on 18 Sep 2026, after the results of Study 1 were known. Section 2 lists everything the researchers had seen before deciding, including a partial look at how many tasks were ties.',
+    'Primary comparison: RCRc (the share of critical rules followed, zero if the task is not finished), A2 against A1, over 11 tasks, with an exact paired sign-flip test and a cluster bootstrap confidence interval. The comparison of A5 with A2 could only be claimed as significant if the primary result was significant. CRIT is still reported, but no longer tested.',
+    'Groups A0, A1, A2 and A5 (A5 is new, A3 and A4 were dropped), 11 tasks and 4 repetitions, 176 runs in total. If time or quota ran out, every group would be cut to the same number of repetitions, with at least 3.',
+    'Data from different studies must never be pooled.',
+  ],
+  'prereg-3': [
+    'Locked on 5 Oct 2026 with the git tag study3-prereg, before the main data collection. It is a confirmatory study run after checking and fixing the measuring tools.',
+    'It discloses that the designer (Claude, working with the researchers) had seen the Study 2 results and is from the same model family as the model being tested.',
+    'Changes to the measuring tools include one fixed, neutral reply sent to every run after its first turn, a snapshot at the end of the first turn, fixes to tasks S07, S10 and S11, new traps in S02 and S06, 11 new tasks (S12 to S22, including 3 pairs with and without trigger words), dropping A3, and taking the p value and the confidence interval from the same sign-flip test.',
+    'Design: groups A0, A1, A2 and A5, 22 tasks, and a number of repetitions decided by time only (at least 2, at most 4, deadline 11 Oct 2026).',
+    'Decision rule for RCRc, A2 against A1: if p is below 0.05 the formats are "different"; otherwise, if the whole 90% confidence interval lies within ±0.125 (about one critical rule per run) they are "equivalent"; otherwise the result is "inconclusive". A2 against A5 is tested only if the primary result is "different".',
+    'Declared in advance: the expected difference is near zero, the power to find a difference is low (about 15 to 35%), and the chance of concluding "equivalent" is about 40 to 80% if the true difference is near zero.',
+    'Limitations to report with every result: one model, one CLI version, one simulated system, Thai prompts, and the researchers (with Claude) wrote the rules, checkers and tasks, so Claude is testing Claude.',
+  ],
+  deviations: [
+    'Written on 9 Oct 2026 during the third round of data collection, before any result was broken down by group.',
+    'Records data collection events D1 to D5 (process crashes, session limits, and stopping after round 3 because of the weekly usage budget).',
+    'Records three checker faults found during collection: F1, S05 GP1 flagged runs that did not break the rule; F2, S08 and S09 SC1 failed every run because updating REQUIREMENTS.md was counted as out of scope; F3, S06 FL1 missed runs that did report the oddity. Corrected checkers are given for each.',
+    'Declares two sensitivity analyses in advance: SA-1 with the corrected checkers, and SA-2 without tasks S05, S06, S08 and S09. The main result stays as planned.',
+    'Notes that most scores were close to the ceiling, which limits how sensitive the comparison can be.',
+    'Appendix D6: the decision to stop at 3 repetitions, made on 10 Oct 2026 using only data that did not show any group’s results.',
+  ],
+};
 const sections = [
   { id: 'prereg-1', title: en ? 'Plan for Study 1' : 'แผนของชุดที่ 1', file: 'PRE-REGISTRATION.md', note: en ? 'The plan for Study 1, including the amendments recorded before data collection.' : 'แผนของการทดลองชุดที่ 1 รวมการแก้ไข (Amendment) ที่บันทึกไว้ก่อนเก็บข้อมูล', md: docs.prereg1 },
   { id: 'prereg-2', title: en ? 'Plan for Study 2' : 'แผนของชุดที่ 2', file: 'PRE-REGISTRATION-2.md', note: en ? 'Written after seeing the results of Study 1 and before collecting Study 2.' : 'เขียนหลังเห็นผลชุดที่ 1 และก่อนเก็บข้อมูลชุดที่ 2', md: docs.prereg2 },
   { id: 'prereg-3', title: en ? 'Plan for Study 3' : 'แผนของชุดที่ 3', file: 'PRE-REGISTRATION-3.md', note: en ? 'Locked with the git tag study3-prereg on 5 Oct 2026, before the main data collection.' : 'ล็อกด้วย git tag study3-prereg เมื่อ 5 ต.ค. 2569 ก่อนเก็บข้อมูลหลัก', md: docs.prereg3 },
   { id: 'deviations', title: en ? 'Deviations from the plan in Study 3' : 'สิ่งที่ไม่เป็นไปตามแผนในชุดที่ 3', file: 'DEVIATIONS-3.md', note: en ? 'Recorded and committed before the results were broken down by group.' : 'บันทึกและ commit ก่อนเปิดดูผลแยกกลุ่ม', md: docs.deviations },
-  { id: 'requirements', title: en ? 'Requirements of the system the AI worked on' : 'ข้อกำหนดของระบบที่ AI ใช้', file: 'fixtures/gpu-booking/REQUIREMENTS.md', note: en ? 'The document every group used as its reference while working on the tasks.' : 'เอกสารที่ AI ทุกกลุ่มใช้อ้างอิงระหว่างทำโจทย์', md: docs.requirements },
-].map((s) => ({ ...s, html: renderDoc(s.md) }));
+  { id: 'requirements', title: en ? 'Requirements of the system the AI worked on' : 'ข้อกำหนดของระบบที่ AI ใช้', file: 'fixtures/gpu-booking/REQUIREMENTS.md', note: en ? 'The document every group used as its reference while working on the tasks. Shown here in full English translation.' : 'เอกสารที่ AI ทุกกลุ่มใช้อ้างอิงระหว่างทำโจทย์', md: docs.requirements },
+].map((s) => ({ ...s, html: renderDoc(s.md), htmlEn: s.id === 'requirements' ? renderDoc(requirementsEn) : '' }));
 ---
 <Base lang={lang} title={en ? 'Pre-registered plans | SkillBench' : 'แผนก่อนเริ่ม SkillBench'} current="protocol/">
   <header class="title-block col">
     <h1>{en ? 'The plans we wrote before starting' : 'แผนที่เราเขียนไว้ก่อนเริ่ม'}</h1>
     {en
-      ? <p class="lede">Before every round of data collection we wrote down what we would measure and how we would decide the result, then locked the plan on GitHub so that it could not be adjusted later to fit the results. This page holds all three plans, the deviations from the plan, and the requirements of the system the AI worked on. <b>The documents are shown as written, in Thai</b>, apart from removed phrase separators. Some parts were written with help from Claude, so they sometimes call Claude "the assistant" or "the designer".</p>
+      ? <p class="lede">Before every round of data collection we wrote down what we would measure and how we would decide the result, then locked the plan on GitHub so that it could not be adjusted later to fit the results. This page holds all three plans, the deviations from the plan, and the requirements of the system the AI worked on. The plans were written in Thai and are long, so each one has an English summary here, with the full Thai document kept in a collapsed block. The requirements document is translated in full. Some parts of the plans were written with help from Claude, so they sometimes call Claude "the assistant" or "the designer".</p>
       : <p class="lede">ก่อนเก็บข้อมูลทุกรอบ เราเขียนแผนไว้ก่อนว่าจะวัดอะไร และจะตัดสินผลยังไง แล้วล็อกไว้บน GitHub เพื่อไม่ให้ปรับทีหลังตามผลที่ออกมา หน้านี้คือแผนทั้งสามฉบับ สิ่งที่ไม่เป็นไปตามแผน และข้อกำหนดของระบบที่ AI ใช้ทำงาน เอกสารเป็นภาษาทำงานของเราตามต้นฉบับ (ตัดแค่เครื่องหมายคั่นวลี) บางส่วนเขียนตอนใช้ Claude ช่วย เลยมีคำที่เรียก Claude ว่า "ผู้ช่วย" หรือ "ผู้ออกแบบ"</p>}
     <nav class="tabs" aria-label={en ? 'Documents' : 'เอกสาร'}>{sections.map((s) => <a href={`#${s.id}`}>{s.title}</a>)}</nav>
   </header>
@@ -28,7 +61,20 @@ const sections = [
         <h2>{s.title}</h2>
         <p class="small muted">{s.note} <a href={`https://github.com/Teerapab149/skillbench/blob/main/${s.file}`}>{en ? 'View on GitHub' : 'ดูบน GitHub'}</a></p>
       </div>
-      <div class="doc" lang="th" set:html={s.html} />
+      {!en && <div class="doc" set:html={s.html} />}
+      {en && SUMMARY_EN[s.id] && (
+        <div class="col summary">
+          <p class="sum-h">Summary in English</p>
+          <ul>{SUMMARY_EN[s.id].map((x) => <li>{x}</li>)}</ul>
+        </div>
+      )}
+      {en && s.htmlEn && <div class="doc" set:html={s.htmlEn} />}
+      {en && (
+        <details class="orig">
+          <summary>{s.htmlEn ? 'Original (Thai)' : 'Full document, original (Thai)'}</summary>
+          <div class="doc" lang="th" set:html={s.html} />
+        </details>
+      )}
     </section>
   ))}
 </Base>
@@ -38,4 +84,7 @@ const sections = [
   .tabs a:hover { border-color: var(--ink); color: var(--ink); }
   .docsec { border-top: 3px solid var(--ink); margin-top: 4rem; padding-top: 0.5rem; }
   .doc-head h2 { margin-top: 1rem; }
+  .summary ul { padding-left: 1.2rem; }
+  .summary li { margin-bottom: 0.6rem; }
+  .sum-h { font-family: var(--serif); font-weight: 600; margin-bottom: 0.25rem; }
 </style>

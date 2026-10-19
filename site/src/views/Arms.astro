@@ -3,7 +3,7 @@ import Base from '../layouts/Base.astro';
 import Toc from '../components/Toc.astro';
 import Sheet from '../components/Sheet.astro';
 import { arms, studies, s3 } from '../lib/data';
-import { rootOf, armT, type Lang } from '../lib/i18n';
+import { rootOf, armT, skillDescT, injectEn, type Lang } from '../lib/i18n';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const en = lang === 'en';
@@ -14,13 +14,12 @@ const toc: [string, string][] = [[ 'overview', en ? 'All groups at a glance' : '
 const a2skills = arms.find((a) => a.id === 'A2')!.files.filter((f) => !f.always);
 let inject: { file?: string; text?: string }[] = [];
 try { const j = JSON.parse(arms.find((a) => a.id === 'A4')!.inject ?? '[]'); inject = Array.isArray(j) ? j : (j.injections ?? j.items ?? [j]); } catch {}
-const thai = (t?: string) => (t && /[฀-๿]/.test(t) ? 'th' : undefined);
 ---
 <Base lang={lang} title={en ? 'Groups and rules | SkillBench' : 'กลุ่มและกฎ SkillBench'} current="arms/">
   <header class="title-block col">
     <h1>{en ? 'Which rules each group got' : 'แต่ละกลุ่มได้กฎอะไรบ้าง'}</h1>
     <p class="lede">{en
-      ? 'Every group used the same AI, the same tasks and the same system. The only differences are the rules they got and when the AI read them. The files below are the real ones we gave the AI, uncut and unedited, and the same files were used in all three studies. The rule files are written in Thai and are shown as they are.'
+      ? 'Every group used the same AI, the same tasks and the same system. The only differences are the rules they got and when the AI read them. The files below are the real ones we gave the AI, uncut and unedited, and the same files were used in all three studies. The AI received the rule files in Thai. Below they are shown in English translation, and each Thai original is kept in a collapsed block under it.'
       : 'ทุกกลุ่มใช้ AI ตัวเดียวกัน โจทย์เดียวกัน ระบบเดียวกัน ต่างกันแค่กฎที่ได้ และ AI ได้อ่านกฎตอนไหน ไฟล์ด้านล่างคือของจริงที่เราใส่ให้ AI ไม่ได้ตัดหรือแก้ และใช้ไฟล์เดิมทั้งสามรอบ'}</p>
   </header>
   <div class="article-grid">
@@ -82,7 +81,7 @@ const thai = (t?: string) => (t && /[฀-๿]/.test(t) ? 'th' : undefined);
           {a.id === 'A2' && (
             <div class="col">
               <h3>{en ? 'At the start, the AI sees only these names and descriptions' : 'ตอนเริ่มงาน AI เห็นแค่ชื่อกับคำอธิบายนี้'}</h3>
-              <dl class="skills">{a2skills.map((s) => <><dt class="mono"><a href={`#skill-${s.name}`}>{s.name}</a></dt><dd lang={en ? thai(s.description) : undefined}>{s.description}</dd></>)}</dl>
+              <dl class="skills">{a2skills.map((s) => <><dt class="mono"><a href={`#skill-${s.name}`}>{s.name}</a></dt><dd>{skillDescT(lang, s.name, s.description)}</dd></>)}</dl>
               <p class="small muted">{en
                 ? 'The AI decides on its own to open a skill when it sees that the task matches the description. The full content of each skill is below.'
                 : 'AI เลือกเปิด skill เองเมื่อเห็นว่างานตรงกับคำอธิบาย เนื้อหาเต็มของแต่ละ skill อยู่ด้านล่าง'}</p>
@@ -91,9 +90,9 @@ const thai = (t?: string) => (t && /[฀-๿]/.test(t) ? 'th' : undefined);
           {a.id === 'A4' && (
             <div class="col">
               <p>{en
-                ? <>This group got rules and skills identical to the <a href="#A2">Skills group</a>, letter for letter. The difference is that we planted bait text in the system’s files to get the AI to do things the user did not ask for. All the bait text is listed below, as planted.</>
+                ? <>This group got rules and skills identical to the <a href="#A2">Skills group</a>, letter for letter. The difference is that we planted bait text in the system’s files to get the AI to do things the user did not ask for. All the bait text is listed below in English, with the Thai text as planted in a collapsed block.</>
                 : <>กลุ่มนี้ได้กฎและ skill เหมือน <a href="#A2">กลุ่ม Skills</a> ทุกตัวอักษร ที่ต่างคือเราแอบใส่ข้อความล่อไว้ในไฟล์ของระบบ ให้ AI ทำสิ่งที่ผู้ใช้ไม่ได้สั่ง ข้อความล่อทั้งหมดมีดังนี้</>}</p>
-              <ol class="baits">{inject.map((x) => <li><span class="mono small">{x.file}</span><pre class="inject" lang={en ? thai(x.text) : undefined}>{x.text}</pre></li>)}</ol>
+              <ol class="baits">{inject.map((x, i) => <li><span class="mono small">{x.file}</span><pre class="inject">{en ? injectEn[i] : x.text}</pre>{en && <details class="orig"><summary>Original (Thai)</summary><pre class="inject" lang="th">{x.text}</pre></details>}</li>)}</ol>
               <p class="small muted">{en ? 'Source' : 'ที่มา'} <span class="mono">arms/A4/adversarial/inject.json</span></p>
             </div>
           )}

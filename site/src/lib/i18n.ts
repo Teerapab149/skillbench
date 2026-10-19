@@ -1,7 +1,9 @@
 // ข้อความภาษาอังกฤษของเว็บ ภาษาไทยเป็นภาษาหลักที่ URL เดิม ภาษาอังกฤษอยู่ใต้ /en/
 // ตัวเลขทุกตัวยังมาจาก data.ts เหมือนเดิม ไฟล์นี้มีแค่ถ้อยคำ
 // ข้อมูลที่แสดงตามต้นฉบับ (คำสั่งของโจทย์ ไฟล์กฎ คำอธิบายกฎของตัวตรวจ เอกสารแผน) ไม่แปล
-import { ARM_INFO, FAMILIES, DIFFICULTY, RULE_CATS, type ArmId, type Study } from './data';
+import fs from 'node:fs';
+import path from 'node:path';
+import { ARM_INFO, FAMILIES, DIFFICULTY, RULE_CATS, clean, type ArmId, type Study } from './data';
 
 export type Lang = 'th' | 'en';
 export const LANGS: Lang[] = ['th', 'en'];
@@ -113,7 +115,46 @@ export const diffT = (lang: Lang, d: string) => (lang === 'en' ? DIFFICULTY_EN :
 export const ruleCatsT = (lang: Lang) => RULE_CATS.map((c) => ({ key: c.key, name: lang === 'en' ? RULE_CATS_EN[c.key] : c.name }));
 export const verdictT = (lang: Lang, v: string) => (lang === 'en' ? ({ 'เทียบเท่า': 'Equivalent', 'สรุปไม่ได้': 'Inconclusive', equivalent: 'Equivalent' } as Record<string, string>)[v] ?? v : v === 'equivalent' ? 'เทียบเท่า' : v);
 
-const EN_MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+/* ---------- ข้อมูลที่แปลเป็นภาษาอังกฤษ (site/src/en) ----------
+   หน้าอังกฤษแสดงคำแปลเป็นหลัก และเก็บต้นฉบับภาษาไทยไว้ในกล่องที่พับไว้ */
+const EN_DIR = path.join(process.cwd(), 'src', 'en');
+const rdEn = (p: string) => fs.readFileSync(path.join(EN_DIR, p), 'utf8').replace(/\r\n/g, '\n');
+const strings = JSON.parse(rdEn('strings.json')) as {
+  prompts: Record<string, string>; ruleDesc: Record<string, string>; notes: Record<string, string>;
+  skillDesc: Record<string, string>; inject: string[];
+};
+const promptEn = new Map(Object.entries(strings.prompts).map(([k, v]) => [k.trim(), v]));
+const ruleEn = new Map(Object.entries(strings.ruleDesc).flatMap(([k, v]) => [[k, v], [clean(k), v]] as [string, string][]));
+const missing = (kind: string, t: string) => { throw new Error(`ไม่มีคำแปลภาษาอังกฤษของ${kind}: ${t}`); };
+// build ล้มถ้ามีข้อความไทยที่ยังไม่มีคำแปล หน้าอังกฤษจะได้ไม่มีภาษาไทยหลุด
+export const promptT = (lang: Lang, t: string) => (lang === 'en' && t ? promptEn.get(t.trim()) ?? missing('คำสั่ง', t) : t);
+export const ruleDescT = (lang: Lang, t: string) => (lang === 'en' && /[฀-๿]/.test(t) ? ruleEn.get(t) ?? ruleEn.get(clean(t)) ?? missing('กฎ', t) : t);
+export const noteT = (lang: Lang, id: string, t: string) => (lang === 'en' && t ? strings.notes[id] ?? missing('โน้ต', id) : t);
+export const skillDescT = (lang: Lang, name: string, t?: string) => (lang === 'en' ? strings.skillDesc[name] ?? missing('คำอธิบาย skill', name) : t ?? '');
+export const injectEn = strings.inject;
+
+const SKILLS = ['acceptance-first', 'impact-analysis', 'safe-shell', 'trace-to-requirement'];
+const skillEn = (n: string) => rdEn(`rules/skills/${n}.md`);
+// ไฟล์ A5 คือส่วนหัวต่อด้วย skill ทั้งสี่ตามลำดับ ประกอบฉบับอังกฤษด้วยวิธีเดียวกับต้นฉบับ
+const a5En = SKILLS.reduce((s, n) => `${s}\n---\n\n## Section \`${n}\`\n\n> ${strings.skillDesc[n]}\n\n${skillEn(n)}`, rdEn('rules/A5-head.md').replace(/\n+$/, '\n'));
+const RULE_FILES_EN: Record<string, string> = {
+  'arms/A1/CLAUDE.md': rdEn('rules/A1.md'),
+  'arms/A2/CLAUDE.md': rdEn('rules/A2.md'),
+  'arms/A3/CLAUDE.md': rdEn('rules/A3.md'),
+  'arms/A5/CLAUDE.md': a5En,
+  ...Object.fromEntries(SKILLS.map((n) => [`arms/A2/skills/${n}/SKILL.md`, skillEn(n)])),
+};
+export const ruleFileEn = (p: string) => RULE_FILES_EN[p.replace(/\\/g, '/')] ?? missing('ไฟล์กฎ', p);
+export const requirementsEn = rdEn('requirements.md');
+export const reqsEn: Record<string, { text: string; ac: string }> = {};
+for (const line of requirementsEn.split('\n')) {
+  const m = line.match(/^\|\s*\*\*(REQ-\d+)\*\*\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$/);
+  if (m) reqsEn[m[1]] = { text: m[2], ac: m[3] };
+}
+// ชื่อหมวดของไฟล์กฎ A1 ตามลำดับ ใช้กับแถบความยาวในหน้าแรก
+export const a1SectionsEn = rdEn('rules/A1.md').split('\n').filter((l) => /^## /.test(l)).map((l) => l.replace(/^##\s*\d+\.\s*/, ''));
+
+const EN_MONTH =['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const TH_MONTH = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 export const dateT = (lang: Lang, stamp: string) => {
   const [y, m, d] = stamp.slice(0, 10).split('-').map(Number);

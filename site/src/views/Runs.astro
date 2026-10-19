@@ -1,14 +1,14 @@
 ---
 import Base from '../layouts/Base.astro';
 import { studies, scenarios } from '../lib/data';
-import { armT, rootOf, SEV, type Lang } from '../lib/i18n';
+import { armT, rootOf, SEV, promptT, ruleDescT, type Lang } from '../lib/i18n';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const en = lang === 'en';
 const root = rootOf(lang);
 const shade = (v: number) => `color-mix(in oklab, var(--teal) ${Math.round(v * 100)}%, var(--brick))`;
 const promptOf = (id: string) => scenarios.find((s) => s.id === id)?.prompt ?? '';
-const payload = studies.flatMap((st) => st.runs.map((r) => ({ ...r, metric: st.metricName, scCode: r.sc.split('-')[0], scPrompt: st.perScenario.find((p) => p.id === r.sc)?.prompt || promptOf(r.sc) })));
+const payload = studies.flatMap((st) => st.runs.map((r) => ({ ...r, rules: r.rules.map((x) => ({ ...x, desc: ruleDescT(lang, x.desc) })), metric: st.metricName, scCode: r.sc.split('-')[0], scPrompt: promptT(lang, st.perScenario.find((p) => p.id === r.sc)?.prompt || promptOf(r.sc)) })));
 const total = studies.reduce((s, st) => s + st.usable, 0);
 // ข้อความในแผงรายละเอียดที่สคริปต์ฝั่งเบราว์เซอร์ใช้
 const T = en ? {
@@ -16,7 +16,7 @@ const T = en ? {
   sev: SEV.en, pass: 'passed', miss: 'missed', na: 'not relevant in this run', done: 'Task finished?', yes: 'Yes', no: 'No',
   rescued: 'finished after the reply turn', rep: 'repetition', study: 'Study', firstTurn: 'end of first turn', files: 'Files changed', none: 'None',
   skills: 'Skills opened', notOpened: 'None opened', expected: 'Skills that should open', tools: 'Tool calls', times: '', time: 'Time', sec: 'seconds',
-  cost: 'Cost', nodata: 'No data', tok: 'Tokens', tin: 'in', tout: 'out', rules: 'Rule checks one by one (rule text in Thai)',
+  cost: 'Cost', nodata: 'No data', tok: 'Tokens', tin: 'in', tout: 'out', rules: 'Rule checks one by one (rule text translated from Thai)',
 } : {
   arm: { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A3: 'ข้อความยาวเท่ากันแต่ไม่ใช่กฎ', A4: 'Skills และคอมเมนต์ล่อ', A5: 'ข้อความ A2 ในไฟล์เดียว' },
   sev: SEV.th, pass: 'ผ่าน', miss: 'พลาด', na: 'ไม่เกี่ยวกับครั้งนี้', done: 'งานเสร็จไหม', yes: 'ใช่', no: 'ไม่',
@@ -129,7 +129,7 @@ const T = en ? {
     if (!r) return;
     document.querySelectorAll('.cell.on').forEach((c) => c.classList.remove('on'));
     document.querySelector(`[data-grid="${study}"] [data-run="${CSS.escape(id)}"]`)?.classList.add('on');
-    const th = en ? ' lang="th"' : '';
+    const th = '';
     const rules = r.rules.map((x: any) => {
       const c = !x.app ? 'na' : x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na';
       const t = c === 'ok' ? T.pass : c === 'no' ? T.miss : T.na;

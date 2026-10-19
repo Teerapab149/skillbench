@@ -6,7 +6,7 @@
 // ถ้าไม่มี JavaScript จะเห็นรูปนิ่งแทน ถ้าเครื่องตั้งค่าลดการเคลื่อนไหว canvas จะเปลี่ยนเป็นทีละสถานะโดยไม่ขยับ
 import Base from '../layouts/Base.astro';
 import { studies, s3, scenarios, arms, pct, pts } from '../lib/data';
-import { rootOf, studyT, type Lang } from '../lib/i18n';
+import { rootOf, studyT, promptT, a1SectionsEn, type Lang } from '../lib/i18n';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const en = lang === 'en';
@@ -128,7 +128,8 @@ const tick = (t: number) => (t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0');
           <figure class="term" aria-label={en ? 'A real log of the AI working on task S09' : 'บันทึกการทำงานจริงของ AI ในโจทย์ S09'}>
             <p class="term-bar"><span>claude code</span><span>{en ? `S09, no rules group, repetition ${demo.rep + 1}` : `S09 กลุ่มไม่มีกฎ รอบที่ ${demo.rep + 1}`}</span></p>
             <div class="term-body">
-              <p class="t-line user"><span class="t-tag">{en ? 'User' : 'ผู้ใช้'}</span><span class="type" lang={th} data-text={s09.prompt}>{s09.prompt}</span></p>
+              <p class="t-line user"><span class="t-tag">{en ? 'User' : 'ผู้ใช้'}</span><span class="type" data-text={promptT(lang, s09.prompt)}>{promptT(lang, s09.prompt)}</span></p>
+              {en && <p class="t-tr">The user wrote this prompt in Thai. It is shown here in English.</p>}
               <p class="t-line step" style="--i:0"><span class="t-tag">AI</span>{en ? 'Reads the requirements and the related code' : 'อ่านข้อกำหนดและโค้ดที่เกี่ยวข้อง'}</p>
               {demo.files.map((f, i) => <p class="t-line step" style={`--i:${i + 1}`}><span class="t-tag">{en ? 'Edit' : 'แก้'}</span><span class="mono">{f}</span></p>)}
               {demo.done && <p class="t-line step ok" style={`--i:${demo.files.length + 1}`}><span class="t-tag">{en ? 'Result' : 'ผล'}</span>{en ? 'Task finished, tests pass' : 'งานเสร็จ เทสผ่าน'}</p>}
@@ -161,7 +162,7 @@ const tick = (t: number) => (t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0');
               <div class="tape" role="img" aria-label={en ? `Single file, ${a1Segs.length} parts, ${fmt(a1Chars)} characters in total, all read from the start` : `ไฟล์เดียว ${a1Segs.length} ส่วน รวม ${fmt(a1Chars)} ตัวอักษร เข้าไปทั้งหมดตั้งแต่เริ่ม`}>
                 {a1Segs.map((x, i) => <i class="seg one" style={`--w:${w(x.n)};--i:${i}`} title={en ? (x.name === HEAD ? `File header, ${fmt(x.n)} characters` : `Section ${i}, ${fmt(x.n)} characters`) : `${x.name} ${fmt(x.n)}`}></i>)}
               </div>
-              <ol class="seg-names" lang={th}>{a1Segs.filter((x) => x.name !== HEAD).map((x) => <li>{x.name}</li>)}</ol>
+              <ol class="seg-names">{a1Segs.filter((x) => x.name !== HEAD).map((x, j) => <li>{en ? a1SectionsEn[j] : x.name}</li>)}</ol>
             </div>
             <div class="gauge">
               <p class="g-h"><b>Agent Skills</b><span class="read">{en
@@ -695,6 +696,7 @@ const tick = (t: number) => (t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0');
   .seg.desc { background: repeating-linear-gradient(135deg, rgba(63, 179, 166, 0.55) 0 3px, rgba(63, 179, 166, 0.2) 3px 6px); }
   .seg.open { background: var(--teal-l); }
   .seg.open + .seg.open { background: #35a397; }
+  .story .t-tr { margin: -0.2rem 0 0.2rem 3.6rem; font-size: 0.78rem; color: var(--fg3); }
   .seg-names { margin: 0.7rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; font-size: 0.88rem; color: var(--fg3); counter-reset: s; }
   .seg-names li::before { counter-increment: s; content: counter(s) ' '; font-family: var(--mono); color: #7f9bd0; }
   .seg-key { margin: 0.7rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-size: 0.88rem; color: var(--fg3); }

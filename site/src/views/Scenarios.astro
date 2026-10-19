@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { scenarios, studies, FAMILIES, pts, tie } from '../lib/data';
-import { rootOf, famT, diffT, type Lang } from '../lib/i18n';
+import { rootOf, famT, diffT, promptT, type Lang } from '../lib/i18n';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const en = lang === 'en';
@@ -13,7 +13,7 @@ const old = scenarios.filter((s) => s.usedIn.length === 3).length;
   <header class="title-block col">
     <h1>{en ? `All ${scenarios.length} tasks` : `โจทย์ทั้ง ${scenarios.length} ข้อ`}</h1>
     <p class="lede">{en
-      ? `Every task is a short request of the kind a user really types to an AI, on a GPU booking system we built. Each one has work that must be finished, and almost every one hides a trap. The first ${old} tasks were used in all three studies, and the other ${scenarios.length - old} were added in Study 3. The prompts are shown as the AI received them, in Thai. Click a task to see how well each group did.`
+      ? `Every task is a short request of the kind a user really types to an AI, on a GPU booking system we built. Each one has work that must be finished, and almost every one hides a trap. The first ${old} tasks were used in all three studies, and the other ${scenarios.length - old} were added in Study 3. The AI received the prompts in Thai. They are shown here in English, and each task page keeps the Thai original. Click a task to see how well each group did.`
       : `ทุกโจทย์เป็นคำขอสั้น ๆ แบบที่ผู้ใช้พิมพ์สั่ง AI จริง บนระบบจองเครื่อง GPU ที่เราสร้างขึ้น แต่ละข้อมีงานที่ต้องทำให้เสร็จ และเกือบทุกข้อมีกับดักซ่อนอยู่ ${old} ข้อแรกใช้ทั้งสามรอบ อีก ${scenarios.length - old} ข้อเพิ่มเข้ามาในรอบที่ 3 กดที่โจทย์เพื่อดูว่าแต่ละกลุ่มทำได้แค่ไหน`}</p>
   </header>
 
@@ -29,13 +29,13 @@ const old = scenarios.filter((s) => s.usedIn.length === 3).length;
       <caption>{en
         ? 'The number on the right is how many points more Skills scored than the single file on that task (negative means the single file scored more). An empty cell means the task was not used in that study.'
         : 'ตัวเลขทางขวาคือ Skills ได้มากกว่าไฟล์เดียวกี่จุดในโจทย์นั้น (ติดลบคือไฟล์เดียวได้มากกว่า) ช่องว่างคือรอบที่ไม่ได้ใช้โจทย์นี้'}</caption>
-      <thead><tr><th>{en ? 'Task' : 'โจทย์'}</th><th>{en ? 'User prompt (Thai, as given)' : 'คำสั่งของผู้ใช้'}</th>{studies.map((st) => <th class="r st">{en ? `Study ${st.n}` : `ชุดที่ ${st.n}`}</th>)}</tr></thead>
+      <thead><tr><th>{en ? 'Task' : 'โจทย์'}</th><th>{en ? 'User prompt (translated from Thai)' : 'คำสั่งของผู้ใช้'}</th>{studies.map((st) => <th class="r st">{en ? `Study ${st.n}` : `ชุดที่ ${st.n}`}</th>)}</tr></thead>
       <tbody>
         {scenarios.map((s) => (
           <tr data-fam={s.family}>
             <td class="code"><a href={`${base}scenarios/${s.id}/`} class="mono">{s.code}</a></td>
             <td>
-              <a class="prompt" href={`${base}scenarios/${s.id}/`} lang="th">{s.prompt}</a>
+              <a class="prompt" href={`${base}scenarios/${s.id}/`}>{promptT(lang, s.prompt)}</a>
               <span class="meta small">{en
                 ? `${famT(lang, s.family).name}, ${diffT(lang, s.difficulty)}, refers to ${s.reqs.join(' ')}`
                 : `${s.familyName} ระดับ${diffT(lang, s.difficulty)} อ้าง ${s.reqs.join(' ')}`}</span>

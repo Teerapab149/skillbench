@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import { scenarios, reqs, pct, pts, tie } from '../lib/data';
-import { rootOf, famT, diffT, SEV, type Lang } from '../lib/i18n';
+import { rootOf, famT, diffT, SEV, promptT, noteT, ruleDescT, reqsEn, type Lang } from '../lib/i18n';
 type Sc = (typeof scenarios)[number];
 interface Props { lang: Lang; s: Sc; prev: Sc | null; next: Sc | null }
 const { lang, s, prev, next } = Astro.props;
@@ -14,30 +14,36 @@ const cellLabel: Record<string, string> = en ? { ok: 'Followed', no: 'Missed', n
 // เกณฑ์ยอมรับยกมาจาก REQUIREMENTS.md ตัดเครื่องหมาย code และเขียนลูกศรเป็นคำ
 const stripTicks = (t: string) => t.split(String.fromCharCode(96)).join('').replace(/\s*→\s*/g, ' ผลคือ ');
 const sections = s.perStudy.slice().reverse();
-const th = en ? 'th' : undefined;
+const rq = en ? reqsEn : reqs;
 ---
 <Base lang={lang} title={en ? `${s.code} ${fam.name} | SkillBench` : `${s.code} ${s.familyName} SkillBench`} current="scenarios/">
   <nav class="crumbs small"><a href={`${base}scenarios/`}>{en ? 'All tasks' : 'โจทย์ทั้งหมด'}</a> / <span class="mono">{s.id}</span></nav>
   <header class="title-block col">
     <h1 class="sc-h1">{en ? 'Task' : 'โจทย์'} {s.code} <span class="fam">{en ? `${fam.name} family` : `ตระกูล${s.familyName}`}</span></h1>
     <blockquote class="ask">
-      <p lang="th">{s.prompt}</p>
-      <footer class="who">{en ? `The user’s prompt, given to the AI in Thai. Difficulty: ${diffT(lang, s.difficulty)}` : `คำสั่งของผู้ใช้ โจทย์ระดับ${diffT(lang, s.difficulty)}`}</footer>
+      <p>{promptT(lang, s.prompt)}</p>
+      <footer class="who">{en ? `The user’s prompt, translated from Thai. Difficulty: ${diffT(lang, s.difficulty)}` : `คำสั่งของผู้ใช้ โจทย์ระดับ${diffT(lang, s.difficulty)}`}</footer>
     </blockquote>
+    {en && <details class="orig"><summary>Original prompt (Thai)</summary><p lang="th">{s.prompt}</p></details>}
   </header>
 
   <div class="grid2">
     <section class="col">
       <h2 class="h-first">{en ? 'The trap in this task' : 'กับดักของโจทย์นี้'}</h2>
       <p class="lede">{fam.trap}</p>
-      {s.note && <div class="aside"><b>{en ? 'Our note from designing this task (in Thai)' : 'โน้ตตอนเราออกแบบโจทย์นี้'}</b><span lang={th}>{s.note}</span></div>}
+      {s.note && <div class="aside"><b>{en ? 'Our note from designing this task' : 'โน้ตตอนเราออกแบบโจทย์นี้'}</b><span>{noteT(lang, s.id, s.note)}</span>{en && <details class="orig"><summary>Original (Thai)</summary><p lang="th">{s.note}</p></details>}</div>}
       <h3>{en ? 'Requirements this task refers to' : 'ข้อกำหนดที่โจทย์นี้อ้างถึง'}</h3>
-      <dl class="reqs" lang={th}>
+      <dl class="reqs">
         {s.reqs.map((r: string) => (
-          <><dt class="mono">{r}</dt><dd>{reqs[r]?.text ?? ''}{reqs[r]?.ac && <span class="ac small">{en ? 'Acceptance criterion' : 'เกณฑ์ยอมรับ'}: {stripTicks(reqs[r].ac)}</span>}</dd></>
+          <><dt class="mono">{r}</dt><dd>{rq[r]?.text ?? ''}{rq[r]?.ac && <span class="ac small">{en ? 'Acceptance criterion' : 'เกณฑ์ยอมรับ'}: {stripTicks(rq[r].ac)}</span>}</dd></>
         ))}
       </dl>
-      <p class="small muted">{en ? <>From <code>REQUIREMENTS.md</code> of the simulated system, quoted in Thai. </> : <>จาก <code>REQUIREMENTS.md</code> ของระบบจำลอง </>}<a href={`${base}protocol/#requirements`}>{en ? 'See all requirements' : 'ดูข้อกำหนดทั้งหมด'}</a></p>
+      {en && (
+        <details class="orig"><summary>Original (Thai)</summary>
+          <dl class="reqs" lang="th">{s.reqs.map((r: string) => <><dt class="mono">{r}</dt><dd>{reqs[r]?.text ?? ''}{reqs[r]?.ac && <span class="ac small">เกณฑ์ยอมรับ: {stripTicks(reqs[r].ac)}</span>}</dd></>)}</dl>
+        </details>
+      )}
+      <p class="small muted">{en ? <>From <code>REQUIREMENTS.md</code> of the simulated system, translated from Thai. </> : <>จาก <code>REQUIREMENTS.md</code> ของระบบจำลอง </>}<a href={`${base}protocol/#requirements`}>{en ? 'See all requirements' : 'ดูข้อกำหนดทั้งหมด'}</a></p>
     </section>
     <aside class="side">
       <h3 class="h-first">{en ? 'Skills minus single file' : 'Skills ได้มากกว่าไฟล์เดียว'}</h3>
@@ -59,9 +65,9 @@ const th = en ? 'th' : undefined;
       <section class="wide study-sec" id={`study-${study.n}`}>
         <h2>{en ? `Results in Study ${study.n}` : `ผลในรอบที่ ${study.n}`}</h2>
         <p class="col">{en
-          ? 'Each row is one rule and each column is one run. Green means followed, orange means missed, and a dashed box means the rule was not relevant in that run. Click a repetition number at the top to see what the AI did. The rule descriptions come from our checker and are in Thai.'
+          ? 'Each row is one rule and each column is one run. Green means followed, orange means missed, and a dashed box means the rule was not relevant in that run. Click a repetition number at the top to see what the AI did. The rule descriptions come from our checker and are translated from Thai.'
           : 'หนึ่งแถวคือกฎหนึ่งข้อ หนึ่งคอลัมน์คือการทำงานหนึ่งครั้ง เขียวคือทำตาม ส้มคือพลาด กรอบเส้นประคือครั้งนั้นกฎข้อนี้ไม่เกี่ยว กดเลขรอบด้านบนเพื่อดูว่า AI ทำอะไรไปบ้าง'}</p>
-        {promptChanged && <p class="col small">{en ? 'This study used the prompt' : 'รอบนี้ใช้คำสั่ง'} <q lang="th">{ps.prompt}</q></p>}
+        {promptChanged && <p class="col small">{en ? 'This study used the prompt' : 'รอบนี้ใช้คำสั่ง'} <q>{promptT(lang, ps.prompt)}</q></p>}
         <div class="tbl-wrap">
           <table class="bt matrix">
             <thead>
@@ -71,7 +77,7 @@ const th = en ? 'th' : undefined;
             <tbody>
               {ruleList.map((rule: any) => (
                 <tr class={rule.sev === 'critical' ? '' : 'minor'}>
-                  <td><span class="mono rid">{rule.id}</span> <span lang={th}>{rule.desc}</span></td>
+                  <td><span class="mono rid">{rule.id}</span> <span>{ruleDescT(lang, rule.desc)}</span></td>
                   <td class="small">{sev[rule.sev] ?? rule.sev}</td>
                   {study.armIds.map((a) => ps.byArm[a].runs.map((run) => {
                     const c = cell(run.rules.find((y) => y.id === rule.id));

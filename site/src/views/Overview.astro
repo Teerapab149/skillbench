@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import ThreeStudies from '../components/ThreeStudies.astro';
 import { studies, s3, scenarios, arms, failsByCat, pct, pts } from '../lib/data';
-import { rootOf, studyT, type Lang } from '../lib/i18n';
+import { rootOf, studyT, promptT, ruleFileEn, skillDescT, type Lang } from '../lib/i18n';
 interface Props { lang: Lang }
 const { lang } = Astro.props;
 const en = lang === 'en';
@@ -18,7 +18,7 @@ const [, rateFrom, rateTo] = (s09.prompt.match(/(\d+)\s*บาทเป็น\s*
 const hours = 10;
 // ข้อความจริงจากไฟล์กฎ
 const a1 = arms.find((a) => a.id === 'A1')!.files[0];
-const a1Lines = a1.body.split(/\r?\n/).filter((l) => l.trim()).slice(0, 6);
+const a1Lines = (lang === 'en' ? ruleFileEn(a1.path) : a1.body).split(/\r?\n/).filter((l) => l.trim()).slice(0, 6);
 const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'impact-analysis')!;
 const sts = studies.map((st) => studyT(lang, st));
 const th = en ? 'th' : undefined;
@@ -54,7 +54,7 @@ const hr = en ? 'h' : 'ชม.';
     {en ? (
       <div class="split-text">
         <h2>Why rules are needed</h2>
-        <p>Take task {s09.code}. The user asks, in Thai, <q lang="th">{s09.prompt}</q> (raise the V100 rate from {rateFrom} to {rateTo} baht per hour under the new notice). The AI changes the number correctly, but this system recalculates invoices every time they are opened, so invoices already sent to customers also go up. No error appears, and the old tests still all pass.</p>
+        <p>Take task {s09.code}. The user asks <q>{promptT(lang, s09.prompt)}</q> (the prompt was written in Thai). The AI changes the number correctly, but this system recalculates invoices every time they are opened, so invoices already sent to customers also go up. No error appears, and the old tests still all pass.</p>
         <p>Problems like this do not happen because the AI cannot write code, but because it does more than it was asked without telling anyone. That is why development teams write rules for the AI, such as change only what was asked, never touch the data files, and check the impact before changing anything that handles money.</p>
         <p><a href={`${base}scenarios/${s09.id}/`}>See how well each group did on this task</a></p>
       </div>
@@ -91,14 +91,14 @@ const hr = en ? 'h' : 'ชม.';
     <div class="files">
       <figure class="file">
         <p class="file-h"><span class="mono">{a1.path}</span><span class="load always">{en ? 'Read every time a task starts' : 'อ่านทุกครั้งที่เริ่มงาน'}</span></p>
-        <div class="file-b"><div lang={th}>{a1Lines.map((l) => <p class={l.startsWith('#') ? 'fh' : ''}>{l.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</p>)}</div><p class="more">{en ? `This file holds every rule and is ${a1.body.length.toLocaleString('en-US')} characters long` : `ไฟล์นี้มีกฎครบทุกข้อ ยาว ${a1.body.length.toLocaleString('en-US')} ตัวอักษร`}</p></div>
+        <div class="file-b"><div>{a1Lines.map((l) => <p class={l.startsWith('#') ? 'fh' : ''}>{l.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</p>)}</div><p class="more">{en ? `English translation of the opening lines. The original Thai file holds every rule and is ${a1.body.length.toLocaleString("en-US")} characters long` : `ไฟล์นี้มีกฎครบทุกข้อ ยาว ${a1.body.length.toLocaleString('en-US')} ตัวอักษร`}</p></div>
         {en
           ? <figcaption><b>Single file</b> Easy to write and maintain, but the AI has to read every rule, even those unrelated to the task.</figcaption>
           : <figcaption><b>ไฟล์เดียว</b> เขียนง่าย ดูแลง่าย แต่ AI ต้องอ่านกฎทุกข้อ แม้ข้อที่ไม่เกี่ยวกับงาน</figcaption>}
       </figure>
       <figure class="file">
         <p class="file-h"><span class="mono">{skill.path}</span><span class="load ondemand">{en ? 'Opened when relevant' : 'เปิดเมื่องานเกี่ยว'}</span></p>
-        <div class="file-b"><p class="fh">{en ? 'The description the AI sees when a task starts' : 'คำอธิบายที่ AI เห็นตอนเริ่มงาน'}</p><p lang={th}>{skill.description}</p><p class="more">{en ? `If the task matches this description, the AI opens the full content, another ${skill.body.length.toLocaleString('en-US')} characters` : `ถ้างานตรงกับคำอธิบายนี้ AI จะเปิดอ่านเนื้อหาเต็มอีก ${skill.body.length.toLocaleString('en-US')} ตัวอักษร`}</p></div>
+        <div class="file-b"><p class="fh">{en ? 'The description the AI sees when a task starts' : 'คำอธิบายที่ AI เห็นตอนเริ่มงาน'}</p><p>{skillDescT(lang, skill.name, skill.description)}</p><p class="more">{en ? `If the task matches this description, the AI opens the full content, another ${skill.body.length.toLocaleString('en-US')} characters` : `ถ้างานตรงกับคำอธิบายนี้ AI จะเปิดอ่านเนื้อหาเต็มอีก ${skill.body.length.toLocaleString('en-US')} ตัวอักษร`}</p></div>
         {en
           ? <figcaption><b>Agent Skills</b> Splits the rules into small sets. The idea is that if unrelated rules do not get in the way, the AI should follow the relevant ones better. But as far as we could find, nobody had measured the two formats directly against each other.</figcaption>
           : <figcaption><b>Agent Skills</b> แยกกฎเป็นชุดย่อย ๆ ไอเดียคือถ้ากฎที่ไม่เกี่ยวไม่มากวน AI น่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ</figcaption>}
