@@ -10,7 +10,7 @@ Alturayeif, N., Ahmad, I., & Hassine, J. (2026). *TraceLLM: Leveraging large lan
 
 Anthropic. (n.d.). *Agent Skills*. Claude Docs. Retrieved October 10, 2026, from https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview
 
-Geng, Y., Li, H., Mu, H., Han, X., Baldwin, T., Abend, O., Hovy, E., & Frermann, L. (2026). Control illusion: The failure of instruction hierarchies in large language models. *Proceedings of the AAAI Conference on Artificial Intelligence, 40*(36), 30816–30824. https://arxiv.org/abs/2502.15851
+Geng, Y., Li, H., Mu, H., Han, X., Baldwin, T., Abend, O., Hovy, E., & Frermann, L. (2026). Control illusion: The failure of instruction hierarchies in large language models. *Proceedings of the AAAI Conference on Artificial Intelligence, 40*(36), 30816–30824. https://doi.org/10.1609/aaai.v40i36.40339
 
 Gloaguen, T., Mündler-Sasahara, N., Müller, M. N., Raychev, V., & Vechev, M. (2026). *Evaluating AGENTS.md: Are repository-level context files helpful for coding agents?* (arXiv:2602.11988). arXiv. https://doi.org/10.48550/arXiv.2602.11988
 
