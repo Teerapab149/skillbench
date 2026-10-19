@@ -2,7 +2,7 @@ import fs from 'fs';
 const D='E:/Seminar/skillbench/presentation-final';
 const j=JSON.parse(fs.readFileSync(D+'/deck-th/deck.json','utf8'));
 const strip=s=>s.replace(/<br\s*\/?>/g,' ').replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim();
-let out='# บทพูด SkillBench (ฉบับ 17 ต.ค. 2569)\n\nรวมจากบทพูดในสไลด์ deck-th/slides ถ้าแก้บทพูด ให้แก้ในไฟล์สไลด์แล้วสร้างไฟล์นี้ใหม่\n\n';
+let out='# บทพูด SkillBench (ฉบับ 19 ต.ค. 2569)\n\nรวมจากบทพูดในสไลด์ deck-th/slides ถ้าแก้บทพูด ให้แก้ในไฟล์สไลด์แล้วสร้างไฟล์นี้ใหม่\n\n';
 let mainSec=0, total=0;
 const toSec=t=>{const m=t.match(/(\d+):(\d+)/);return m?(+m[1])*60+(+m[2]):0};
 const main=j.order.filter(id=>!id.startsWith('b'));

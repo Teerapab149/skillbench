@@ -42,7 +42,7 @@ p{margin:0 0 3mm;orphans:3;widows:3}
 .qa p{break-inside:avoid}.qa{margin-top:4mm;padding:3mm;background:#F2F3F6;border-radius:2mm;font-size:11pt;line-height:1.55;color:#3A4152}
 .qh{font-weight:700;font-size:10pt;color:#5A6070;margin-bottom:2mm}
 </style></head><body>
-<div class="cover"><h1>บทพูด SkillBench</h1><p>หน้าละหนึ่งสไลด์ ภาพด้านบนคือสไลด์ ตัวหนังสือคือบทที่ต้องพูด กล่องสีเทาคือคำตอบเตรียมไว้เผื่อถูกถาม</p><p>เวลารวมตามบทราว ${mm}:${ss} นาที คนที่ 1 พูดหน้า 1 ถึง 8 คนที่ 2 พูดหน้า 9 ถึง 14</p><p>ฉบับ 17 ต.ค. 2569</p></div>
+<div class="cover"><h1>บทพูด SkillBench</h1><p>หน้าละหนึ่งสไลด์ ภาพด้านบนคือสไลด์ ตัวหนังสือคือบทที่ต้องพูด กล่องสีเทาคือคำตอบเตรียมไว้เผื่อถูกถาม</p><p>เวลารวมตามบทราว ${mm}:${ss} นาที คนที่ 1 พูดหน้า 1 ถึง 8 คนที่ 2 พูดหน้า 9 ถึง 14</p><p>ฉบับ 19 ต.ค. 2569</p></div>
 ${pages}</body></html>`;
 fs.writeFileSync(S+'/script-print.html',html);
 const EDGE='C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
