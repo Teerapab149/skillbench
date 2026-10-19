@@ -4,6 +4,7 @@ const path = require('path');
 const pptxgen = require('pptxgenjs');
 
 const PF = 'E:/Seminar/skillbench/presentation-final';
+const LANG = process.argv.includes('--en') ? 'en' : 'th';
 const slides = JSON.parse(fs.readFileSync(path.join(__dirname, 'layout.json'), 'utf8'));
 const IN = 13.333 / 1920; // px ต่อนิ้ว
 const PT = 0.5; // px เป็น pt (1920px เท่ากับ 13.333 นิ้ว)
@@ -15,7 +16,7 @@ pres.title = 'SkillBench นำเสนอ final';
 pres.author = 'ธีรภาพ บุญศรี และธีรภัทร์ ชินวุฒิวงศ์';
 
 const notesOf = (id) => {
-  const h = fs.readFileSync(path.join(PF, 'deck-th/slides', id + '.html'), 'utf8');
+  const h = fs.readFileSync(path.join(PF, 'deck-' + LANG + '/slides', id + '.html'), 'utf8');
   const m = h.match(/<aside>([\s\S]*?)<\/aside>/);
   return m ? m[1].trim() : '';
 };
@@ -62,7 +63,8 @@ for (const s of slides) {
       });
     } else if (it.k === 'table') {
       const rows = it.rows.map((row) => row.cells.map((c) => ({
-        text: runsToText(c.runs).length ? runsToText(c.runs) : '',
+        // ภาษาอังกฤษ: ให้ PowerPoint ตัดบรรทัดในตารางเอง เพราะความกว้างตัวอักษรต่างจากเบราว์เซอร์ จุดตัดที่วัดมาจึงซ้อนกับการตัดอัตโนมัติ
+        text: (() => { const rs = LANG === 'en' ? c.runs.map((r) => (r.br ? { t: ' ', b: false, c: null, f: 'Sarabun', s: it.fs } : r)) : c.runs; const tx = runsToText(rs); return tx.length ? tx : ''; })(),
         options: {
           fill: row.bg ? { color: row.bg } : undefined, valign: 'middle', align: c.align === 'right' ? 'right' : 'left',
           fontFace: 'Sarabun', fontSize: +(it.fs * PT).toFixed(1), color: '1B1F2A', bold: c.th || undefined,
@@ -77,5 +79,5 @@ for (const s of slides) {
   if (n) slide.addNotes(n);
 }
 
-const out = path.join(PF, 'SkillBench-final-TH.pptx');
+const out = path.join(PF, LANG === 'en' ? 'SkillBench-final-EN.pptx' : 'SkillBench-final-TH.pptx');
 pres.writeFile({ fileName: out }).then(() => console.log('wrote', out));

@@ -1,13 +1,13 @@
 <section id="b6-oneshot" data-transition="fade" style="background:#EEF1F6;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:36px">
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">Backup B6, before and after the follow-up turn, Tables 18 and 19 in the report</p>
-<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.2">Agents with rules stopped to ask, then finished 22 of 25 runs after one reply</h2>
+<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25">With rules, the AI stopped to ask, then finished 22 of 25 times</h2>
 <table style="font-size:28px;width:1664px">
-<tr><th style="width:24%">Group</th><th style="width:19%">Done after turn 1</th><th style="width:19%">Done after the reply</th><th style="width:20%">Not done, then done</th><th style="width:18%">Done, then broken</th></tr>
+<tr><th style="width:24%">Group</th><th style="width:19%">Finished after round 1</th><th style="width:19%">Finished after follow-up</th><th style="width:20%">Unfinished, then finished</th><th style="width:18%">Finished, then broke</th></tr>
 <tr><td>No rules</td><td>61</td><td>61</td><td>0/5</td><td>0</td></tr>
-<tr><td>Single file</td><td>58</td><td>64</td><td>7/8</td><td>1</td></tr>
+<tr><td>One file</td><td>58</td><td>64</td><td>7/8</td><td>1</td></tr>
 <tr><td>Agent Skills</td><td>60</td><td>66</td><td>6/6</td><td>0</td></tr>
 <tr><td>Skills, always loaded</td><td>55</td><td>64</td><td>9/11</td><td>0</td></tr>
 </table>
-<p style="font-size:28px;line-height:1.45;color:#3A4152">Counting the first turn only, Skills is ahead by +2.4 points, but the range is wide, [−8.0, +13.8]. After the reply it is +2.8 points and the range narrows to [−0.6, +6.4] (95% CI).</p>
-<aside>Use when asked why we added a follow-up turn: measuring a single turn punishes careful agents that stop to ask.</aside>
+<p style="font-size:28px;line-height:1.45;color:#3A4152">Round 1 only: Skills +2.4 points, 90% interval [−6.8, +12.1], inside the margin but close to the edge. After the follow-up: +2.8, 90% interval [−0.1, +5.8]. The follow-up is the same fixed message for all groups, not a real user answer</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#5A6070">Backup B6: before and after the standard follow-up message (report Tables 18 and 19)</p>
+<aside>ตารางที่ 18 และ 19 ในเล่ม ใช้ตอบว่าทำไมต้องมีรอบตอบกลับ: การวัดรอบเดียวลงโทษ AI ที่ระวังตัวและหยุดถาม ข้อความที่ส่งคือ "ตอนนี้ไม่มีใครตอบคำถามได้ ให้ดำเนินการต่อตามที่คุณเห็นสมควร" ส่งให้ทุกครั้งหลังรอบแรก ไม่ใช่เฉพาะครั้งที่หยุดถาม ยอมรับด้วยว่าคะแนนชนเพดานส่วนหนึ่งเกิดจากรอบตอบกลับ รอบแรกกลุ่มที่มีกฎได้ราว 86 ถึง 89%</aside>
 </section>

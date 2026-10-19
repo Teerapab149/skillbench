@@ -1,18 +1,29 @@
-<section id="rules-matter" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:32px">
-<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.2;width:1600px">The bigger gap is between having rules and having none <span style="color:#6B7180">(an extra observation)</span></h2>
-<div style="display:flex;gap:56px;align-items:center">
-<img src="/_blob/8d6bf1d6761e70d67486aca90910f4af" alt="Passed every critical rule: A0 53.0, A1 78.8, A2 80.3, A5 83.3 percent. Edited only in-scope files: A0 72.7, A1 87.9, A2 90.9, A5 90.9 percent" style="width:1100px;height:619px;object-fit:contain">
-<div style="flex:1;display:flex;flex-direction:column;gap:20px">
-<p style="font-size:30px;line-height:1.5">On the rules about past invoices, the agent with no rules <b>missed 18 out of 72 checks</b>, almost all by not checking or not reporting.</p>
-<p style="font-size:30px;line-height:1.5">Groups with rules missed it at most 2 times.</p>
+<section id="rules-matter" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">The clearer difference: rules versus no rules <span style="color:#6B7180;white-space:nowrap">(extra observation)</span></h2>
+<div style="display:flex;gap:64px;align-items:start">
+<div style="width:900px;display:flex;flex-direction:column;gap:18px">
+<p style="font-size:28px;color:#6B7180;line-height:1.4">Price and rounding tasks (S08 and S09), 6 runs per group<br>Did the AI tell the user that old bills would change?</p>
+<div style="display:flex;justify-content:space-between;align-items:baseline;background:#F3E3DF;padding:20px 32px"><p style="font-size:32px">No rules</p><p style="font-family:'Anuphan', Tahoma, sans-serif;font-size:52px;font-weight:700;color:#C0392B">0 of 6</p></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;background:#EEF1F6;padding:20px 32px"><p style="font-size:32px">One file</p><p style="font-family:'Anuphan', Tahoma, sans-serif;font-size:52px;font-weight:700;color:#2F6B3A">6 of 6</p></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;background:#EEF1F6;padding:20px 32px"><p style="font-size:32px">Agent Skills</p><p style="font-family:'Anuphan', Tahoma, sans-serif;font-size:52px;font-weight:700;color:#2F6B3A">6 of 6</p></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;background:#EEF1F6;padding:20px 32px"><p style="font-size:32px">Skills, always loaded</p><p style="font-family:'Anuphan', Tahoma, sans-serif;font-size:52px;font-weight:700;color:#2F6B3A">6 of 6</p></div>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:28px;padding-top:56px">
+<p style="font-size:28px;line-height:1.5">Across all 22 tasks: runs that passed every critical rule</p>
+<p style="font-size:30px;line-height:1.5">No rules <b>53%</b><br>With rules <b>79 to 83%</b></p>
+<p style="font-size:28px;line-height:1.5">The AI without rules also edited out-of-scope files more often</p>
 </div>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">Not the main question. We cannot tell whether it is the rules or just more text to read. Old invoices actually changed rarely: 1 of 54 runs with no rules, 2 of 54 with Skills (Tables 14 and 16 in the report).</p>
-<aside>[Speaker 2, 1:15] If we step back, the biggest difference in this work is not between the two formats. It is between having rules and having none.
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">The 6-run counts are rule IM1 of S08 and S09 in results-study3/rules-long.csv; 53% and 79 to 83% are in report Table 14. Not the main tested question. The no-rules group was checked against rules it never received, and we cannot tell if rule content or just more text made the difference</p>
+<aside>[คนที่ 2, 0:50] สิ่งที่เราเห็นเพิ่ม คือความต่างระหว่างมีกฎกับไม่มีกฎ ชัดกว่าความต่างระหว่างสองแบบมาก
 
-Without rules, the agent finished tasks almost as often, but passed every critical rule only about half the time, compared with about four in five with rules. It edited files outside the task more often. And on the rules about past invoices, it missed 18 checks out of 72, almost all by skipping the check or not reporting it. Groups with rules missed it at most twice.
+กลับไปที่เรื่องบิล AI ที่ไม่มีกฎไม่บอกผู้ใช้เลยสักครั้งว่าบิลเก่าจะเปลี่ยน ส่วน AI ที่มีกฎ ไม่ว่าจะเขียนแบบไหน บอกครบทุกครั้ง ภาพรวมทุกโจทย์ก็ไปทางเดียวกัน
 
-This part is an extra observation, not the main tested result. And we cannot tell whether the improvement comes from the content of the rules or just from having more text in context.
+ส่วนนี้เป็นข้อสังเกตเพิ่ม ไม่ใช่คำถามหลักที่เราทดสอบตามแผน แต่ก็ชี้ชัดว่ากฎช่วยได้จริงครับ
 
-If asked how often past invoices actually changed: rarely in every group, 1 of 54 runs with no rules and 2 of 54 with Skills. What the no-rules agent missed was checking and telling.</aside>
+ถ้าถูกถามเรื่องตัวเลข 18 จาก 72 ในเล่ม (ตารางที่ 16): 72 คือจำนวนครั้งที่กฎกลุ่มผลกระทบต่อข้อมูลย้อนหลังต้องถูกตรวจในกลุ่มไม่มีกฎกลุ่มเดียว รวมทุกโจทย์ทุกรอบ ไม่ได้รวม 4 กลุ่ม แต่ละกลุ่มมีราว 72 ครั้งเหมือนกัน ไม่มีกฎพลาด 18 ครั้ง ไฟล์เดียว 2 จาก 71 Skills 2 จาก 72 Skills แบบอ่านทุกครั้ง 0 จาก 72
+
+ถ้าถูกถามว่าบิลเปลี่ยนจริงกี่ครั้ง: น้อยมากทุกกลุ่ม ไม่มีกฎ 1 จาก 54 ไฟล์เดียว 0 จาก 53 Skills 2 จาก 54 Skills แบบอ่านทุกครั้ง 0 จาก 54 สิ่งที่กลุ่มไม่มีกฎพลาดคือไม่เช็กและไม่บอก
+
+ถ้าถูกถามว่ามีกฎกับไม่มีกฎต่างกันอย่างมีนัยสำคัญไหม: ถ้าใช้เกณฑ์เดียวกับผลหลัก ไฟล์เดียวต่างจากไม่มีกฎชัดเฉพาะการผ่านกฎสำคัญครบ ราว 26 จุด ส่วนการแก้ไฟล์ในขอบเขตและคะแนนหลักซึ่งต่างกัน 9.5 จุด ยังสรุปไม่ได้ (หัวข้อ 5.5)</aside>
 </section>

@@ -1,17 +1,17 @@
 <section id="problem" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.2;width:1600px">The AI changed the price correctly, and last month's invoice changed with it</h2>
+<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">Asked to raise a price, the AI changed the right place<br>but last month’s bill went up too, and nobody was told</h2>
 <div style="display:flex;gap:56px;align-items:start">
-<img src="/_blob/2c9eaf19ac23c39f45f2d75f89a18921" alt="Last month's invoice of 200 baht becomes 250 baht after the AI changes the V100 rate from 20 to 25 baht per hour, and nobody is told" style="width:1040px;height:585px;object-fit:contain">
-<div style="flex:1;display:flex;flex-direction:column;gap:20px;border-left:4px solid #3B5B92;padding:8px 0 8px 32px">
-<p style="font-size:24px;color:#6B7180">What our team rules say, section 4 (translated)</p>
-<p style="font-size:30px;line-height:1.45">If a number changes, report:</p>
-<p style="font-size:28px;line-height:1.45">1. the numbers before and after<br>2. that issued invoices changed<br>3. an option that leaves old data alone<br>4. then ask before calling it done</p>
+<img src="../../figures/fig-s2-invoice-en.png" alt="The user asks to change the V100 rate from 20 to 25 baht per hour. Last month’s invoice of 200 baht becomes 250 baht, and nobody is told" style="width:1040px;height:585px;object-fit:contain">
+<div style="flex:1;display:flex;flex-direction:column;gap:32px;padding-top:24px">
+<p style="font-size:30px;line-height:1.5">The task was done: the new price is 25 baht per hour</p>
+<p style="font-size:30px;line-height:1.5">But this system computes old bills from the current price. A customer who paid 200 baht now sees 250 baht</p>
+<p style="font-size:30px;line-height:1.5;font-weight:700;color:#C0392B">The AI did what it was told, but did not check the side effects</p>
 </div>
 </div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">Scenario S09 from study 3. The rate is from the real task, the hours are illustrative.</p>
-<aside>[Speaker 1, 1:00] AI coding agents like Claude Code, Copilot and Cursor are very good at writing code now. The real problem teams face is not that the agent cannot code. It is that the agent does things nobody asked for, and does not say so.
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">Task S09 in our experiment. The rates come from the task; the number of hours is an example</p>
+<aside>[คนที่ 1, 0:45] ลองดูตัวอย่างครับ ผู้ใช้สั่งให้ AI ขึ้นราคาเครื่องจาก 20 เป็น 25 บาท AI ก็แก้ให้ถูก
 
-This is a real task from our experiment. The user asks the agent to raise the price of a GPU machine. The agent changes the price correctly. But the system recalculates invoices from the current price, so last month's invoice also changes. In a real business, that is a serious problem.
+แต่ระบบนี้คำนวณบิลจากราคาปัจจุบันทุกครั้งที่เปิดดู บิลเดือนที่แล้วที่ลูกค้าจ่ายไปแล้ว ก็แพงขึ้นตามไปด้วย โดยไม่มีใครรู้
 
-So teams give the agent rules. On the right is one of ours: if a number changes, report the before and after, say that issued invoices changed, offer an option that leaves old data alone, and ask before calling it done.</aside>
+AI ทำตามคำสั่งครบ แต่ไม่ได้ดูว่าผลไปกระทบอะไรต่อ นี่คือเหตุผลที่ต้องมีกฎให้ AI และเรื่องบิลนี้จะเป็นตัวอย่างที่เราเล่าไปตลอดครับ</aside>
 </section>

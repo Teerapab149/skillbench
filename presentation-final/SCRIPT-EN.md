@@ -1,6 +1,6 @@
 # English speaking script (based on the Thai deck, 20 slides)
 
-Speaker 1 = Teerapab, Speaker 2 = Teerapat. Target about 12 minutes for the 14 main slides.
+Speaker 1 = Teerapab, Speaker 2 = Teeraphat. Target about 12 minutes for the 14 main slides.
 
 How to use this script
 - Sentences are short on purpose. If you forget a line, read the slide title aloud. The titles already tell the whole story.
@@ -12,7 +12,7 @@ How to use this script
 
 ## 1. Cover  [Speaker 1, 0:15]
 
-Good afternoon, everyone. I am Teerapab, and this is Teerapat.
+Good afternoon, everyone. I am Teerapab, and this is Teeraphat.
 Today we want to answer one question.
 If you write rules for an AI that works on your system, **how should you write them, so the AI actually follows them?**
 
@@ -74,7 +74,7 @@ Our measurement tool was **not good at the start**. We ran **three studies**.
 In study one, the scoring was too strict. One mistake gave zero, so all groups looked the same.
 In study two, an AI that **stopped to ask** was counted as a failure, and some of our own checkers were wrong.
 In study three, we fixed everything. We **doubled the tasks**, tested the tool before the real run, and let an AI that stops to ask **continue**.
-Study three gave us an answer. Teerapat will show the result.
+Study three gave us an answer. Teeraphat will show the result.
 
 If asked about the numbers of studies 1 and 2: Skills was +9.1 and +11.0 points ahead, but both were inconclusive. Do not compare them with +2.8, because the metrics and tasks were different.
 

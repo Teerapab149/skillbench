@@ -1,13 +1,13 @@
-<section id="b5-trigger" data-transition="fade" style="background:#EEF1F6;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">Backup B5, how accurately the agent opened skills, Tables 20 and 21 in the report</p>
-<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.2">Some skills loaded almost perfectly; one was opened far more than needed</h2>
+<section id="b5-trigger" data-transition="fade" style="background:#EEF1F6;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:36px">
+<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25">Some skills were opened almost perfectly, one too often</h2>
 <table style="font-size:30px;width:1664px">
-<tr><th style="width:40%">Skill</th><th style="width:20%">Precision</th><th style="width:20%">Recall</th><th style="width:20%">F1</th></tr>
+<tr><th style="width:40%">skill</th><th style="width:20%">Precision</th><th style="width:20%">Recall</th><th style="width:20%">F1</th></tr>
 <tr><td>trace-to-requirement</td><td>100.0%</td><td>98.5%</td><td>0.992</td></tr>
 <tr><td>acceptance-first</td><td>100.0%</td><td>81.3%</td><td>0.897</td></tr>
 <tr><td>safe-shell</td><td>77.8%</td><td>77.8%</td><td>0.778</td></tr>
 <tr><td>impact-analysis</td><td>60.6%</td><td>95.2%</td><td>0.741</td></tr>
 </table>
-<p style="font-size:28px;line-height:1.45;color:#3A4152">These depend on the researchers' judgment of which task should load which skill. On average 2.21 of 4 skills loaded per run; only 1 run loaded all four.</p>
-<aside>If relevance is judged directly from the rules instead, the F1 of impact-analysis drops to 0.533; the other skills do not change.</aside>
+<p style="font-size:26px;line-height:1.45;color:#3A4152">Precision: share of openings that fit the task. Recall: share of needed openings that happened. Relevance was judged by us. The AI opened 2.21 of 4 skills per run on average, and all 4 only once</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#5A6070">Backup B5: how well the AI chose skills (report Tables 20 and 21)</p>
+<aside>ตารางที่ 20 และ 21 ในเล่ม ถ้าเปลี่ยนเกณฑ์ความเกี่ยวข้องไปอิงกฎโดยตรง F1 ของ impact-analysis ลดเหลือ 0.533 ส่วน skill อื่นไม่เปลี่ยน</aside>
 </section>
