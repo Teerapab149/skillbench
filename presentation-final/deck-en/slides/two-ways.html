@@ -2,11 +2,11 @@
 <h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">Teams write rules for the AI to read before it starts<br>There are two ways to write them</h2>
 <img src="../../figures/fig-two-ways-en.png" alt="Left: one file, CLAUDE.md with 9 sections and 20 rules, read in full every time. Right: Agent Skills, a short main file with 4 basic rules and 4 skills; the AI opens only the relevant one, such as impact-analysis, which holds the invoice rule" style="width:1664px;height:624px;object-fit:contain">
 <p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">Taken from the real files we used. Both contain the same invoice rule; only its location differs</p>
-<aside>[คนที่ 1, 1:00] กฎให้ AI เขียนได้สองแบบครับ
+<aside>[คนที่ 1, 1:15] แล้วทีมที่ใช้ AI แบบนี้ป้องกันปัญหานี้อย่างไรครับ วิธีที่ใช้กันคือเขียนกฎไว้ให้ AI อ่านก่อนเริ่มงาน เช่น ห้ามแก้เกินที่สั่ง หรือถ้าตัวเลขในระบบจะเปลี่ยน ต้องบอกผู้ใช้ก่อน กฎพวกนี้เขียนได้สองแบบครับ
 
-แบบแรก ไฟล์เดียว เขียนกฎทุกข้อไว้ในไฟล์เดียว AI อ่านทั้งไฟล์ทุกครั้งที่เริ่มงาน เหมือนให้พนักงานใหม่อ่านคู่มือทั้งเล่มทุกเช้า
+แบบที่ 1 ทางซ้าย คือเขียนกฎทุกข้อรวมไว้ในไฟล์เดียว ไฟล์ของเรามี 9 หมวด 20 ข้อ AI จะอ่านทั้งไฟล์ทุกครั้งที่เริ่มงาน เหมือนให้พนักงานอ่านคู่มือทั้งเล่มทุกเช้า
 
-แบบที่สอง Agent Skills แยกกฎออกเป็นเรื่อง ๆ AI ดูแค่สารบัญก่อน แล้วเปิดอ่านเฉพาะเรื่องที่เกี่ยวกับงานตรงหน้า อย่างงานขึ้นราคา ก็เปิดเรื่องการเช็กผลกระทบ
+แบบที่ 2 ทางขวา เรียกว่า Agent Skills ซึ่ง Anthropic เปิดตัวเมื่อปีที่แล้ว คือแยกกฎออกเป็นชุดตามเรื่อง ตอนเริ่มงาน AI เห็นแค่กฎพื้นฐานไม่กี่ข้อกับรายชื่อชุดกฎ เหมือนดูสารบัญ แล้วค่อยเปิดอ่านเต็มเฉพาะชุดที่เกี่ยวกับงาน อย่างงานขึ้นราคา AI ควรเปิดชุด impact-analysis ซึ่งมีกฎเรื่องเช็กผลกระทบและเรื่องบิล
 
-กฎเรื่องบิลมีอยู่ในทั้งสองแบบเหมือนกัน ต่างกันแค่วิธีเก็บ คำถามคือ แบบไหนทำให้ AI ทำตามกฎได้ดีกว่ากัน ซึ่งยังไม่มีใครวัดเทียบตรง ๆ เราเลยลองวัดครับ</aside>
+แนวคิดของแบบที่ 2 คือ ถ้า AI ไม่ต้องอ่านกฎที่ไม่เกี่ยว มันน่าจะโฟกัสกฎที่เกี่ยวได้ดีขึ้น ฟังดูมีเหตุผลครับ แต่เท่าที่เราค้น ยังไม่มีใครทดลองวัดเทียบสองแบบนี้ตรง ๆ โดยให้กฎเท่ากัน เราจึงทำการทดลองนี้ขึ้นมาครับ</aside>
 </section>
