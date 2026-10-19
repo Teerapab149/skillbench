@@ -2,59 +2,68 @@
 // ผลหลักของสามชุดบนแกนเดียวกัน (ผลต่าง A2 − A1 เป็นจุด พร้อม CI 95%)
 // แต่ละชุดใช้ตัวชี้วัดของตัวเอง คำบรรยายรูปบอกไว้ชัดว่าเทียบตัวเลขข้ามชุดตรง ๆ ไม่ได้
 import { studies, pts, fmtP } from '../lib/data';
-interface Props { n: number }
-const { n } = Astro.props;
-const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+import { rootOf, studyT, type Lang } from '../lib/i18n';
+interface Props { n: number; lang?: Lang }
+const { n, lang = 'th' } = Astro.props;
+const en = lang === 'en';
+const base = rootOf(lang);
+const sts = studies.map((st) => studyT(lang, st));
 const W = 1000, padL = 250, padR = 150, lo = -0.3, hi = 0.3;
 const X = (v: number) => padL + ((v - lo) / (hi - lo)) * (W - padL - padR);
-const rowH = 96, top = 30, H = top + studies.length * rowH + 50;
+const rowH = 96, top = 30, H = top + sts.length * rowH + 50;
 const margin = studies[2].primary.decision.margin as number;
 // ผังแนวตั้งสำหรับจอแคบ: ป้ายอยู่เหนือเส้น แกนกว้างเต็มจอ ตัวหนังสือไม่ถูกย่อจนอ่านไม่ออก
 const N = { W: 360, rowH: 84, H: 10 + 3 * 84 + 34, X: (v: number) => 14 + ((v - lo) / (hi - lo)) * 332 };
+const tick = (t: number) => (t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0');
+const L = en
+  ? { aria: 'Main result of the three studies: Studies 1 and 2 inconclusive, Study 3 equivalent', study: 'Study', tasks: 'tasks', reps: 'repetitions', pts: 'points' }
+  : { aria: 'ผลหลักของการทดลองสามชุด ชุดที่ 1 และ 2 สรุปไม่ได้ ชุดที่ 3 เทียบเท่า', study: 'ชุดที่', tasks: 'โจทย์', reps: 'รอบ', pts: 'จุด' };
 ---
 <figure class="fig-wide three">
-  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="ผลหลักของการทดลองสามชุด ชุดที่ 1 และ 2 สรุปไม่ได้ ชุดที่ 3 เทียบเท่า">
-    <line x1={X(0)} x2={X(0)} y1={top - 10} y2={top + studies.length * rowH - 20} stroke="var(--ink-3)" stroke-dasharray="4 5" />
-    {studies.map((st, i) => {
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={L.aria}>
+    <line x1={X(0)} x2={X(0)} y1={top - 10} y2={top + sts.length * rowH - 20} stroke="var(--ink-3)" stroke-dasharray="4 5" />
+    {sts.map((st, i) => {
       const y = top + i * rowH + 30;
-      const last = i === studies.length - 1;
+      const last = i === sts.length - 1;
       return (
         <a href={`${base}study-${st.n}/`}>
           <g class={`srow ${last ? 'main' : ''}`}>
             {last && <rect x={X(-margin)} y={y - 26} width={X(margin) - X(-margin)} height="52" fill="var(--teal-wash)" />}
-            <text x="0" y={y - 4} class="t-lab">ชุดที่ {st.n}</text>
-            <text x="0" y={y + 22} class="t-sub">{st.metricName}, {st.k} โจทย์ × {st.reps} รอบ</text>
+            <text x="0" y={y - 4} class="t-lab">{L.study} {st.n}</text>
+            <text x="0" y={y + 22} class="t-sub">{st.metricName}, {st.k} {L.tasks} × {st.reps} {L.reps}</text>
             <line x1={X(st.ci95[0])} x2={X(st.ci95[1])} y1={y} y2={y} stroke="var(--ink)" stroke-width="3" />
             <rect x={X(st.primary.diff) - 8} y={y - 8} width="16" height="16" fill={last ? 'var(--teal)' : 'var(--paper)'} stroke="var(--ink)" stroke-width="2" />
             <text x={W} y={y - 4} text-anchor="end" class={`t-ver ${last ? 'ok' : ''}`}>{st.verdict}</text>
-            <text x={W} y={y + 22} text-anchor="end" class="t-sub">{pts(st.primary.diff)} จุด, p = {fmtP(st.primary.p)}</text>
+            <text x={W} y={y + 22} text-anchor="end" class="t-sub">{pts(st.primary.diff)} {L.pts}, p = {fmtP(st.primary.p)}</text>
           </g>
         </a>
       );
     })}
     {[-30, -20, -10, 0, 10, 20, 30].map((t) => (
-      <text x={X(t / 100)} y={H - 18} text-anchor="middle" class="t-tick">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>
+      <text x={X(t / 100)} y={H - 18} text-anchor="middle" class="t-tick">{tick(t)}</text>
     ))}
   </svg>
-  <svg class="narrow" viewBox={`0 0 ${N.W} ${N.H}`} role="img" aria-label="ผลหลักของการทดลองสามชุด ชุดที่ 1 และ 2 สรุปไม่ได้ ชุดที่ 3 เทียบเท่า">
+  <svg class="narrow" viewBox={`0 0 ${N.W} ${N.H}`} role="img" aria-label={L.aria}>
     <line x1={N.X(0)} x2={N.X(0)} y1="8" y2={N.H - 30} stroke="var(--ink-3)" stroke-dasharray="3 4" />
-    {studies.map((st, i) => {
+    {sts.map((st, i) => {
       const y = 10 + i * N.rowH;
-      const last = i === studies.length - 1;
+      const last = i === sts.length - 1;
       return (
         <a href={`${base}study-${st.n}/`}>
           {last && <rect x={N.X(-margin)} y={y + 30} width={N.X(margin) - N.X(-margin)} height="26" fill="var(--teal-wash)" />}
-          <text x="4" y={y + 18} class="n-lab">ชุดที่ {st.n} <tspan class="n-sub">{st.metricName}</tspan></text>
+          <text x="4" y={y + 18} class="n-lab">{L.study} {st.n} <tspan class="n-sub">{st.metricName}</tspan></text>
           <text x={N.W - 4} y={y + 18} text-anchor="end" class={`n-ver ${last ? 'ok' : ''}`}>{st.verdict}</text>
           <line x1={N.X(st.ci95[0])} x2={N.X(st.ci95[1])} y1={y + 43} y2={y + 43} stroke="var(--ink)" stroke-width="2.5" />
           <rect x={N.X(st.primary.diff) - 6} y={y + 37} width="12" height="12" fill={last ? 'var(--teal)' : 'var(--paper)'} stroke="var(--ink)" stroke-width="1.5" />
-          <text x={N.W - 4} y={y + 70} text-anchor="end" class="n-sub">{pts(st.primary.diff)} จุด, p = {fmtP(st.primary.p)}</text>
+          <text x={N.W - 4} y={y + 70} text-anchor="end" class="n-sub">{pts(st.primary.diff)} {L.pts}, p = {fmtP(st.primary.p)}</text>
         </a>
       );
     })}
-    {[-30, -15, 0, 15, 30].map((t) => <text x={N.X(t / 100)} y={N.H - 10} text-anchor="middle" class="n-sub">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>)}
+    {[-30, -15, 0, 15, 30].map((t) => <text x={N.X(t / 100)} y={N.H - 10} text-anchor="middle" class="n-sub">{tick(t)}</text>)}
   </svg>
-  <figcaption><b>รูปที่ {n}</b> ทุกรอบ Skills ได้คะแนนสูงกว่าไฟล์เดียว (จุดอยู่ขวาของเส้นศูนย์) แต่มีแค่รอบที่ 3 ที่ข้อมูลพอจะสรุปได้ ว่าทั้งเส้นอยู่ในแถบเขียว คือต่างกันไม่เกิน ±{(margin * 100).toFixed(1)} จุดที่เราตั้งไว้ก่อนเริ่ม เส้นคือช่วงที่ค่าจริงน่าจะอยู่ (ความเชื่อมั่น 95%) แต่ละรอบให้คะแนนต่างวิธีกัน เลยเทียบตัวเลขข้ามรอบตรง ๆ ไม่ได้ กดแต่ละแถวเพื่อเปิดเรื่องของรอบนั้น</figcaption>
+  {en
+    ? <figcaption><b>Figure {n}</b> In every study Skills scored higher than the single file (the dot is right of the zero line), but only Study 3 had enough data for a conclusion: its whole line sits inside the green band, a difference of no more than the ±{(margin * 100).toFixed(1)} points we set before starting. The line is the range where the true value probably lies (95% confidence). Each study scored runs in a different way, so the numbers cannot be compared directly across studies. Click a row to open the story of that study.</figcaption>
+    : <figcaption><b>รูปที่ {n}</b> ทุกรอบ Skills ได้คะแนนสูงกว่าไฟล์เดียว (จุดอยู่ขวาของเส้นศูนย์) แต่มีแค่รอบที่ 3 ที่ข้อมูลพอจะสรุปได้ ว่าทั้งเส้นอยู่ในแถบเขียว คือต่างกันไม่เกิน ±{(margin * 100).toFixed(1)} จุดที่เราตั้งไว้ก่อนเริ่ม เส้นคือช่วงที่ค่าจริงน่าจะอยู่ (ความเชื่อมั่น 95%) แต่ละรอบให้คะแนนต่างวิธีกัน เลยเทียบตัวเลขข้ามรอบตรง ๆ ไม่ได้ กดแต่ละแถวเพื่อเปิดเรื่องของรอบนั้น</figcaption>}
 </figure>
 <style>
   .three svg { width: 100%; font-family: var(--sans); overflow: visible; }

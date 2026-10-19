@@ -1,0 +1,8 @@
+---
+import View from '../../../views/Scenario.astro';
+import { scenarios } from '../../../lib/data';
+export function getStaticPaths() {
+  return scenarios.map((s, i) => ({ params: { id: s.id }, props: { s, prev: scenarios[i - 1] ?? null, next: scenarios[i + 1] ?? null } }));
+}
+---
+<View lang="en" {...Astro.props} />

@@ -1,0 +1,802 @@
+---
+// หน้าแรก: แบบจำลองหลักฐานบนกระดาษกราฟ
+// การทำงานจริง 660 ครั้งคือเสา 660 ต้น สูงตามคะแนนจริง ตั้งเป็นเมืองสามย่านตามชุดการทดลองบนพื้นกระดาษกราฟ
+// เลื่อนลงแล้วกล้องค่อย ๆ ก้มลงจนมองตรงจากด้านบน เมืองกลายเป็นตารางของแต่ละชุด แล้วชุดที่ 3 ยุบลงเป็นเส้นผลในแถบเกณฑ์
+// ฉากอื่นแสดงหลักฐานในรูปที่มันเป็นจริง บันทึกของ AI diff ของใบแจ้งหนี้ และขนาดบริบทที่ AI เห็นนับเป็นตัวอักษร
+// ถ้าไม่มี JavaScript จะเห็นรูปนิ่งแทน ถ้าเครื่องตั้งค่าลดการเคลื่อนไหว canvas จะเปลี่ยนเป็นทีละสถานะโดยไม่ขยับ
+import Base from '../layouts/Base.astro';
+import { studies, s3, scenarios, arms, pct, pts } from '../lib/data';
+import { rootOf, studyT, type Lang } from '../lib/i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const base = rootOf(lang);
+const files = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const p = s3.primary;
+const d = p.decision;
+const margin = d.margin as number;
+const mTxt = (margin * 100).toFixed(1);
+const totalRuns = studies.reduce((s, st) => s + st.usable, 0);
+const trapped = scenarios.filter((s) => s.family !== 'ordinary').length;
+const s09 = scenarios.find((s) => s.code === 'S09')!;
+const [, rateFrom, rateTo] = (s09.prompt.match(/(\d+)\s*บาทเป็น\s*(\d+)/) ?? ['', '20', '25']).map(Number);
+const hours = 10;
+const fmt = (n: number) => n.toLocaleString('en-US');
+const th = en ? 'th' : undefined;
+
+// บันทึกจริงของกลุ่มไม่มีกฎในโจทย์ S09 เลือกครั้งแรกที่พลาดกฎเรื่องผลกระทบ
+const s09runs = s3.runs.filter((r) => r.sc === s09.id && r.arm === 'A0').sort((a, b) => a.rep - b.rep);
+const imMiss = (r: (typeof s09runs)[number]) => r.rules.some((x) => /^IM/.test(x.id) && x.app && x.ok === false);
+const demo = s09runs.find(imMiss) ?? s09runs[0];
+const demoMissed = imMiss(demo);
+
+// ขนาดบริบทจริง นับเป็นตัวอักษรจากไฟล์กฎ
+const a1 = arms.find((a) => a.id === 'A1')!;
+const a1Body = a1.files.map((f) => f.body).join('\n');
+const a1Parts = a1Body.split(/\r?\n(?=## )/);
+const HEAD = 'หัวไฟล์';
+const a1Segs = a1Parts.map((t, i) => ({ name: /^## /.test(t) ? t.split(/\r?\n/)[0].replace(/^##\s*\d+\.\s*/, '') : HEAD, n: t.length + (i < a1Parts.length - 1 ? 1 : 0) }));
+const a1Chars = a1.files.reduce((s, f) => s + f.body.length, 0);
+const a2 = arms.find((a) => a.id === 'A2')!;
+const a2Base = a2.files.filter((f) => f.always).reduce((s, f) => s + f.body.length, 0);
+const a2Skills = a2.files.filter((f) => !f.always).map((f) => ({ name: f.name, n: f.body.length, desc: (f.description ?? '').length, needed: s09.expectedSkills.includes(f.name) }));
+const descChars = a2Skills.reduce((s, x) => s + x.desc, 0);
+const a2Start = a2Base + descChars;
+const a2Opened = a2Skills.filter((s) => s.needed).reduce((s, x) => s + x.n, 0);
+const scaleMax = Math.max(a1Chars, a2Start + a2Opened);
+const w = (n: number) => `${(n / scaleMax) * 100}%`;
+const neededN = a2Skills.filter((s) => s.needed).length;
+let nj = 0;
+const a2Open = a2Skills.filter((s) => s.needed).map((s) => ({ ...s, j: nj++ }));
+const a2Idle = a2Skills.filter((s) => !s.needed);
+
+// จุดทุกครั้งที่ทำงาน เรียงแบบเดียวกับตารางของแต่ละชุด แถวคือโจทย์ คอลัมน์คือกลุ่มและรอบ
+const shade = (v: number) => `color-mix(in oklab, #3fb3a6 ${Math.round(v * 100)}%, #d9733a)`;
+const fieldStudies = studies.map((st) => ({
+  st: studyT(lang, st),
+  cells: st.perScenario.flatMap((ps) => st.armIds.flatMap((a, ai) => ps.byArm[a].runs.map((r, ri) => ({ r, a, gap: ri === 0 && ai > 0 })))),
+}));
+// ป้ายบน canvas ตามภาษา
+const T = en
+  ? { band: `Margin of ±${mTxt} points set before starting`, one: 'Favours single file', sk: 'Favours Skills', study: 'Study', runs: 'runs' }
+  : { band: `เกณฑ์ ±${mTxt} จุดที่ตั้งไว้ก่อนเริ่ม`, one: 'ไฟล์เดียวดีกว่า', sk: 'Skills ดีกว่า', study: 'ชุดที่', runs: 'ครั้ง' };
+const payload = {
+  t: T,
+  studies: fieldStudies.map(({ st, cells }) => ({ n: st.n, usable: st.usable, verdict: st.verdict, cols: st.armIds.length * st.reps, reps: st.reps, rows: st.perScenario.length, n0: cells.length })),
+  dots: fieldStudies.flatMap(({ st, cells }, si) => cells.map((c, i) => [si, i, Math.round(c.r.score * 100), si === 2 && (c.a === p.armA || c.a === p.armB) ? 1 : 0])),
+  axis: { lo: -0.15, hi: 0.15, margin, ci: d.ci90, diff: p.diff },
+};
+
+// แกนผลหลัก ใช้ในรูปนิ่งเมื่อไม่มี JavaScript
+const lo = -0.15, hi = 0.15, AX = { x0: 20, x1: 580 };
+const X = (v: number) => AX.x0 + ((v - lo) / (hi - lo)) * (AX.x1 - AX.x0);
+const crit = (['A0', 'A1', 'A2', 'A5'] as const).map((a) => ({ a, v: s3.nums.perArm[a].CRIT as number }));
+const critName: Record<string, string> = en
+  ? { A0: 'No rules', A1: 'Single file', A2: 'Agent Skills', A5: 'Skills, always loaded' }
+  : { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A5: 'Skills อ่านทุกครั้ง' };
+const ci = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v * 100).toFixed(1)}`;
+const tick = (t: number) => (t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0');
+---
+<Base lang={lang} title={en ? 'SkillBench | Controlling LLM Agent Behaviour with Context Engineering and Agent Skills' : 'SkillBench การควบคุมพฤติกรรม LLM Agent ด้วย Context Engineering และระบบทักษะเอเจนต์'} current="" theme="story">
+  <div class="story">
+    <div class="track" aria-hidden="true"><div class="stage"><canvas id="heap"></canvas></div></div>
+    <script is:inline type="application/json" id="story-data" set:html={JSON.stringify(payload)}></script>
+
+    <section class="hero" id="top">
+      <div class="hero-in">
+        {en ? (<>
+          <h1 class="title">Controlling LLM Agent Behaviour in System Development with <span class="accent">Context Engineering and Agent Skills</span></h1>
+          <p class="ask">Put simply: how should rules be written so that an AI follows them?</p>
+          <p class="lead">Take the same rules and deliver them as <b>Agent Skills</b> or as a <b class="nw">single file</b>. Does the AI follow them differently? To find out, we had a coding AI do real work <b>{totalRuns} times</b>.</p>
+          <div class="hero-act">
+            <a class="btn" href="#problem">Scroll through the whole story</a>
+            <p class="quick">Short answer: <b>equivalent results</b> <a href="#answer">Skip to the answer</a></p>
+          </div>
+          <p class="byline">Seminar 477-401, Prince of Songkla University<span>Teerapab Boonsri and Teeraphat Chinwuttiwong, advisor Asst. Prof. Dr. Ruchdee Binmad</span></p>
+        </>) : (<>
+          <h1 class="title">การควบคุมพฤติกรรม LLM Agent ในงานพัฒนาระบบด้วย <span class="accent">Context Engineering และระบบทักษะเอเจนต์</span></h1>
+          <p class="ask">พูดง่าย ๆ คือ เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม</p>
+          <p class="lead">กฎชุดเดียวกัน ถ้าส่งเป็น <b>Agent Skills</b> กับ<b class="nw">ไฟล์เดียว</b> AI จะทำตามต่างกันไหม เราให้ AI เขียนโค้ดทำงานจริง <b>{totalRuns} ครั้ง</b> เพื่อหาคำตอบ</p>
+          <div class="hero-act">
+            <a class="btn" href="#problem">เลื่อนดูเรื่องทั้งหมด</a>
+            <p class="quick">คำตอบสั้น ๆ <b>ได้ผลเทียบเท่ากัน</b> <a href="#answer">ข้ามไปดูคำตอบ</a></p>
+          </div>
+          <p class="byline">งานสัมมนา 477-401 มหาวิทยาลัยสงขลานครินทร์<span>ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด</span></p>
+        </>)}
+      </div>
+      {en
+        ? <p class="key"><span>One column is one real run of the AI</span><span>Tall and green: every rule followed</span><span>Short and orange: missed</span></p>
+        : <p class="key"><span>เสาหนึ่งต้นคือ AI ทำงานจริงหนึ่งครั้ง</span><span>สูงและเขียว ทำตามกฎได้ครบ</span><span>เตี้ยและส้ม พลาด</span></p>}
+    </section>
+
+    <section class="room" id="problem">
+      <div class="wrap two">
+        {en ? (
+          <div class="copy">
+            <h2>The fix was right, but last month’s invoice went up on its own</h2>
+            <p>This system recalculates invoices every time they are opened. When the AI changed the service rate, invoices already sent to customers changed too. No error appeared, and the old tests all still passed.</p>
+            <p>The problem is not that the AI cannot write code. It is that it <b>did more than it was asked without telling anyone</b>. That is why development teams write rules for the AI.</p>
+          </div>
+        ) : (
+          <div class="copy">
+            <h2>แก้ถูก แต่ใบแจ้งหนี้เดือนที่แล้วแพงขึ้นเอง</h2>
+            <p>ระบบนี้คิดใบแจ้งหนี้ใหม่ทุกครั้งที่เปิดดู พอ AI แก้อัตราค่าบริการ ใบที่ส่งให้ลูกค้าไปแล้วก็เปลี่ยนตาม ไม่มี error ขึ้น เทสเดิมก็ยังผ่านหมด</p>
+            <p>ปัญหาไม่ได้อยู่ที่ AI เขียนโค้ดไม่เป็น แต่อยู่ที่มัน<b>ทำเกินที่ขอโดยไม่บอกใคร</b> ทีมพัฒนาเลยต้องเขียนกฎให้ AI</p>
+          </div>
+        )}
+        <div class="evidence">
+          <figure class="term" aria-label={en ? 'A real log of the AI working on task S09' : 'บันทึกการทำงานจริงของ AI ในโจทย์ S09'}>
+            <p class="term-bar"><span>claude code</span><span>{en ? `S09, no rules group, repetition ${demo.rep + 1}` : `S09 กลุ่มไม่มีกฎ รอบที่ ${demo.rep + 1}`}</span></p>
+            <div class="term-body">
+              <p class="t-line user"><span class="t-tag">{en ? 'User' : 'ผู้ใช้'}</span><span class="type" lang={th} data-text={s09.prompt}>{s09.prompt}</span></p>
+              <p class="t-line step" style="--i:0"><span class="t-tag">AI</span>{en ? 'Reads the requirements and the related code' : 'อ่านข้อกำหนดและโค้ดที่เกี่ยวข้อง'}</p>
+              {demo.files.map((f, i) => <p class="t-line step" style={`--i:${i + 1}`}><span class="t-tag">{en ? 'Edit' : 'แก้'}</span><span class="mono">{f}</span></p>)}
+              {demo.done && <p class="t-line step ok" style={`--i:${demo.files.length + 1}`}><span class="t-tag">{en ? 'Result' : 'ผล'}</span>{en ? 'Task finished, tests pass' : 'งานเสร็จ เทสผ่าน'}</p>}
+              {demoMissed && <p class="t-line step warn" style={`--i:${demo.files.length + 2}`}><span class="t-tag">{en ? 'But' : 'แต่'}</span>{en ? 'Did not check or say that old invoices changed' : 'ไม่ได้เช็กและไม่ได้บอกว่าใบแจ้งหนี้เก่าเปลี่ยน'}</p>}
+            </div>
+          </figure>
+          <figure class="diff" data-scrub="enter" aria-label={en ? `Last month’s invoice: the rate changed from ${rateFrom} to ${rateTo} baht per hour, and the total changed from ${hours * rateFrom} to ${hours * rateTo} baht` : `ใบแจ้งหนี้เดือนที่แล้ว อัตราเปลี่ยนจาก ${rateFrom} เป็น ${rateTo} บาทต่อชั่วโมง ยอดรวมเปลี่ยนจาก ${hours * rateFrom} เป็น ${hours * rateTo} บาท`}>
+            <p class="diff-h"><span>{en ? 'Last month’s invoice' : 'ใบแจ้งหนี้เดือนที่แล้ว'}</span><span>{en ? 'Sent to the customer' : 'ส่งให้ลูกค้าแล้ว'}</span></p>
+            <p class="dl"><span class="dm"> </span><span>{en ? 'V100 machine' : 'เครื่อง V100'}</span><span>{hours} {en ? 'h' : 'ชม.'}</span></p>
+            <p class="dl del"><span class="dm">−</span><span>{en ? 'Rate' : 'อัตรา'}</span><span>{rateFrom} {en ? 'baht/h' : 'บาท/ชม.'}</span></p>
+            <p class="dl add" style="--o:0"><span class="dm">+</span><span>{en ? 'Rate' : 'อัตรา'}</span><span>{rateTo} {en ? 'baht/h' : 'บาท/ชม.'}</span></p>
+            <p class="dl del total"><span class="dm">−</span><span>{en ? 'Total' : 'ยอดรวม'}</span><span>{hours * rateFrom} {en ? 'baht' : 'บาท'}</span></p>
+            <p class="dl add total" style="--o:1"><span class="dm">+</span><span>{en ? 'Total' : 'ยอดรวม'}</span><span>{hours * rateTo} {en ? 'baht' : 'บาท'}</span></p>
+            <figcaption>{en ? 'The same invoice before and after the AI changed the rate. The rates come from the real task, and the number of hours is an example.' : 'ใบเดิมใบเดียวกัน ก่อนและหลัง AI แก้อัตรา อัตรามาจากโจทย์จริง จำนวนชั่วโมงเป็นตัวอย่าง'}</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="room" id="two-ways" data-pin>
+      <div class="pin-in">
+        <div class="wrap">
+          <h2>{en ? 'The same rules can reach the AI in two ways' : 'กฎชุดเดียวกัน ส่งให้ AI ได้สองแบบ'}</h2>
+          <p class="sub">{en
+            ? 'The bars show what the AI read while working on the same invoice task. Lengths are counted from the real number of characters in the rule files. The rules in both formats are identical, and only the way they are delivered differs.'
+            : 'แถบคือสิ่งที่ AI อ่านเข้าไปตอนทำโจทย์ใบแจ้งหนี้ข้อเดิม ความยาวนับจากจำนวนตัวอักษรจริงในไฟล์กฎ กฎในสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่ง'}</p>
+          <div class="gauges" data-scrub="way">
+            <div class="gauge">
+              <p class="g-h"><b>{en ? 'Single file' : 'ไฟล์เดียว'}</b><span class="read">{en ? `${fmt(a1Chars)} characters from the start` : `${fmt(a1Chars)} ตัวอักษร ตั้งแต่เริ่ม`}</span></p>
+              <div class="tape" role="img" aria-label={en ? `Single file, ${a1Segs.length} parts, ${fmt(a1Chars)} characters in total, all read from the start` : `ไฟล์เดียว ${a1Segs.length} ส่วน รวม ${fmt(a1Chars)} ตัวอักษร เข้าไปทั้งหมดตั้งแต่เริ่ม`}>
+                {a1Segs.map((x, i) => <i class="seg one" style={`--w:${w(x.n)};--i:${i}`} title={en ? (x.name === HEAD ? `File header, ${fmt(x.n)} characters` : `Section ${i}, ${fmt(x.n)} characters`) : `${x.name} ${fmt(x.n)}`}></i>)}
+              </div>
+              <ol class="seg-names" lang={th}>{a1Segs.filter((x) => x.name !== HEAD).map((x) => <li>{x.name}</li>)}</ol>
+            </div>
+            <div class="gauge">
+              <p class="g-h"><b>Agent Skills</b><span class="read">{en
+                ? <>{fmt(a2Start)} at the start <span class="open-read">then {fmt(a2Opened)} more if it opens {neededN} skills</span></>
+                : <>{fmt(a2Start)} ตอนเริ่ม <span class="open-read">+ {fmt(a2Opened)} ถ้าเปิด {neededN} skill</span></>}</span></p>
+              <div class="tape" role="img" aria-label={en ? `Agent Skills starts at ${fmt(a2Start)} characters, then opens ${neededN} related skills, adding ${fmt(a2Opened)} characters` : `Agent Skills เริ่มที่ ${fmt(a2Start)} ตัวอักษร แล้วเปิด skill ที่เกี่ยว ${neededN} ชุด เพิ่ม ${fmt(a2Opened)} ตัวอักษร`}>
+                <i class="seg base" style={`--w:${w(a2Base)}`} title={`${en ? 'Base rules' : 'กฎพื้นฐาน'} ${fmt(a2Base)}`}></i>
+                <i class="seg desc" style={`--w:${w(descChars)}`} title={`${en ? 'Skill descriptions' : 'คำอธิบาย skill'} ${fmt(descChars)}`}></i>
+                {a2Open.map((s) => <i class="seg open" style={`--w:${w(s.n)};--j:${s.j}`} title={`${s.name} ${fmt(s.n)}`}></i>)}
+              </div>
+              <ul class="seg-key">
+                <li><i class="k base"></i>{en ? 'Base rules' : 'กฎพื้นฐาน'} {fmt(a2Base)}</li>
+                <li><i class="k desc"></i>{en ? `Names and descriptions of ${a2Skills.length} skills` : `ชื่อและคำอธิบาย skill ${a2Skills.length} ชุด`} {fmt(descChars)}</li>
+                {a2Open.map((s) => <li class="k-open" style={`--j:${s.j}`}><i class="k open"></i><span class="mono">{s.name}</span> {fmt(s.n)}</li>)}
+                {a2Idle.map((s) => <li class="k-idle"><i class="k idle"></i><span class="mono">{s.name}</span> {fmt(s.n)} {en ? 'not opened, because it is unrelated to this task' : 'ไม่ได้เปิด เพราะไม่เกี่ยวกับโจทย์นี้'}</li>)}
+              </ul>
+            </div>
+          </div>
+          {en ? (<>
+            <p class="sub">Skills starts with less. But if it opens all {neededN} skills this task should open, the total ends up longer than the single file. The difference is that unrelated skills such as <span class="mono">{a2Idle.map((x) => x.name).join(' ')}</span> are never read.</p>
+            <p class="sub small">The idea behind Skills is that unrelated rules should not distract the AI. It sounds good, but as far as we could find, nobody had measured the two formats directly against each other. <a href={`${base}background/`}>Read where the two formats come from</a></p>
+          </>) : (<>
+            <p class="sub">Skills เริ่มด้วยของที่น้อยกว่า แต่ถ้าเปิด skill ที่โจทย์นี้ควรเปิดครบ {neededN} ชุด ความยาวรวมกลับมากกว่าไฟล์เดียว ที่ต่างคือ skill ที่ไม่เกี่ยวอย่าง <span class="mono">{a2Idle.map((x) => x.name).join(' ')}</span> ไม่ถูกอ่านเลย</p>
+            <p class="sub small">ไอเดียของ Skills คือกฎที่ไม่เกี่ยวไม่ควรมากวน AI ฟังดูดี แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ <a href={`${base}background/`}>อ่านว่าสองแบบนี้มาจากไหน</a></p>
+          </>)}
+        </div>
+      </div>
+    </section>
+
+    <section class="seq" id="experiment">
+      <div class="beat lead" aria-hidden="true"></div>
+      <div class="beat">
+        <div class="slab">
+          <p class="readout"><b>{totalRuns}</b> {en ? 'runs' : 'ครั้ง'}</p>
+          {en ? (<>
+            <h2>So we had the AI do real work and measured every run</h2>
+            <p>{scenarios.length} tasks, {trapped} of them with a hidden trap. The same AI did every group and every repetition across three studies, and a program checked each rule. No person and no other AI gave scores.</p>
+            <p class="legend"><i class="lg hi"></i><span class="nw">Every rule followed</span> <i class="lg lo"></i><span class="nw">Missed</span> <a href={`${base}runs/`} class="nw">Look at each run</a></p>
+          </>) : (<>
+            <h2>เราเลยให้ AI ทำงานจริงแล้ววัดผลทุกครั้ง</h2>
+            <p>โจทย์ {scenarios.length} ข้อ {trapped} ข้อซ่อนกับดัก ให้ AI ตัวเดียวกันทำทุกกลุ่มทุกรอบ ทดลองสามชุด แล้วให้โปรแกรมตรวจทีละกฎ ไม่มีคนหรือ AI ตัวอื่นให้คะแนน</p>
+            <p class="legend"><i class="lg hi"></i><span class="nw">ทำตามกฎได้ครบ</span> <i class="lg lo"></i><span class="nw">พลาด</span> <a href={`${base}runs/`} class="nw">กดดูทีละครั้ง</a></p>
+          </>)}
+          <div class="fb field" aria-label={en ? `All ${totalRuns} runs of the three studies` : `การทำงานทั้ง ${totalRuns} ครั้งของการทดลองสามชุด`}>
+            {fieldStudies.map(({ st, cells }) => (
+              <figure class="blk">
+                <figcaption><b>{T.study} {st.n}</b><span>{st.usable} {T.runs}</span></figcaption>
+                <div class="grid" aria-hidden="true" style={`--cols:${st.armIds.length * st.reps}`}>
+                  {cells.map((c) => <i class={`d ${c.gap ? 'gap' : ''}`} style={`background:${shade(c.r.score)}`}></i>)}
+                </div>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div class="beat">
+        <div class="slab">
+          {en ? (<>
+            <h2>The first two studies were inconclusive</h2>
+            <p>Study 1 scored too harshly. In Study 2 too few tasks could decide the result and some checkers were wrong. We recorded every point, then fixed the measuring tools until we could trust them before collecting <b>Study 3</b>, the study that answers the question.</p>
+            <p class="links"><a href={`${base}study-1/`}>Study 1</a> <a href={`${base}study-2/`}>Study 2</a> <a href={`${base}study-3/`}>Study 3</a></p>
+          </>) : (<>
+            <h2>สองชุดแรกยังสรุปไม่ได้</h2>
+            <p>ชุดที่ 1 ให้คะแนนโหดเกินไป ชุดที่ 2 โจทย์ที่ใช้ตัดสินได้ยังน้อยและตัวตรวจบางข้อผิด เราจดไว้ทุกจุด แล้วแก้เครื่องมือวัดจนไว้ใจได้ก่อนเก็บ<b>ชุดที่ 3</b> ซึ่งเป็นชุดที่ใช้ตอบคำถาม</p>
+            <p class="links"><a href={`${base}study-1/`}>ชุดที่ 1</a> <a href={`${base}study-2/`}>ชุดที่ 2</a> <a href={`${base}study-3/`}>ชุดที่ 3</a></p>
+          </>)}
+        </div>
+      </div>
+      <div class="beat answer" id="answer">
+        <div class="hold"><div class="slab">
+          {en
+            ? <h2>Either format gives <span class="eq">equivalent</span> results</h2>
+            : <h2>ใช้แบบไหนก็ได้ผล<span class="eq">เทียบเท่า</span>กัน</h2>}
+          <dl class="meter">
+            <div><dt>{en ? 'Difference' : 'ผลต่าง'}</dt><dd class="big">{pts(p.diff)}<small>{en ? 'points' : 'จุด'}</small></dd></div>
+            <div><dt>{en ? 'Range where the true value probably lies (90%)' : 'ช่วงที่ค่าจริงน่าจะอยู่ (90%)'}</dt><dd>{ci(d.ci90[0])} {en ? 'to' : 'ถึง'} {ci(d.ci90[1])}</dd></div>
+            <div><dt>{en ? 'Margin set before starting' : 'เกณฑ์ที่ตั้งไว้ก่อนเริ่ม'}</dt><dd>±{mTxt}</dd></div>
+          </dl>
+          {en
+            ? <p>Skills scored {pct(p.rateA)}% and the single file {pct(p.rateB)}%. The whole range of the difference lies inside the margin band. Equivalent does not mean the same, but we can be confident that Skills is <b>not worse</b> than the single file.</p>
+            : <p>Skills ได้ {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ช่วงของผลต่างอยู่ในแถบเกณฑ์ทั้งเส้น เทียบเท่าไม่ได้แปลว่าเหมือนกัน แต่มั่นใจได้ว่า Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</p>}
+          <figure class="fb axis">
+            <svg viewBox="0 0 600 150" role="img" aria-label={en ? `Skills scored ${pct(p.rateA)}%, the single file ${pct(p.rateB)}%, a difference of ${pts(p.diff)} points, inside the ±${mTxt} point margin` : `Skills ได้ ${pct(p.rateA)}% ไฟล์เดียว ${pct(p.rateB)}% ต่างกัน ${pts(p.diff)} จุด อยู่ในเกณฑ์ ±${mTxt} จุด`}>
+              <rect class="band" x={X(-margin)} y="34" width={X(margin) - X(-margin)} height="56" />
+              <text class="band-t" x={X(0)} y="24" text-anchor="middle">{T.band}</text>
+              <line x1={X(0)} x2={X(0)} y1="34" y2="90" class="zero" />
+              <line class="ci" x1={X(d.ci90[0])} x2={X(d.ci90[1])} y1="62" y2="62" />
+              <circle class="pt" cx={X(p.diff)} cy="62" r="9" />
+              {[-15, -10, -5, 0, 5, 10, 15].map((t) => <text class="tick" x={X(t / 100)} y="116" text-anchor="middle">{tick(t)}</text>)}
+              <text class="dir" x={AX.x0} y="142">{T.one}</text>
+              <text class="dir" x={AX.x1} y="142" text-anchor="end">{T.sk}</text>
+            </svg>
+          </figure>
+        </div></div>
+      </div>
+      <div class="beat tail" aria-hidden="true"></div>
+    </section>
+
+    <section class="room" id="rules">
+      <div class="wrap two rules">
+        {en ? (
+          <div class="copy">
+            <h2>But rules are needed</h2>
+            <p>The share of runs in which the AI followed every critical rule, in Study 3. The group with no rules managed only about half, while the groups with rules came out close to each other whichever format they used.</p>
+            <p class="note">This is an exploratory observation that has not been tested statistically to confirm it.</p>
+          </div>
+        ) : (
+          <div class="copy">
+            <h2>แต่ต้องมีกฎ</h2>
+            <p>สัดส่วนครั้งที่ AI ทำตามกฎสำคัญครบทุกข้อ ในการทดลองชุดที่ 3 กลุ่มที่ไม่ได้กฎเลยทำได้แค่ครึ่งเดียว ส่วนกลุ่มที่ได้กฎ จะส่งแบบไหนก็ขึ้นมาใกล้กัน</p>
+            <p class="note">ข้อนี้เป็นข้อสังเกตเพิ่ม ยังไม่ได้ทดสอบยืนยันทางสถิติ</p>
+          </div>
+        )}
+        <div class="cols" role="img" aria-label={`${en ? 'Share of runs that followed every critical rule' : 'สัดส่วนครั้งที่ทำตามกฎสำคัญครบทุกข้อ'} ${crit.map(({ a, v }) => `${critName[a]} ${pct(v)}%`).join(', ')}`} data-scrub="enter">
+          {crit.map(({ a, v }, i) => (
+            <div class={`col ${a === 'A0' ? 'none' : ''}`} style={`--h:${v};--i:${i}`}>
+              <b class="col-v">{pct(v)}%</b>
+              <span class="col-t"><i></i></span>
+              <span class="col-l">{critName[a]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="room end" id="explore">
+      <div class="wrap">
+        <h2>{en ? 'Want to know more?' : 'อยากรู้มากกว่านี้'}</h2>
+        <p class="sub">{en ? 'Every number on this site is read straight from the result files. You can click all the way through to each individual run.' : 'ทุกตัวเลขในเว็บนี้ดึงจากไฟล์ผลการทดลองโดยตรง กดเข้าไปดูได้ถึงการทำงานทีละครั้ง'}</p>
+        <nav class="index" aria-label={en ? 'Continue' : 'ไปต่อ'}>
+          <a class="lead-row" href={`${base}overview/`}><b>{en ? 'Explore everything' : 'สำรวจทั้งหมด'}</b><span>{en ? 'Overview, the results of all three studies, the rules, the tasks and every run' : 'ภาพรวม ผลทั้งสามชุด กฎ โจทย์ และการทำงานทุกครั้ง'}</span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M1 8h28M23 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" /></svg></a>
+          <a href={`${base}study-3/`}><b>{en ? 'Final study results' : 'ผลรอบสุดท้าย'}</b><span>{en ? 'The full numbers of Study 3' : 'ตัวเลขเต็มของชุดที่ 3'}</span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M1 8h28M23 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" /></svg></a>
+          <a href={`${base}background/`}><b>{en ? 'Background' : 'เรื่องพื้นฐาน'}</b><span>{en ? 'What Context Engineering and Agent Skills are' : 'Context Engineering กับ Agent Skills คืออะไร'}</span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M1 8h28M23 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" /></svg></a>
+          <a href={`${files}skillbench-report.pdf`}><b>{en ? 'Full report' : 'รายงานฉบับเต็ม'}</b><span>{en ? 'PDF in Thai' : 'PDF ภาษาไทย'}</span><svg viewBox="0 0 32 16" aria-hidden="true"><path d="M1 8h28M23 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" /></svg></a>
+        </nav>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    type Dot = [number, number, number, number];
+    type Data = {
+      t: { band: string; one: string; sk: string; study: string; runs: string };
+      studies: { n: number; usable: number; verdict: string; cols: number; reps: number; rows: number; n0: number }[];
+      dots: Dot[];
+      axis: { lo: number; hi: number; margin: number; ci: [number, number]; diff: number };
+    };
+    const root = document.documentElement;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const data: Data = JSON.parse(document.getElementById('story-data')!.textContent || '{}');
+    const canvas = document.getElementById('heap') as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d');
+    const seq = document.querySelector<HTMLElement>('.seq')!;
+    const hero = document.querySelector<HTMLElement>('.hero')!;
+    if (!reduce) root.classList.add('motion');
+    if (ctx) root.classList.add('cv');
+
+    const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+    const hash = (i: number) => { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); };
+    const HI = [63, 179, 166], LO = [217, 115, 58];
+    const mixc = (v: number) => HI.map((h, k) => LO[k] + (h - LO[k]) * v);
+    const rgb = (c: number[], k = 1) => `rgb(${c.map((x) => Math.round(Math.min(255, x * k))).join(',')})`;
+
+    // ---------- เตรียมจุด ----------
+    // แต่ละครั้งที่ทำงานคือเสาหนึ่งต้น ความสูงตามคะแนนจริง มองจากบนลงล่างก็คือตารางของแต่ละชุด
+    type P = { s: number; g: number; c: string; rgb: number[]; hz: number; dl: number; u: number; v: number; gx: number; gy: number; ax: number; jy: number; i: number };
+    const pts: P[] = data.dots.map(([s, i, sc, g], k) => ({ s, g, c: rgb(mixc(sc / 100)), rgb: mixc(sc / 100), hz: 0.6 + (sc / 100) * 4.4, dl: hash(k + 7), u: 0, v: 0, gx: 0, gy: 0, ax: 0, jy: hash(k * 13 + 1) - 0.5, i }));
+    const order = pts.map((_, k) => k);
+    const ansIdx = pts.map((_, k) => k).filter((k) => pts[k].g).sort((a, b) => hash(a * 3 + 2) - hash(b * 3 + 2));
+
+    let W = 0, H = 0, dpr = 1, mobile = false;
+    let cell = 10, dotSz = 8;
+    let gridC = { x: 0, y: 0 };
+    let cam = { s: 8, x: 0, y: 0 }, camMid = { s: 8, x: 0, y: 0 }, lp = 0;
+    const YAW = -0.62, TILT = 1.0;
+    let grids: { x: number; top: number; w: number; s: number }[] = [];
+    let axis = { x0: 0, x1: 0, yc: 0, bh: 0 };
+    const AX = (v: number) => axis.x0 + ((v - data.axis.lo) / (data.axis.hi - data.axis.lo)) * (axis.x1 - axis.x0);
+
+    function layout() {
+      W = canvas.clientWidth; H = canvas.clientHeight;
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      mobile = W < 900;
+      const top = 72;
+      // พื้นที่วาดตารางและแกน มือถือใช้ครึ่งบนของจอ จอใหญ่ใช้ฝั่งขวา
+      const R = mobile ? { x: 16, y: top + 8, w: W - 32, h: H * 0.5 - top } : { x: W * 0.47, y: H * 0.16, w: W * 0.5 - 24, h: H * 0.68 };
+      const Hp = mobile ? { x: 8, y: H * 0.6, w: W - 16, h: H * 0.38 } : { x: W * 0.5, y: H * 0.14, w: W * 0.48, h: H * 0.8 };
+      // ตาราง
+      const span = data.studies.map((st) => st.cols + (st.cols / st.reps - 1) * 0.35);
+      const totalCols = span.reduce((a, b) => a + b, 0) + 2 * 2.5;
+      const maxRows = Math.max(...data.studies.map((s) => s.rows));
+      cell = Math.min(R.w / totalCols, (R.h - 70) / maxRows, 15);
+      dotSz = cell * 0.8;
+      const gw = cell * totalCols;
+      let x = R.x + (R.w - gw) / 2;
+      const baseY = R.y + 30 + maxRows * cell + (R.h - 70 - maxRows * cell) / 2;
+      grids = data.studies.map((st, s) => { const g = { x, top: baseY - st.rows * cell, w: span[s] * cell, s }; x += (span[s] + 2.5) * cell; return g; });
+      // แกนผล
+      axis = { x0: R.x + 8, x1: R.x + R.w - 8, yc: mobile ? R.y + R.h * 0.34 : H * 0.5, bh: Math.min(96, R.h * (mobile ? 0.22 : 0.26)) };
+      let start = 0;
+      const startOf = data.studies.map((st) => { const v = start; start += st.n0; return v; });
+      pts.forEach((p, k) => {
+        const st = data.studies[p.s];
+        const idx = k - startOf[p.s];
+        const c = idx % st.cols, r = Math.floor(idx / st.cols);
+        const cx = c + Math.floor(c / st.reps) * 0.35;
+        p.gx = grids[p.s].x + cx * cell + cell / 2;
+        p.gy = grids[p.s].top + r * cell + cell / 2;
+      });
+      // เมือง: พิกัดโลกเป็นหน่วยช่อง วัดจากกลางตาราง
+      gridC = { x: grids[0].x + (grids[2].x + grids[2].w - grids[0].x) / 2, y: baseY - maxRows * cell / 2 };
+      pts.forEach((p) => { p.u = (p.gx - gridC.x) / cell; p.v = (p.gy - gridC.y) / cell; });
+      // หาขนาดเมืองในมุมเอียง แล้วใส่ให้พอดีพื้นที่
+      const cs = Math.cos(YAW), sn = Math.sin(YAW), ct = Math.cos(TILT), st = Math.sin(TILT);
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (const p of pts) for (const [du, dv] of [[-0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [0.5, -0.5]]) {
+        const u = p.u + du, v = p.v + dv, xr = u * cs - v * sn, yr = u * sn + v * cs;
+        x0 = Math.min(x0, xr); x1 = Math.max(x1, xr);
+        y0 = Math.min(y0, yr * ct - p.hz * st); y1 = Math.max(y1, yr * ct);
+      }
+      const fit = (B: { x: number; y: number; w: number; h: number }) => { const sc = Math.min(B.w / (x1 - x0), B.h / (y1 - y0)); return { s: sc, x: B.x + B.w / 2 - sc * (x0 + x1) / 2, y: B.y + B.h / 2 - sc * (y0 + y1) / 2 }; };
+      cam = fit(Hp);
+      // ก่อนกล้องก้ม เมืองเลื่อนขึ้นมากลางจอให้เห็นเต็มตา
+      camMid = fit(mobile ? { x: 6, y: H * 0.2, w: W - 12, h: H * 0.5 } : { x: W * 0.12, y: H * 0.16, w: W * 0.76, h: H * 0.7 });
+      const [c0, c1] = data.axis.ci;
+      ansIdx.forEach((k, n) => { pts[k].ax = AX(c0 + (c1 - c0) * (n / (ansIdx.length - 1))); });
+    }
+
+    // ---------- ความคืบหน้าของการเลื่อน ----------
+    function seqProgress() {
+      const r = seq.getBoundingClientRect();
+      const vh = window.innerHeight;
+      lp = clamp((vh - r.top) / vh);
+      const q = clamp(-r.top / Math.max(1, r.height - vh));
+      if (!reduce) return q;
+      return q < 0.06 ? 0 : q < 0.33 ? 0.24 : q < 0.6 ? 0.5 : 1;
+    }
+
+    function label(text: string, x: number, y: number, font: string, color: string, align: CanvasTextAlign = 'left') {
+      ctx!.font = font; ctx!.fillStyle = color; ctx!.textAlign = align; ctx!.fillText(text, x, y);
+    }
+
+    // วาดเสาแบบเห็นสามด้าน ไล่จากหลังมาหน้า
+    const SIDES: [number, number, number, number, number, number][] = [[0.5, -0.5, 0.5, 0.5, 1, 0], [-0.5, 0.5, -0.5, -0.5, -1, 0], [0.5, 0.5, -0.5, 0.5, 0, 1], [-0.5, -0.5, 0.5, -0.5, 0, -1]];
+    function city(c3: number, now: number) {
+      const yaw = (YAW + (reduce ? 0 : Math.sin(now * 0.00022) * 0.07)) * c3, tilt = TILT * c3;
+      const cs = Math.cos(yaw), sn = Math.sin(yaw), ct = Math.cos(tilt), st = Math.sin(tilt);
+      const m = reduce ? (lp > 0.5 ? 1 : 0) : ease(lp);
+      const k = { s: lerp(cam.s, camMid.s, m), x: lerp(cam.x, camMid.x, m), y: lerp(cam.y, camMid.y, m) };
+      const S = lerp(cell, k.s, c3), CX = lerp(gridC.x, k.x, c3), CY = lerp(gridC.y, k.y, c3);
+      const half = 0.4;
+      const P = (u: number, v: number, z: number): [number, number] => [CX + S * (u * cs - v * sn), CY + S * ((u * sn + v * cs) * ct - z * st)];
+      // พื้นกระดาษกราฟ เส้นทุก 2 ช่อง
+      ctx!.strokeStyle = `rgba(120,160,190,${0.05 + 0.07 * c3})`; ctx!.lineWidth = 1;
+      ctx!.beginPath();
+      for (let u = -40; u <= 40; u += 2) { const [a, b] = P(u, -22, 0), [c, e] = P(u, 22, 0); ctx!.moveTo(a, b); ctx!.lineTo(c, e); }
+      for (let v = -22; v <= 22; v += 2) { const [a, b] = P(-40, v, 0), [c, e] = P(40, v, 0); ctx!.moveTo(a, b); ctx!.lineTo(c, e); }
+      ctx!.stroke();
+      // แสงนวลใต้เมือง
+      const [gx, gy] = P(0, 0, 0);
+      const gr = ctx!.createRadialGradient(gx, gy, 0, gx, gy, S * 34);
+      gr.addColorStop(0, `rgba(63,179,166,${0.16 * c3})`); gr.addColorStop(1, 'rgba(63,179,166,0)');
+      ctx!.fillStyle = gr; ctx!.fillRect(0, 0, W, H);
+      const ord = pts.map((p, k) => [p.u * sn + p.v * cs, k]).sort((a, b) => a[0] - b[0]);
+      for (const [, k] of ord) {
+        const p = pts[k];
+        const z = p.hz * c3;
+        for (const [a1, b1, a2, b2, nx, ny] of SIDES) {
+          const ny1 = nx * sn + ny * cs;
+          if (ny1 <= 0.01 || z < 0.01) continue;
+          const nx1 = nx * cs - ny * sn;
+          const [x1, y1] = P(p.u + a1 * half * 2, p.v + b1 * half * 2, 0), [x2, y2] = P(p.u + a2 * half * 2, p.v + b2 * half * 2, 0);
+          const [x3, y3] = P(p.u + a2 * half * 2, p.v + b2 * half * 2, z), [x4, y4] = P(p.u + a1 * half * 2, p.v + b1 * half * 2, z);
+          ctx!.fillStyle = rgb(p.rgb, nx1 < 0 ? 0.72 : 0.48);
+          ctx!.beginPath(); ctx!.moveTo(x1, y1); ctx!.lineTo(x2, y2); ctx!.lineTo(x3, y3); ctx!.lineTo(x4, y4); ctx!.closePath(); ctx!.fill();
+        }
+        const t = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => P(p.u + a * half, p.v + b * half, z));
+        ctx!.fillStyle = rgb(p.rgb, 1.08);
+        ctx!.beginPath(); ctx!.moveTo(t[0][0], t[0][1]); for (let j = 1; j < 4; j++) ctx!.lineTo(t[j][0], t[j][1]); ctx!.closePath(); ctx!.fill();
+      }
+    }
+
+    function draw(now: number) {
+      if (!ctx) return;
+      const q = seqProgress();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      const fade12 = clamp((q - 0.38) / 0.08);
+      const ans = clamp((q - 0.62) / 0.07);
+      // พื้นหลังค่อย ๆ เปลี่ยนเป็นเขียวหัวเป็ดเข้มเมื่อถึงคำตอบ
+      if (ans > 0) { ctx.fillStyle = `rgb(${Math.round(lerp(11, 7, ans))},${Math.round(lerp(15, 34, ans))},${Math.round(lerp(22, 31, ans))})`; ctx.fillRect(0, 0, W, H); }
+      const lineP = ease(clamp((q - 0.77) / 0.05));
+      const ptP = ease(clamp((q - 0.82) / 0.04));
+      // c3 = 1 คือเมืองเอียงในฉากเปิด, 0 คือมองตรงจากด้านบนเป็นตาราง
+      const c3 = 1 - ease(clamp((q - 0.06) / 0.14));
+      if (c3 > 0.002) city(c3, now);
+
+      // แถบเกณฑ์ บนพื้นของตัวเอง
+      if (ans > 0) {
+        const x0 = AX(-data.axis.margin), x1 = AX(data.axis.margin);
+        ctx.globalAlpha = ans;
+        ctx.fillStyle = 'rgba(63,179,166,0.14)'; ctx.strokeStyle = '#3fb3a6'; ctx.lineWidth = 1.5;
+        const w = (x1 - x0) * (reduce ? 1 : ease(ans));
+        ctx.fillRect((x0 + x1) / 2 - w / 2, axis.yc - axis.bh / 2, w, axis.bh);
+        ctx.strokeRect((x0 + x1) / 2 - w / 2, axis.yc - axis.bh / 2, w, axis.bh);
+        ctx.setLineDash([3, 4]); ctx.strokeStyle = '#5a6578'; ctx.beginPath(); ctx.moveTo(AX(0), axis.yc - axis.bh / 2); ctx.lineTo(AX(0), axis.yc + axis.bh / 2); ctx.stroke(); ctx.setLineDash([]);
+        const fs = mobile ? 12 : 13;
+        label(data.t.band, AX(0), axis.yc - axis.bh / 2 - 10, `${fs}px Sarabun`, '#9fe0d6', 'center');
+        [-15, -10, -5, 0, 5, 10, 15].forEach((t) => label(t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0', AX(t / 100), axis.yc + axis.bh / 2 + 20, `${fs}px Sarabun`, '#8792a4', 'center'));
+        label(data.t.one, axis.x0, axis.yc + axis.bh / 2 + 40, `${fs}px Sarabun`, '#8792a4', 'left');
+        label(data.t.sk, axis.x1, axis.yc + axis.bh / 2 + 40, `${fs}px Sarabun`, '#8792a4', 'right');
+        ctx.globalAlpha = 1;
+      }
+
+      // จุด
+      if (c3 <= 0.002) for (const k of order) {
+        const p = pts[k];
+        let x = p.gx, y = p.gy;
+        let sz = dotSz;
+        let a = 1;
+        if (p.s < 2) a *= (1 - 0.72 * fade12) * (1 - ans);
+        else if (!p.g) a *= 1 - ans;
+        else {
+          const e3 = ease(clamp((q - 0.64 - p.dl * 0.04) / 0.11));
+          x = lerp(x, p.ax, e3);
+          y = lerp(y, axis.yc + p.jy * axis.bh * (0.55 - 0.36 * lineP), e3);
+          sz = lerp(sz, dotSz * 0.85, e3);
+          a *= 1 - 0.15 * lineP;
+          sz = lerp(sz, dotSz * 0.7, lineP);
+        }
+        if (a < 0.01) continue;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = p.c;
+        ctx.fillRect(x - sz / 2, y - sz / 2, sz, sz);
+      }
+      ctx.globalAlpha = 1;
+
+      // ป้ายชื่อตาราง
+      const la = clamp((q - 0.2) / 0.05);
+      if (la > 0) {
+        const fs = mobile ? 12 : 14;
+        grids.forEach((g) => {
+          const st = data.studies[g.s];
+          let a = la;
+          if (g.s < 2) a *= (1 - 0.5 * fade12) * (1 - ans); else a *= 1 - ans;
+          if (a <= 0) return;
+          ctx.globalAlpha = a;
+          label(`${data.t.study} ${st.n}`, g.x, g.top - 10, `600 ${fs}px "Noto Serif Thai"`, '#ecedf0');
+          if (!mobile || g.s === 2) label(`${st.usable} ${data.t.runs}`, g.x + g.w, g.top - 10, `${fs - 1}px Sarabun`, '#8b95a7', 'right');
+          if (fade12 > 0) { ctx.globalAlpha = a * fade12; label(st.verdict, g.x, g.top + data.studies[g.s].rows * cell + fs + 8, `600 ${fs}px Sarabun`, g.s === 2 ? '#3fb3a6' : '#8b95a7'); }
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      // เส้นช่วงและจุดผล
+      if (lineP > 0) {
+        const [c0, c1] = data.axis.ci;
+        const xl = AX(c0), xr = AX(c1), mid = (xl + xr) / 2;
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = mobile ? 2.5 : 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(lerp(mid, xl, lineP), axis.yc); ctx.lineTo(lerp(mid, xr, lineP), axis.yc); ctx.stroke();
+      }
+      if (ptP > 0) {
+        ctx.beginPath(); ctx.arc(AX(data.axis.diff), axis.yc, (mobile ? 8 : 10) * ptP, 0, Math.PI * 2);
+        ctx.fillStyle = '#3fb3a6'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#0e131c'; ctx.stroke();
+      }
+    }
+
+    // ---------- แผงที่ขยับตามการเลื่อน ----------
+    const scrubs = [...document.querySelectorAll<HTMLElement>('[data-scrub]')];
+    const pin = document.querySelector<HTMLElement>('[data-pin]');
+    const wide = window.matchMedia('(min-width: 900px) and (min-height: 640px)');
+    function scrub() {
+      if (reduce) return;
+      const vh = window.innerHeight;
+      const pinned = wide.matches && pin;
+      if (pinned) {
+        const r = pin.getBoundingClientRect();
+        pin.style.setProperty('--p', String(clamp(-r.top / Math.max(1, r.height - vh)) * 1.15));
+      }
+      for (const el of scrubs) {
+        if (pinned && el.dataset.scrub === 'way') { el.style.removeProperty('--p'); continue; }
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--p', String(clamp((vh * 0.92 - r.top) / (vh * 0.55))));
+      }
+    }
+
+    // ---------- วนวาด ----------
+    let raf = 0;
+    const heroVisible = () => window.scrollY < hero.offsetTop + hero.offsetHeight + window.innerHeight;
+    function frame(now: number) {
+      raf = 0;
+      scrub();
+      draw(now);
+      if (!reduce && heroVisible()) raf = requestAnimationFrame(frame);
+    }
+    const kick = () => { if (!raf) raf = requestAnimationFrame(frame); };
+    if (ctx) {
+      layout();
+      new ResizeObserver(() => { layout(); kick(); }).observe(canvas);
+      document.fonts?.ready.then(kick);
+    }
+    window.addEventListener('scroll', kick, { passive: true });
+    window.addEventListener('resize', kick);
+    kick();
+
+    // พิมพ์คำสั่งของผู้ใช้ทีละตัวอักษรเมื่อหน้าจอ terminal เข้าจอ ตัดตามกลุ่มตัวอักษรไทยไม่ให้สระลอย
+    const term = document.querySelector<HTMLElement>('.term');
+    const type = document.querySelector<HTMLElement>('.type');
+    if (!reduce && term && type) {
+      const text = type.dataset.text ?? '';
+      const seg = 'Segmenter' in Intl ? [...new Intl.Segmenter('th', { granularity: 'grapheme' }).segment(text)].map((s) => s.segment) : [...text];
+      type.textContent = '';
+      const io = new IntersectionObserver((es) => {
+        if (!es.some((e) => e.isIntersecting)) return;
+        io.disconnect();
+        let n = 0;
+        const tick = () => { n++; type.textContent = seg.slice(0, n).join(''); if (n < seg.length) setTimeout(tick, 30); else term.classList.add('typed'); };
+        setTimeout(tick, 300);
+      }, { threshold: 0.5 });
+      io.observe(term);
+    }
+  </script>
+</Base>
+<style>
+  /* โลกของหน้า: แบบจำลองเมืองของเสาบนพื้นกระดาษกราฟที่ตรงกับพิกัดข้อมูล ฉากอื่นเป็นหลักฐานจริงบนพื้นหมึก ตัวเลขอ่านแบบหน้าปัดเครื่องมือวัด
+     เขียวคือทำตามกฎได้ครบ ส้มคือพลาด ไม่มีสีอื่นนอกจากน้ำเงินของกลุ่มไฟล์เดียว */
+  .story { --bg: #0b0f16; --fg: #eceef2; --fg2: #b3bccb; --fg3: #8792a4; --line: #222b3a; --teal-l: #3fb3a6; --miss: #d9733a; --a1: #4a6fb0; --ease: cubic-bezier(0.16, 1, 0.3, 1); margin-inline: calc(50% - 50vw); background: var(--bg); color: var(--fg); overflow-x: clip; position: relative; }
+  .story ::selection { background: var(--teal-l); color: var(--bg); }
+  .track { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .stage { position: sticky; top: 0; height: 100svh; overflow: hidden; }
+  .stage canvas { display: block; width: 100%; height: 100%; }
+  :global(html:not(.cv)) .track { display: none; }
+  .story > section { position: relative; z-index: 1; }
+  .wrap { width: 100%; max-width: var(--wide); margin: 0 auto; }
+  .story h2, .story h3 { color: var(--fg); }
+  .story h2 { font-size: clamp(1.8rem, 4.4vw, 3rem); line-height: 1.3; margin: 0 0 1.25rem; max-width: 20ch; }
+  .story p { color: var(--fg2); }
+  .story b { color: var(--fg); font-weight: 600; }
+  .story a { color: var(--teal-l); text-underline-offset: 3px; }
+  .story a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+  .sub { font-size: clamp(1.05rem, 2vw, 1.18rem); line-height: 1.8; max-width: 44rem; }
+  .small { font-size: 0.98rem; }
+  .nw { white-space: nowrap; }
+  .mono { font-family: var(--mono); }
+
+  .btn { display: inline-flex; align-items: center; min-height: 48px; padding: 0.75rem 1.4rem; background: var(--teal-l); color: var(--bg) !important; font-weight: 600; text-decoration: none; border-radius: 4px; transition: background 0.2s, transform 0.2s var(--ease); }
+  .btn:hover { background: #5fcabd; }
+  .btn:active { transform: translateY(1px); }
+
+  /* ---------- ฉากเปิด: ชื่อวิจัยอยู่หน้าเมืองของเสา ---------- */
+  .hero { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding: clamp(2rem, 6vw, 4rem) 1.25rem 1.5rem; }
+  .hero-in { width: 100%; max-width: var(--wide); margin: 0 auto; }
+  .hero-in > * { max-width: 34rem; }
+  .title { color: #fff; font-size: clamp(1.9rem, 4.2vw, 3.3rem); line-height: 1.32; margin: 0; letter-spacing: -0.01em; text-shadow: 0 2px 20px rgba(11, 15, 22, 0.9); }
+  .title .accent { color: var(--teal-l); }
+  .story .ask { font-family: var(--serif); font-weight: 500; font-size: clamp(1.2rem, 2.3vw, 1.5rem); line-height: 1.5; color: #fff; margin: 1.5rem 0 0; text-shadow: 0 1px 14px rgba(11, 15, 22, 0.95); }
+  .lead { font-size: clamp(1.05rem, 2vw, 1.2rem); line-height: 1.75; margin-top: 0.6rem; text-shadow: 0 1px 14px rgba(11, 15, 22, 0.95); }
+  .hero-act { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin: 1.75rem 0 1.5rem; }
+  .story .quick { margin: 0; font-size: 1rem; line-height: 1.6; text-shadow: 0 1px 12px rgba(11, 15, 22, 0.95); }
+  .quick b { color: var(--teal-l); }
+  .quick a { white-space: nowrap; margin-left: 0.35rem; }
+  .byline { font-size: 0.9rem; line-height: 1.7; color: var(--fg) !important; text-shadow: 0 1px 12px rgba(11, 15, 22, 0.95); }
+  .byline span { display: block; color: var(--fg3); }
+  .story .key { width: 100%; max-width: var(--wide); margin: auto auto 0; display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; font-family: var(--mono); font-size: 0.78rem; color: var(--fg3); }
+  :global(html:not(.cv)) .key { display: none; }
+  @media (max-width: 899px) {
+    .hero { justify-content: flex-start; padding-top: 1.5rem; }
+    .byline { display: none; }
+    .story .key { margin-top: auto; background: rgba(11, 15, 22, 0.88); padding: 0.5rem 0.7rem; border: 1px solid var(--line); border-radius: 4px; width: auto; }
+  }
+
+  /* ---------- ห้อง: ฉากที่ไม่มี canvas พื้นหมึกเรียบ ให้หลักฐานเป็นตัวเด่น ---------- */
+  .room { padding: clamp(4rem, 9vw, 7rem) 1.25rem; background: var(--bg); }
+  /* แต่ละห้องมีสีของตัวเอง ข้อความรองย้อมจากสีห้อง */
+  #problem { --fg2: #bcc5d4; --fg3: #8b96a9; --line: #273042; background: linear-gradient(180deg, #121826, #0d121c); }
+  #two-ways { --fg2: #c0cae4; --fg3: #8d9bc0; --line: #283659; background: linear-gradient(180deg, #101a36, #0b1226); }
+  #rules { --fg2: #c2ddd7; --fg3: #88aca5; --line: #1f423c; background: linear-gradient(180deg, #0a2924, #061b18); }
+  #explore { --fg: #161b26; --fg2: #3f4756; --fg3: #5d6574; --line: #d3cfc6; --teal-l: #0b6e69; background: #f2efe8; color: var(--fg); }
+  #explore ::selection { background: #0b6e69; color: #fff; }
+  .two { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; }
+  @media (min-width: 980px) { .two { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 4rem; } }
+  .copy p { font-size: clamp(1.05rem, 2vw, 1.18rem); line-height: 1.8; max-width: 34rem; }
+  .story .note { font-size: 0.95rem; color: var(--fg3); }
+
+  /* หลักฐาน: บันทึกของ AI และ diff ของใบแจ้งหนี้ */
+  .evidence { display: grid; gap: 1rem; }
+  .term, .diff { margin: 0; background: rgba(3, 5, 10, 0.55); border: 1px solid var(--line); border-radius: 6px; }
+  .story .term-bar { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0; padding: 0.6rem 1rem; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 0.78rem; color: var(--fg3); }
+  .term-body { padding: 0.9rem 1rem 1.1rem; display: grid; gap: 0.45rem; align-content: start; }
+  .t-line { margin: 0; display: grid; grid-template-columns: 3rem 1fr; gap: 0.6rem; font-size: 0.93rem; line-height: 1.6; overflow-wrap: anywhere; }
+  .t-tag { font-size: 0.78rem; color: var(--fg3); padding-top: 0.15rem; }
+  .story .t-line { color: var(--fg2); }
+  .story .t-line.user { color: #fff; font-size: 1rem; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--line); }
+  .t-line.user .t-tag { color: var(--teal-l); }
+  .story .t-line.ok { color: #9fe0d6; }
+  .story .t-line.warn { color: var(--miss); font-weight: 600; }
+  .t-line.warn .t-tag { color: var(--miss); }
+  .diff { padding: 0 0 0.9rem; font-family: var(--mono); font-size: 0.9rem; }
+  .story .diff-h { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0 0 0.4rem; padding: 0.6rem 1rem; border-bottom: 1px solid var(--line); font-size: 0.78rem; color: var(--fg3); }
+  .story .dl { display: grid; grid-template-columns: 1.5rem 1fr auto; gap: 0.5rem; margin: 0; padding: 0.2rem 1rem; color: var(--fg2); font-family: var(--sans); font-variant-numeric: tabular-nums; }
+  .dl > :last-child { font-family: var(--mono); }
+  .dm { font-family: var(--mono); color: var(--fg3); }
+  .story .dl.del { background: rgba(217, 115, 58, 0.1); color: #f0b48f; }
+  .story .dl.add { background: rgba(63, 179, 166, 0.12); color: #a6e6dd; }
+  .dl.del .dm { color: var(--miss); }
+  .dl.add .dm { color: var(--teal-l); }
+  .story .dl.total { font-weight: 600; }
+  .diff figcaption { font-family: var(--sans); font-size: 0.85rem; color: var(--fg3); padding: 0.7rem 1rem 0; }
+  /* บรรทัด + โผล่ตามการเลื่อน ถ้าไม่มี --p จะแสดงครบ */
+  .dl.add { --k: clamp(0, (var(--p, 1) - 0.3 - var(--o) * 0.15) * 4, 1); opacity: var(--k); transform: translateX(calc((1 - var(--k)) * -10px)); }
+  .dl.del { --k: clamp(0, (var(--p, 1) - 0.3) * 4, 1); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--miss) calc(var(--k) * 100%), transparent); }
+
+  /* สองแบบ: แถบบริบทวัดเป็นตัวอักษรจริง จอใหญ่ตรึงไว้ระหว่างเลื่อน */
+  @media (min-width: 900px) and (min-height: 640px) {
+    #two-ways { height: 220svh; padding-block: 0; }
+    .pin-in { position: sticky; top: 0; min-height: 100svh; display: flex; align-items: center; padding-block: 4.5rem 3rem; }
+  }
+  .gauges { display: grid; gap: 2.5rem; margin: 2.25rem 0 2rem; }
+  .story .g-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0.25rem 1rem; margin: 0 0 0.6rem; }
+  .g-h b { font-family: var(--serif); font-size: 1.3rem; }
+  .read { font-family: var(--mono); font-size: 0.9rem; color: var(--fg2); }
+  .open-read { color: var(--teal-l); }
+  .tape { display: flex; height: 2.4rem; outline: 1px solid #39465c; outline-offset: 3px; border-radius: 2px; background: rgba(4, 7, 18, 0.6); }
+  .seg { display: block; height: 100%; flex: none; width: var(--w); box-shadow: inset -2px 0 0 #0b0f16; }
+  .seg.one { background: var(--a1); }
+  .seg.one:nth-child(odd) { background: #567bbd; }
+  .seg.base { background: #d7ece9; }
+  .seg.desc { background: repeating-linear-gradient(135deg, rgba(63, 179, 166, 0.55) 0 3px, rgba(63, 179, 166, 0.2) 3px 6px); }
+  .seg.open { background: var(--teal-l); }
+  .seg.open + .seg.open { background: #35a397; }
+  .seg-names { margin: 0.7rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; font-size: 0.88rem; color: var(--fg3); counter-reset: s; }
+  .seg-names li::before { counter-increment: s; content: counter(s) ' '; font-family: var(--mono); color: #7f9bd0; }
+  .seg-key { margin: 0.7rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-size: 0.88rem; color: var(--fg3); }
+  .seg-key li { display: flex; align-items: center; gap: 0.45rem; }
+  .k { width: 0.8rem; height: 0.8rem; border-radius: 1px; flex: none; }
+  .k.base { background: #d7ece9; }
+  .k.desc { background: repeating-linear-gradient(135deg, rgba(63, 179, 166, 0.7) 0 2px, rgba(63, 179, 166, 0.25) 2px 4px); }
+  .k.open { background: var(--teal-l); }
+  .k.idle { outline: 1px dashed var(--fg3); outline-offset: -1px; }
+  /* ค่า --p มาจากการเลื่อน ถ้าไม่มีจะเป็น 1 คือสถานะสุดท้าย */
+  .seg.one { --k: clamp(0, (var(--p, 1) - 0.05 - var(--i) * 0.03) * 5, 1); transform: scaleX(var(--k)); transform-origin: left; opacity: calc(0.3 + var(--k) * 0.7); }
+  .seg.base, .seg.desc { --k: clamp(0, (var(--p, 1) - 0.05) * 5, 1); transform: scaleX(var(--k)); transform-origin: left; }
+  .seg.open { --k: clamp(0, (var(--p, 1) - 0.5 - var(--j) * 0.12) * 5, 1); transform: scaleX(var(--k)); transform-origin: left; }
+  .k-open { --k: clamp(0, (var(--p, 1) - 0.5 - var(--j) * 0.12) * 5, 1); opacity: calc(0.35 + var(--k) * 0.65); }
+  .open-read { opacity: clamp(0.3, (var(--p, 1) - 0.5) * 3, 1); }
+
+  /* ---------- การทดลอง: ไม่มีพื้น ให้เห็น canvas เต็มจอ ---------- */
+  .seq { padding: 0 1.25rem; }
+  .beat { min-height: 100svh; display: flex; align-items: center; max-width: var(--wide); margin: 0 auto; }
+  .beat.tail { min-height: 45svh; }
+  .beat.lead { min-height: 80svh; }
+  /* คำตอบ: การ์ดค้างกลางจอระหว่างที่เส้นผลวางลงในแถบ ให้สองฝั่งถึงพร้อมกัน */
+  .beat.answer { display: block; min-height: 170svh; }
+  .hold { position: sticky; top: 0; min-height: 100svh; display: flex; align-items: center; }
+  :global(html:not(.cv)) .beat.answer { min-height: auto; }
+  :global(html:not(.cv)) .hold { position: static; min-height: auto; }
+  :global(html:not(.cv)) .beat.lead { display: none; }
+  .beat .slab { background: rgba(11, 15, 22, 0.86); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--line); border-radius: 6px; padding: 1.4rem 1.5rem; max-width: 29rem; }
+  .beat h2 { font-size: clamp(1.55rem, 3.6vw, 2.3rem); }
+  .beat p { font-size: 1.02rem; line-height: 1.75; }
+  .story .readout { font-family: var(--mono); font-size: 1rem; color: var(--fg3); margin: 0 0 0.4rem; }
+  .readout b { font-family: var(--mono); font-weight: 500; font-size: clamp(2.6rem, 6vw, 3.6rem); color: #fff; letter-spacing: -0.02em; margin-right: 0.3rem; }
+  .eq { color: var(--teal-l); padding: 0 0.15em; }
+  .meter { display: grid; grid-template-columns: auto 1fr; gap: 0.3rem 1.25rem; margin: 0 0 1.1rem; padding: 0.9rem 0; border-block: 1px solid var(--line); }
+  .meter div { display: contents; }
+  .meter dt { font-size: 0.9rem; color: var(--fg3); align-self: baseline; }
+  .meter dd { margin: 0; font-family: var(--mono); font-size: 1.05rem; color: var(--fg); text-align: right; align-self: baseline; font-variant-numeric: tabular-nums; }
+  .meter dd.big { font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 500; color: var(--teal-l); line-height: 1.1; }
+  .meter small { font-family: var(--sans); font-size: 1rem; margin-left: 0.3rem; color: var(--fg2); }
+  .links { display: flex; gap: 1rem; }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.5rem; font-size: 0.95rem; }
+  .lg { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 1px; }
+  .lg.hi { background: #3fb3a6; } .lg.lo { background: #d9733a; margin-left: 0.5rem; }
+  @media (max-width: 899px) {
+    .beat { align-items: flex-end; padding-bottom: 4svh; }
+    .beat.answer { padding-bottom: 0; }
+    .hold { align-items: flex-end; padding-bottom: 4svh; }
+    .beat .slab { padding: 1.1rem 1.2rem; }
+  }
+  /* รูปนิ่งเมื่อไม่มี canvas */
+  :global(html.cv) .fb { display: none; }
+  :global(html:not(.cv)) .beat { min-height: auto; padding: 3rem 0; }
+  :global(html:not(.cv)) .beat .slab { max-width: 44rem; }
+  .field { display: flex; flex-wrap: wrap; gap: 1.25rem 1.5rem; align-items: flex-end; margin: 1.5rem 0 0; }
+  .blk { margin: 0; }
+  .blk figcaption { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; color: var(--fg3); margin-bottom: 0.4rem; }
+  .grid { display: grid; grid-template-columns: repeat(var(--cols), 0.44rem); gap: 2px; }
+  .d { display: block; width: 0.44rem; height: 0.44rem; border-radius: 1px; }
+  .d.gap { margin-left: 3px; }
+  .axis { margin: 1.25rem 0 0; }
+  .axis svg { width: 100%; overflow: visible; font-family: var(--sans); }
+  .band { fill: rgba(63, 179, 166, 0.16); stroke: var(--teal-l); stroke-width: 1.5; }
+  .band-t { fill: #9fe0d6; font-size: 16px; }
+  .zero { stroke: #5a6578; stroke-dasharray: 3 4; }
+  .ci { stroke: #fff; stroke-width: 7; stroke-linecap: round; }
+  .pt { fill: var(--teal-l); stroke: var(--bg); stroke-width: 3; }
+  .tick { fill: var(--fg3); font-size: 16px; }
+  .dir { fill: var(--fg3); font-size: 15px; }
+
+  /* ---------- ต้องมีกฎ: เสาสี่ต้นแบบเดียวกับเสาของการทำงานแต่ละครั้ง ---------- */
+  .cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(0.6rem, 2vw, 1.5rem); align-items: end; height: clamp(16rem, 40vw, 22rem); padding: 0 0.25rem; border-bottom: 1px solid #3c6b63; }
+  .col { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-end; height: 100%; text-align: center; }
+  .col-v { font-family: var(--mono); font-weight: 500; font-size: clamp(1rem, 2.4vw, 1.5rem); color: #fff; margin-bottom: 0.4rem; }
+  .none .col-v { color: var(--miss); }
+  .col-t { display: block; height: calc(var(--h) * 78%); position: relative; }
+  .col-t i { position: absolute; inset: 0; background: linear-gradient(90deg, #3fb3a6 0 62%, #2a7f76 62% 100%); transform-origin: bottom; transform: scaleY(clamp(0, var(--p, 1) * 1.6, 1)); }
+  .none .col-t i { background: linear-gradient(90deg, #d9733a 0 62%, #9b5229 62% 100%); }
+  .cols { margin-bottom: 3.5rem; }
+  .col { position: relative; }
+  .col-l { position: absolute; left: 0; right: 0; top: 100%; margin-top: 0.6rem; font-size: 0.88rem; color: var(--fg2); line-height: 1.35; }
+
+  /* ---------- ไปต่อ: สารบัญ ---------- */
+  .end { padding-bottom: clamp(4rem, 8vw, 6rem); }
+  .index { display: grid; border-top: 1px solid var(--fg); margin-top: 2rem; }
+  .story .index a { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'b arrow' 's arrow'; align-items: center; column-gap: 1.5rem; padding: 1.1rem 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--fg); }
+  .index b { grid-area: b; font-family: var(--serif); font-size: clamp(1.25rem, 2.6vw, 1.6rem); font-weight: 600; }
+  .index span { grid-area: s; color: var(--fg3); font-size: 0.95rem; }
+  .index svg { grid-area: arrow; width: 2rem; color: var(--fg3); transition: transform 0.3s var(--ease), color 0.2s; }
+  .index a:hover b { color: var(--teal-l); }
+  .index a:hover svg { transform: translateX(6px); color: var(--teal-l); }
+  .index .lead-row b { font-size: clamp(1.8rem, 5vw, 3rem); color: var(--teal-l); }
+  .index .lead-row svg { width: 3rem; color: var(--teal-l); }
+
+  /* ---------- การเคลื่อนไหวที่ไม่ผูกกับการเลื่อน ---------- */
+  :global(.motion) .hero-in > * { animation: rise 0.9s var(--ease) both; }
+  :global(.motion) .hero-in > :nth-child(2) { animation-delay: 0.12s; }
+  :global(.motion) .hero-in > :nth-child(3) { animation-delay: 0.2s; }
+  :global(.motion) .hero-in > :nth-child(n + 4) { animation-delay: 0.3s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px); filter: blur(6px); } }
+  :global(.motion) .t-line.step { opacity: 0; transform: translateX(-6px); transition: opacity 0.4s, transform 0.4s var(--ease); transition-delay: calc(var(--i) * 380ms + 150ms); }
+  :global(.motion) .term.typed .t-line.step { opacity: 1; transform: none; }
+  :global(.motion) .type::after { content: ''; display: inline-block; width: 0.5em; height: 1.05em; margin-left: 2px; vertical-align: -0.15em; background: var(--teal-l); animation: blink 1s steps(1) infinite; }
+  :global(.motion) .typed .type::after { display: none; }
+  @keyframes blink { 50% { opacity: 0; } }
+</style>

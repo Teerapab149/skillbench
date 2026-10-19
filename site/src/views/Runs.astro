@@ -1,0 +1,167 @@
+---
+import Base from '../layouts/Base.astro';
+import { studies, scenarios } from '../lib/data';
+import { armT, rootOf, SEV, type Lang } from '../lib/i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const root = rootOf(lang);
+const shade = (v: number) => `color-mix(in oklab, var(--teal) ${Math.round(v * 100)}%, var(--brick))`;
+const promptOf = (id: string) => scenarios.find((s) => s.id === id)?.prompt ?? '';
+const payload = studies.flatMap((st) => st.runs.map((r) => ({ ...r, metric: st.metricName, scCode: r.sc.split('-')[0], scPrompt: st.perScenario.find((p) => p.id === r.sc)?.prompt || promptOf(r.sc) })));
+const total = studies.reduce((s, st) => s + st.usable, 0);
+// ข้อความในแผงรายละเอียดที่สคริปต์ฝั่งเบราว์เซอร์ใช้
+const T = en ? {
+  arm: Object.fromEntries((['A0', 'A1', 'A2', 'A3', 'A4', 'A5'] as const).map((a) => [a, armT(lang, a).name])),
+  sev: SEV.en, pass: 'passed', miss: 'missed', na: 'not relevant in this run', done: 'Task finished?', yes: 'Yes', no: 'No',
+  rescued: 'finished after the reply turn', rep: 'repetition', study: 'Study', firstTurn: 'end of first turn', files: 'Files changed', none: 'None',
+  skills: 'Skills opened', notOpened: 'None opened', expected: 'Skills that should open', tools: 'Tool calls', times: '', time: 'Time', sec: 'seconds',
+  cost: 'Cost', nodata: 'No data', tok: 'Tokens', tin: 'in', tout: 'out', rules: 'Rule checks one by one (rule text in Thai)',
+} : {
+  arm: { A0: 'ไม่มีกฎ', A1: 'ไฟล์เดียว', A2: 'Agent Skills', A3: 'ข้อความยาวเท่ากันแต่ไม่ใช่กฎ', A4: 'Skills และคอมเมนต์ล่อ', A5: 'ข้อความ A2 ในไฟล์เดียว' },
+  sev: SEV.th, pass: 'ผ่าน', miss: 'พลาด', na: 'ไม่เกี่ยวกับครั้งนี้', done: 'งานเสร็จไหม', yes: 'ใช่', no: 'ไม่',
+  rescued: 'สำเร็จหลังรอบตอบกลับ', rep: 'รอบที่', study: 'ชุดที่', firstTurn: 'จบรอบแรก', files: 'ไฟล์ที่แก้', none: 'ไม่มี',
+  skills: 'skill ที่เปิด', notOpened: 'ไม่ได้เปิด', expected: 'skill ที่ควรเปิด', tools: 'ใช้เครื่องมือ', times: 'ครั้ง', time: 'เวลา', sec: 'วินาที',
+  cost: 'ต้นทุน', nodata: 'ไม่มีข้อมูล', tok: 'token', tin: 'เข้า', tout: 'ออก', rules: 'ผลตรวจกฎทีละข้อ',
+};
+---
+<Base lang={lang} title={en ? 'All runs | SkillBench' : 'การทำงานทุกครั้ง SkillBench'} current="runs/">
+  <header class="title-block col">
+    <h1>{en ? `All ${total} runs` : `การทำงานทั้ง ${total} ครั้ง`}</h1>
+    <p class="lede">{en
+      ? 'One cell is one run of the AI on one task. Rows are tasks and columns are groups and repetitions. The greener the cell, the more rules were followed. Click any cell to see which files the AI changed in that run, which skills it opened, which rules it passed and how much it cost.'
+      : 'หนึ่งช่องคือ AI ทำโจทย์หนึ่งข้อหนึ่งครั้ง แถวคือโจทย์ คอลัมน์คือกลุ่มและรอบ ยิ่งเขียวยิ่งทำตามกฎได้มาก กดช่องไหนก็ได้เพื่อดูว่าครั้งนั้น AI แก้ไฟล์อะไร เปิด skill ไหน ผ่านกฎข้อไหน และใช้เงินเท่าไหร่'}</p>
+  </header>
+
+  <div class="switch" role="tablist" aria-label={en ? 'Choose a study' : 'เลือกการทดลอง'}>
+    {studies.map((st, i) => (
+      <button type="button" role="tab" aria-selected={i === studies.length - 1 ? 'true' : 'false'} data-study={st.n}>
+        <b>{en ? `Study ${st.n}` : `ชุดที่ ${st.n}`}</b><span>{st.usable} {en ? 'runs' : 'ครั้ง'}</span>
+      </button>
+    ))}
+  </div>
+
+  <div class="reg-wrap">
+    <div>
+      {studies.map((st, i) => (
+        <div class="grid-wrap" data-grid={st.n} hidden={i !== studies.length - 1}>
+          <p class="key small"><span>{en ? 'Score' : 'คะแนน'} ({st.metricName})</span><i class="ramp"></i><span>{en ? '0 to 1' : '0 ถึง 1'}</span>{st.n > 1 && <><i class="cell fail demo" aria-hidden="true"></i><span>{en ? 'A diagonal line means the task was not finished' : 'เส้นทแยงคืองานไม่เสร็จ'}</span></>}</p>
+          <table class="reg" aria-label={en ? `Every run in Study ${st.n}` : `การทำงานทุกครั้งของชุดที่ ${st.n}`}>
+            <thead><tr><th></th>{st.armIds.map((a) => <th colspan={st.reps} class="ah"><span class={`arm arm-${a}`}>{a}</span><span class="as">{armT(lang, a).short}</span></th>)}</tr></thead>
+            <tbody>
+              {st.perScenario.map((ps) => (
+                <tr>
+                  <th scope="row"><a href={`${root}scenarios/${ps.id}/#study-${st.n}`} class="mono">{ps.code}</a></th>
+                  {st.armIds.map((a) => ps.byArm[a].runs.map((r, j) => (
+                    <td class={j === 0 ? 'first' : ''}>
+                      <button type="button" class={`cell ${r.done === false ? 'fail' : ''}`} data-run={r.id} style={`background-color:${shade(r.score)}`} aria-label={en ? `${r.id} score ${r.score.toFixed(2)}` : `${r.id} คะแนน ${r.score.toFixed(2)}`}></button>
+                    </td>
+                  )))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+    <aside class="panel" id="panel" aria-live="polite">
+      <p class="pt">{en ? 'Click a cell in the table to see the details' : 'กดช่องในตารางเพื่อดูรายละเอียด'}</p>
+      <p class="small muted">{en ? 'The link to each run can be shared and opened directly.' : 'ลิงก์ของแต่ละครั้งส่งต่อให้คนอื่นเปิดได้เลย'}</p>
+    </aside>
+  </div>
+  <script type="application/json" id="runs-data" set:html={JSON.stringify(payload)} />
+  <script type="application/json" id="runs-text" set:html={JSON.stringify(T)} />
+</Base>
+<style>
+  .switch { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--ink); margin-bottom: 1.5rem; }
+  .switch button { font: inherit; background: none; border: 0; border-bottom: 3px solid transparent; padding: 0.6rem 1.25rem 0.5rem 0; margin-right: 1.25rem; cursor: pointer; text-align: left; display: flex; flex-direction: column; color: var(--ink-3); }
+  .switch button b { font-family: var(--serif); font-size: 1.15rem; }
+  .switch button span { font-size: 0.85rem; }
+  .switch button[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--teal); }
+  .reg-wrap { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1080px) { .reg-wrap { grid-template-columns: auto minmax(0, 1fr); align-items: start; } .panel { position: sticky; top: 5rem; max-height: calc(100vh - 6rem); overflow: auto; } }
+  .grid-wrap { overflow-x: auto; position: relative; }
+  .key { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; color: var(--ink-3); margin-bottom: 0.75rem; }
+  .ramp { width: 7rem; height: 0.7rem; background: linear-gradient(90deg, var(--brick), var(--teal)); }
+  .reg { border-collapse: separate; border-spacing: 3px; }
+  .reg th { font-weight: 500; font-size: 0.85rem; }
+  .reg .ah { text-align: left; padding-bottom: 0.3rem; border-bottom: 1px solid var(--ink); }
+  .reg .as { display: block; font-weight: 400; color: var(--ink-3); font-size: 0.72rem; line-height: 1.3; max-width: 6.5rem; }
+  .reg th[scope='row'] { text-align: right; padding-right: 0.5rem; }
+  .reg th[scope='row'] a { color: var(--ink-2); text-decoration: none; }
+  .reg td.first { padding-left: 0.6rem; }
+  .cell { width: 1.6rem; height: 1.6rem; border: 0; border-radius: 2px; cursor: pointer; padding: 0; display: block; transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1); }
+  .cell.fail { background-image: linear-gradient(to top right, transparent 45%, #fdfdfb 45%, #fdfdfb 55%, transparent 55%); }
+  .cell.demo { display: inline-block; width: 1rem; height: 1rem; background-color: var(--brick); margin-left: 1rem; cursor: default; }
+  .cell:hover { transform: scale(1.18); }
+  @media (max-width: 640px) { .cell { width: 1.15rem; height: 1.15rem; } .reg { border-spacing: 2px; } .reg td.first { padding-left: 0.35rem; } .reg .as { display: none; } }
+  .cell.on { outline: 2.5px solid var(--ink); outline-offset: 1px; }
+  .panel { border-top: 2px solid var(--ink); padding-top: 1rem; min-width: 0; }
+  .pt { font-family: var(--serif); font-weight: 600; font-size: 1.15rem; margin: 0 0 0.25rem; }
+  :global(.panel h2) { font-size: 1rem; font-weight: 600; line-height: 1.5; margin: 1.25rem 0 0.4rem; }
+  :global(.panel .kv) { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 1rem; font-size: 0.95rem; margin: 0.75rem 0; }
+  :global(.panel .kv dt) { color: var(--ink-3); }
+  :global(.panel .kv dd) { margin: 0; overflow-wrap: anywhere; }
+  :global(.panel ul.rules) { list-style: none; padding: 0; margin: 0; }
+  :global(.panel ul.rules li) { display: grid; grid-template-columns: 1.1rem 5rem 1fr; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid var(--rule); font-size: 0.95rem; line-height: 1.5; }
+  :global(.panel .m) { width: 0.9rem; height: 0.9rem; border-radius: 2px; margin-top: 0.3rem; }
+  :global(.panel .m.ok) { background: var(--teal); } :global(.panel .m.no) { background: var(--brick); } :global(.panel .m.na) { border: 1px dashed var(--ink-3); }
+  :global(.panel .minor) { color: var(--ink-3); }
+</style>
+<script>
+  const data: any[] = JSON.parse(document.getElementById('runs-data')!.textContent!);
+  const T: any = JSON.parse(document.getElementById('runs-text')!.textContent!);
+  const en = document.documentElement.lang === 'en';
+  const byId = new Map(data.map((r) => [r.id + '|' + r.study, r]));
+  const panel = document.getElementById('panel')!;
+  const base = (document.querySelector('.brand') as HTMLAnchorElement).getAttribute('href')!;
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-study]')];
+  let study = Number(new URLSearchParams(location.search).get('study')) || Number(tabs[tabs.length - 1].dataset.study);
+  function setStudy(n: number) {
+    study = n;
+    tabs.forEach((t) => t.setAttribute('aria-selected', String(Number(t.dataset.study) === n)));
+    document.querySelectorAll<HTMLElement>('[data-grid]').forEach((g) => { g.hidden = Number(g.dataset.grid) !== n; });
+    const u = new URL(location.href); u.searchParams.set('study', String(n)); history.replaceState(null, '', u);
+  }
+  function show(id: string, scroll = false) {
+    const r = byId.get(id + '|' + study);
+    if (!r) return;
+    document.querySelectorAll('.cell.on').forEach((c) => c.classList.remove('on'));
+    document.querySelector(`[data-grid="${study}"] [data-run="${CSS.escape(id)}"]`)?.classList.add('on');
+    const th = en ? ' lang="th"' : '';
+    const rules = r.rules.map((x: any) => {
+      const c = !x.app ? 'na' : x.ok === true ? 'ok' : x.ok === false ? 'no' : 'na';
+      const t = c === 'ok' ? T.pass : c === 'no' ? T.miss : T.na;
+      return `<li class="${x.sev === 'critical' ? '' : 'minor'}"><i class="m ${c}" title="${t}"></i><span class="mono">${esc(x.id)}</span><span><span${th}>${esc(x.desc)}</span> <span class="muted small">(${T.sev[x.sev] ?? x.sev}, ${t})</span></span></li>`;
+    }).join('');
+    const done = r.done == null ? '' : `<dt>${T.done}</dt><dd>${r.done ? T.yes : `<b class="qual">${T.no}</b>`}${r.done1 === false && r.done ? ` <span class="muted">${T.rescued}</span>` : ''}</dd>`;
+    const rep = `${T.rep} ${r.rep + 1}`;
+    panel.innerHTML = `
+      <p class="pt"><span class="arm arm-${r.arm}">${r.arm}</span> ${esc(T.arm[r.arm])}, ${rep}</p>
+      <p class="small">${T.study} ${r.study}, <a href="${base}scenarios/${esc(r.sc)}/#study-${r.study}">${esc(r.scCode)}</a> <span${th}>“${esc(r.scPrompt)}”</span></p>
+      <dl class="kv">
+        <dt>${esc(r.metric)}</dt><dd><b>${r.score.toFixed(3)}</b>${r.rcrc1 != null ? ` <span class="muted">(${T.firstTurn} ${r.rcrc1.toFixed(3)})</span>` : ''}</dd>
+        ${done}
+        <dt>${T.files}</dt><dd class="mono">${r.files.length ? r.files.map(esc).join('<br>') : T.none}</dd>
+        <dt>${T.skills}</dt><dd class="mono">${r.skills.length ? r.skills.map(esc).join(', ') : T.notOpened}</dd>
+        <dt>${T.expected}</dt><dd class="mono">${r.expected.length ? r.expected.map(esc).join(', ') : T.none}</dd>
+        <dt>${T.tools}</dt><dd>${r.tools ?? T.nodata}${r.tools != null && T.times ? ' ' + T.times : ''}</dd>
+        <dt>${T.time}</dt><dd>${r.ms != null ? Math.round(r.ms / 1000) + ' ' + T.sec : T.nodata}</dd>
+        <dt>${T.cost}</dt><dd>${r.usd != null ? '$' + r.usd.toFixed(2) : T.nodata}</dd>
+        <dt>${T.tok}</dt><dd>${T.tin} ${r.inTok?.toLocaleString('en-US') ?? '-'} ${T.tout} ${r.outTok?.toLocaleString('en-US') ?? '-'}</dd>
+      </dl>
+      <h2>${T.rules}</h2><ul class="rules">${rules}</ul>
+      <p class="small muted mono" style="margin-top:1rem">${esc(r.id)}</p>`;
+    if (scroll && window.innerWidth < 1080) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  tabs.forEach((t) => t.addEventListener('click', () => setStudy(Number(t.dataset.study))));
+  document.querySelectorAll<HTMLButtonElement>('.cell[data-run]').forEach((b) => b.addEventListener('click', () => {
+    const u = new URL(location.href); u.hash = b.dataset.run!; history.replaceState(null, '', u);
+    show(b.dataset.run!, true);
+  }));
+  setStudy(study);
+  const fromHash = () => { const h = decodeURIComponent(location.hash.slice(1)); if (h) show(h, true); };
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+</script>

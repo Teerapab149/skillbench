@@ -1,10 +1,28 @@
 ---
 import '../styles/global.css';
 import { studies } from '../lib/data';
-interface Props { title: string; description?: string; current?: string; theme?: 'story' }
-const { title, description = 'เราทดลองสามรอบว่า ถ้าเขียนกฎให้ AI เขียนโค้ดแบบ Agent Skills กับแบบไฟล์เดียว AI จะทำตามกฎต่างกันไหม', current = '', theme } = Astro.props;
+import { rootOf, type Lang } from '../lib/i18n';
+interface Props { title: string; description?: string; current?: string; theme?: 'story'; lang?: Lang }
+const { lang = 'th', title, current = '', theme } = Astro.props;
+const en = lang === 'en';
+const description = Astro.props.description ?? (en
+  ? 'Three experiments on whether a coding AI follows team rules differently when the rules come as Agent Skills or as a single file'
+  : 'เราทดลองสามรอบว่า ถ้าเขียนกฎให้ AI เขียนโค้ดแบบ Agent Skills กับแบบไฟล์เดียว AI จะทำตามกฎต่างกันไหม');
 const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
-const nav: [string, string][] = [
+const root = rootOf(lang);
+const nav: [string, string][] = en ? [
+  ['', 'Home'],
+  ['overview/', 'Overview'],
+  ['background/', 'Background'],
+  ['study-1/', 'Study 1'],
+  ['study-2/', 'Study 2'],
+  ['study-3/', 'Study 3'],
+  ['arms/', 'Groups'],
+  ['scenarios/', 'Tasks'],
+  ['runs/', 'All runs'],
+  ['method/', 'Method'],
+  ['protocol/', 'Plans'],
+] : [
   ['', 'หน้าแรก'],
   ['overview/', 'ภาพรวม'],
   ['background/', 'เรื่องพื้นฐาน'],
@@ -17,12 +35,17 @@ const nav: [string, string][] = [
   ['method/', 'วัดยังไง'],
   ['protocol/', 'แผนก่อนเริ่ม'],
 ];
+// หน้าเดียวกันในอีกภาษา: ตัด base และ en/ ออกจาก path แล้วต่อกับรากของแต่ละภาษา
+const rel = Astro.url.pathname.slice(base.length).replace(/^\/+/, '').replace(/^en(\/|$)/, '');
+const thHref = rootOf('th') + rel;
+const enHref = rootOf('en') + rel;
 const totalRuns = studies.reduce((s, st) => s + st.usable, 0);
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const ogImage = new URL(`${base}og.png`, Astro.site).href;
+const navLabel = en ? 'Main sections' : 'หัวข้อหลัก';
 ---
 <!doctype html>
-<html lang="th">
+<html lang={lang}>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -31,8 +54,12 @@ const ogImage = new URL(`${base}og.png`, Astro.site).href;
 <meta name="theme-color" content="#fdfdfb" />
 <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
 <link rel="canonical" href={canonical} />
+<link rel="alternate" hreflang="th" href={new URL(thHref, Astro.site).href} />
+<link rel="alternate" hreflang="en" href={new URL(enHref, Astro.site).href} />
+<link rel="alternate" hreflang="x-default" href={new URL(thHref, Astro.site).href} />
 <meta property="og:type" content="website" />
-<meta property="og:locale" content="th_TH" />
+<meta property="og:locale" content={en ? 'en_US' : 'th_TH'} />
+<meta property="og:locale:alternate" content={en ? 'th_TH' : 'en_US'} />
 <meta property="og:site_name" content="SkillBench" />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
@@ -40,7 +67,7 @@ const ogImage = new URL(`${base}og.png`, Astro.site).href;
 <meta property="og:image" content={ogImage} />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content="เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม ผลการทดลองสามชุดของ SkillBench" />
+<meta property="og:image:alt" content={en ? 'How should rules be written so that an AI follows them? Results of the three SkillBench studies' : 'เขียนกฎให้ AI แบบไหน AI ถึงจะทำตาม ผลการทดลองสามชุดของ SkillBench'} />
 <meta name="twitter:card" content="summary_large_image" />
 </head>
 <body class={theme}>
@@ -50,23 +77,27 @@ STORY: ผู้อ่านรู้ในจอแรกว่างานน�
 FIRST VIEWPORT: ชื่อเรื่อง คำถามหนึ่งประโยค คำตอบหนึ่งประโยค แล้วรูปผลหลักของสามชุดเรียงกัน
 FORM: รายงานการทดลองทางคลินิก (IMPECCABLE'S PICK) seed a4d93d88
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance -->
-<a class="skip" href="#main">ข้ามไปเนื้อหา</a>
+<a class="skip" href="#main">{en ? 'Skip to content' : 'ข้ามไปเนื้อหา'}</a>
 <header class="masthead">
   <div class="masthead-in">
-    <a class="brand" href={base}>SkillBench</a>
+    <a class="brand" href={root}>SkillBench</a>
     {theme === 'story' ? (
-    <nav class="story-nav" aria-label="หัวข้อหลัก"><a href={`${base}overview/`}>สำรวจทั้งหมด</a></nav>
+    <nav class="story-nav" aria-label={navLabel}><a href={`${root}overview/`}>{en ? 'Explore everything' : 'สำรวจทั้งหมด'}</a></nav>
     ) : (<>
-    <nav class="nav" aria-label="หัวข้อหลัก">
-      {nav.map(([href, label]) => <a href={base + href} aria-current={current === href ? 'page' : undefined}>{label}</a>)}
+    <nav class="nav" aria-label={navLabel}>
+      {nav.map(([href, label]) => <a href={root + href} aria-current={current === href ? 'page' : undefined}>{label}</a>)}
     </nav>
     <details class="mnav">
-      <summary>{nav.find(([h]) => h === current)?.[1] ?? 'เมนู'}<span class="mnav-ico" aria-hidden="true"></span></summary>
-      <nav aria-label="หัวข้อหลัก">
-        {nav.map(([href, label]) => <a href={base + href} aria-current={current === href ? 'page' : undefined}>{label}</a>)}
+      <summary>{nav.find(([h]) => h === current)?.[1] ?? (en ? 'Menu' : 'เมนู')}<span class="mnav-ico" aria-hidden="true"></span></summary>
+      <nav aria-label={navLabel}>
+        {nav.map(([href, label]) => <a href={root + href} aria-current={current === href ? 'page' : undefined}>{label}</a>)}
       </nav>
     </details>
     </>)}
+    <nav class="lang-sw" aria-label={en ? 'Language' : 'ภาษา'}>
+      <a href={thHref} lang="th" hreflang="th" aria-current={en ? undefined : 'true'} title="ภาษาไทย" data-lang-link>TH</a>
+      <a href={enHref} lang="en" hreflang="en" aria-current={en ? 'true' : undefined} title="English" data-lang-link>EN</a>
+    </nav>
   </div>
 </header>
 <main id="main" class="page">
@@ -74,19 +105,34 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 </main>
 <footer class="footer">
   <div class="footer-in">
+    {en ? (
+    <div>
+      <p><strong>Controlling LLM Agent Behaviour in System Development with Context Engineering and Agent Skills</strong></p>
+      <p>Teerapab Boonsri and Teeraphat Chinwuttiwong<br />
+      Advisor: Asst. Prof. Dr. Ruchdee Binmad<br />
+      Course 477-401 Seminar in Business Information Systems, Faculty of Management Sciences, Prince of Songkla University, Semester 1/2026</p>
+    </div>
+    ) : (
     <div>
       <p><strong>การควบคุมพฤติกรรม LLM Agent ในงานพัฒนาระบบด้วย Context Engineering และระบบทักษะเอเจนต์</strong></p>
       <p>ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์<br />
       อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด<br />
       รายวิชา 477-401 สัมมนาระบบสารสนเทศทางธุรกิจ คณะวิทยาการจัดการ มหาวิทยาลัยสงขลานครินทร์ ภาคเรียนที่ 1/2569</p>
     </div>
+    )}
     <div>
-      <p>ทดลองสามรอบ รวม {totalRuns} ครั้ง ด้วยโมเดล <span class="mono">{studies[2].model}</span></p>
-      <p>ตัวเลขทุกตัวในเว็บดึงจากไฟล์ผลการทดลองโดยตรง เราไม่ได้พิมพ์เอง</p>
-      <p><a href={`${base}skillbench-report.pdf`}>รายงานฉบับเต็ม (PDF)</a></p>
-      <p><a href="https://github.com/Teerapab149/skillbench">โค้ดและข้อมูลทั้งหมดบน GitHub</a></p>
+      {en ? <p>Three studies, {totalRuns} runs in total, all with the model <span class="mono">{studies[2].model}</span></p> : <p>ทดลองสามรอบ รวม {totalRuns} ครั้ง ด้วยโมเดล <span class="mono">{studies[2].model}</span></p>}
+      <p>{en ? 'Every number on this site is read straight from the result files. We did not type any of them in.' : 'ตัวเลขทุกตัวในเว็บดึงจากไฟล์ผลการทดลองโดยตรง เราไม่ได้พิมพ์เอง'}</p>
+      <p><a href={`${base}skillbench-report.pdf`}>{en ? 'Full report (PDF, in Thai)' : 'รายงานฉบับเต็ม (PDF)'}</a></p>
+      <p><a href="https://github.com/Teerapab149/skillbench">{en ? 'All code and data on GitHub' : 'โค้ดและข้อมูลทั้งหมดบน GitHub'}</a></p>
     </div>
   </div>
 </footer>
+<script>
+  // พาไปหน้าเดียวกันในอีกภาษา โดยเก็บ ?study= และ #run ไว้ด้วย
+  document.querySelectorAll<HTMLAnchorElement>('[data-lang-link]').forEach((a) => a.addEventListener('click', () => {
+    a.href = a.href.split(/[?#]/)[0] + location.search + location.hash;
+  }));
+</script>
 </body>
 </html>

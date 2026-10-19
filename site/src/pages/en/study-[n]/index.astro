@@ -1,0 +1,8 @@
+---
+import View from '../../../views/Study.astro';
+import { studies } from '../../../lib/data';
+export function getStaticPaths() {
+  return studies.map((st, i) => ({ params: { n: String(st.n) }, props: { st, prev: studies[i - 1] ?? null, next: studies[i + 1] ?? null } }));
+}
+---
+<View lang="en" {...Astro.props} />

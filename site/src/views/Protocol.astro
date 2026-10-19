@@ -1,0 +1,41 @@
+---
+import Base from '../layouts/Base.astro';
+import { renderDoc } from '../lib/md';
+import { docs } from '../lib/data';
+import type { Lang } from '../lib/i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const sections = [
+  { id: 'prereg-1', title: en ? 'Plan for Study 1' : 'แผนของชุดที่ 1', file: 'PRE-REGISTRATION.md', note: en ? 'The plan for Study 1, including the amendments recorded before data collection.' : 'แผนของการทดลองชุดที่ 1 รวมการแก้ไข (Amendment) ที่บันทึกไว้ก่อนเก็บข้อมูล', md: docs.prereg1 },
+  { id: 'prereg-2', title: en ? 'Plan for Study 2' : 'แผนของชุดที่ 2', file: 'PRE-REGISTRATION-2.md', note: en ? 'Written after seeing the results of Study 1 and before collecting Study 2.' : 'เขียนหลังเห็นผลชุดที่ 1 และก่อนเก็บข้อมูลชุดที่ 2', md: docs.prereg2 },
+  { id: 'prereg-3', title: en ? 'Plan for Study 3' : 'แผนของชุดที่ 3', file: 'PRE-REGISTRATION-3.md', note: en ? 'Locked with the git tag study3-prereg on 5 Oct 2026, before the main data collection.' : 'ล็อกด้วย git tag study3-prereg เมื่อ 5 ต.ค. 2569 ก่อนเก็บข้อมูลหลัก', md: docs.prereg3 },
+  { id: 'deviations', title: en ? 'Deviations from the plan in Study 3' : 'สิ่งที่ไม่เป็นไปตามแผนในชุดที่ 3', file: 'DEVIATIONS-3.md', note: en ? 'Recorded and committed before the results were broken down by group.' : 'บันทึกและ commit ก่อนเปิดดูผลแยกกลุ่ม', md: docs.deviations },
+  { id: 'requirements', title: en ? 'Requirements of the system the AI worked on' : 'ข้อกำหนดของระบบที่ AI ใช้', file: 'fixtures/gpu-booking/REQUIREMENTS.md', note: en ? 'The document every group used as its reference while working on the tasks.' : 'เอกสารที่ AI ทุกกลุ่มใช้อ้างอิงระหว่างทำโจทย์', md: docs.requirements },
+].map((s) => ({ ...s, html: renderDoc(s.md) }));
+---
+<Base lang={lang} title={en ? 'Pre-registered plans | SkillBench' : 'แผนก่อนเริ่ม SkillBench'} current="protocol/">
+  <header class="title-block col">
+    <h1>{en ? 'The plans we wrote before starting' : 'แผนที่เราเขียนไว้ก่อนเริ่ม'}</h1>
+    {en
+      ? <p class="lede">Before every round of data collection we wrote down what we would measure and how we would decide the result, then locked the plan on GitHub so that it could not be adjusted later to fit the results. This page holds all three plans, the deviations from the plan, and the requirements of the system the AI worked on. <b>The documents are shown as written, in Thai</b>, apart from removed phrase separators. Some parts were written with help from Claude, so they sometimes call Claude "the assistant" or "the designer".</p>
+      : <p class="lede">ก่อนเก็บข้อมูลทุกรอบ เราเขียนแผนไว้ก่อนว่าจะวัดอะไร และจะตัดสินผลยังไง แล้วล็อกไว้บน GitHub เพื่อไม่ให้ปรับทีหลังตามผลที่ออกมา หน้านี้คือแผนทั้งสามฉบับ สิ่งที่ไม่เป็นไปตามแผน และข้อกำหนดของระบบที่ AI ใช้ทำงาน เอกสารเป็นภาษาทำงานของเราตามต้นฉบับ (ตัดแค่เครื่องหมายคั่นวลี) บางส่วนเขียนตอนใช้ Claude ช่วย เลยมีคำที่เรียก Claude ว่า "ผู้ช่วย" หรือ "ผู้ออกแบบ"</p>}
+    <nav class="tabs" aria-label={en ? 'Documents' : 'เอกสาร'}>{sections.map((s) => <a href={`#${s.id}`}>{s.title}</a>)}</nav>
+  </header>
+  {sections.map((s) => (
+    <section id={s.id} class="docsec">
+      <div class="doc-head">
+        <h2>{s.title}</h2>
+        <p class="small muted">{s.note} <a href={`https://github.com/Teerapab149/skillbench/blob/main/${s.file}`}>{en ? 'View on GitHub' : 'ดูบน GitHub'}</a></p>
+      </div>
+      <div class="doc" lang="th" set:html={s.html} />
+    </section>
+  ))}
+</Base>
+<style>
+  .tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; }
+  .tabs a { font-family: var(--mono); font-size: 0.9rem; border: 1px solid var(--rule); padding: 0.25rem 0.75rem; text-decoration: none; color: var(--ink-2); }
+  .tabs a:hover { border-color: var(--ink); color: var(--ink); }
+  .docsec { border-top: 3px solid var(--ink); margin-top: 4rem; padding-top: 0.5rem; }
+  .doc-head h2 { margin-top: 1rem; }
+</style>

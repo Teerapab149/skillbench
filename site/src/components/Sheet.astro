@@ -1,18 +1,23 @@
 ---
-// แผ่นเอกสาร: ไฟล์กฎจริงที่ส่งให้เอเจนต์ เรนเดอร์จาก markdown
+// แผ่นเอกสาร: ไฟล์กฎจริงที่ส่งให้เอเจนต์ เรนเดอร์จาก markdown ตัวไฟล์แสดงตามต้นฉบับ ไม่แปล
 import { renderDoc } from '../lib/md';
-interface Props { path: string; always: boolean; body: string; open?: boolean; id?: string }
-const { path, always, body, open = false, id } = Astro.props;
+interface Props { path: string; always: boolean; body: string; open?: boolean; id?: string; lang?: 'th' | 'en' }
+const { path, always, body, open = false, id, lang = 'th' } = Astro.props;
+const L = lang === 'en'
+  ? { more: 'Show the whole file', less: 'Collapse', always: 'Loaded every time a task starts', od: 'Opened when the task matches its description', chars: 'characters' }
+  : { more: 'แสดงทั้งไฟล์', less: 'ย่อกลับ', always: 'โหลดทุกครั้งที่เริ่มงาน', od: 'เปิดเมื่องานตรงกับคำอธิบาย', chars: 'ตัวอักษร' };
 const html = renderDoc(body);
 const long = body.length > 2600;
+// ไฟล์กฎเขียนเป็นภาษาไทย ในหน้าภาษาอังกฤษบอกเบราว์เซอร์ว่าเนื้อหานี้เป็นภาษาไทย
+const docLang = /[฀-๿]/.test(body) ? 'th' : undefined;
 ---
 <div class="sheet" id={id}>
   <div class="sheet-head">
     <span class="mono">{path}</span>
-    <span class={`load ${always ? 'always' : 'ondemand'}`}>{always ? 'โหลดทุกครั้งที่เริ่มงาน' : 'เปิดเมื่องานตรงกับคำอธิบาย'}, {body.length.toLocaleString('en-US')} ตัวอักษร</span>
+    <span class={`load ${always ? 'always' : 'ondemand'}`}>{always ? L.always : L.od}, {body.length.toLocaleString('en-US')} {L.chars}</span>
   </div>
-  <div class={`sheet-body doc ${open || !long ? 'open' : ''}`} set:html={html} />
-  {long && !open && <button class="more" type="button" data-expand>แสดงทั้งไฟล์</button>}
+  <div class={`sheet-body doc ${open || !long ? 'open' : ''}`} lang={docLang} set:html={html} />
+  {long && !open && <button class="more" type="button" data-expand data-more={L.more} data-less={L.less}>{L.more}</button>}
 </div>
 <style>
   .sheet { margin: 1.25rem 0 2rem; }
@@ -23,7 +28,7 @@ const long = body.length > 2600;
   document.querySelectorAll<HTMLButtonElement>('[data-expand]').forEach((b) => b.addEventListener('click', () => {
     const body = b.previousElementSibling as HTMLElement;
     const open = body.classList.toggle('open');
-    b.textContent = open ? 'ย่อกลับ' : 'แสดงทั้งไฟล์';
+    b.textContent = (open ? b.dataset.less : b.dataset.more) ?? '';
     if (!open) body.scrollIntoView({ block: 'nearest' });
   }));
 </script>

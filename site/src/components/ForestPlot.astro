@@ -1,14 +1,17 @@
 ---
 // forest plot ของผลหลัก: ผลต่าง RCRc (A2 − A1) พร้อม CI 90% (เส้นหนา) และ CI 95% (เส้นบาง)
-// เทียบกับแถบเกณฑ์เทียบเท่า ±margin · ข้อมูลจาก results-study3/sensitivity.json
+// เทียบกับแถบเกณฑ์เทียบเท่า ±margin ข้อมูลจาก results-study3/sensitivity.json
 import { sens, s3, pts } from '../lib/data';
-interface Props { n: number }
-const { n } = Astro.props;
+import type { Lang } from '../lib/i18n';
+interface Props { n: number; lang?: Lang }
+const { n, lang = 'th' } = Astro.props;
+const en = lang === 'en';
 const margin = sens.margin as number;
+const m = (margin * 100).toFixed(1);
 const rows = [
-  { key: 'MAIN', label: 'ผลหลักตามแผน', sub: '22 โจทย์ ตัวตรวจตามแผนเดิม', r: sens.results.MAIN.primary_A2_vs_A1 },
-  { key: 'SA-1', label: 'SA-1', sub: 'แก้ตัวตรวจที่ผิด และผ่อนเกณฑ์ S08 S09', r: sens.results['SA-1'].primary_A2_vs_A1 },
-  { key: 'SA-2', label: 'SA-2', sub: 'ตัดโจทย์ที่มีปัญหา 4 ข้อ', r: sens.results['SA-2'].primary_A2_vs_A1 },
+  { key: 'MAIN', label: en ? 'Main result as planned' : 'ผลหลักตามแผน', sub: en ? '22 tasks, original checkers' : '22 โจทย์ ตัวตรวจตามแผนเดิม', r: sens.results.MAIN.primary_A2_vs_A1 },
+  { key: 'SA-1', label: 'SA-1', sub: en ? 'Faulty checkers fixed, S08 S09 relaxed' : 'แก้ตัวตรวจที่ผิด และผ่อนเกณฑ์ S08 S09', r: sens.results['SA-1'].primary_A2_vs_A1 },
+  { key: 'SA-2', label: 'SA-2', sub: en ? '4 problem tasks removed' : 'ตัดโจทย์ที่มีปัญหา 4 ข้อ', r: sens.results['SA-2'].primary_A2_vs_A1 },
 ];
 const W = 1000, padL = 340, padR = 30, lo = -0.15, hi = 0.15;
 const X = (v: number) => padL + ((v - lo) / (hi - lo)) * (W - padL - padR);
@@ -21,16 +24,17 @@ const N = { W: 360, rowH: 78, X: (v: number) => 14 + ((v - lo) / (hi - lo)) * 33
 const NH = 34 + rows.length * N.rowH + 30;
 const nViewBox = `0 0 ${N.W} ${NH}`;
 const tickLabel = (t: number) => (t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0');
+const aria = en ? `RCRc difference A2 minus A1: every analysis falls inside the equivalence margin of ±${m} points` : `ผลต่าง RCRc A2 ลบ A1 ทุกแบบการวิเคราะห์อยู่ในเกณฑ์เทียบเท่า ±${m} จุด`;
 ---
 <figure class="fig-wide forest" id="forest">
-  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`ผลต่าง RCRc A2 ลบ A1 ทุกแบบการวิเคราะห์อยู่ในเกณฑ์เทียบเท่า ±${(margin * 100).toFixed(1)} จุด`}>
+  <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={aria}>
     <rect x={X(-margin)} y={top - 14} width={X(margin) - X(-margin)} height={rows.length * rowH + 4} fill="var(--teal-wash)" />
     <line x1={X(-margin)} x2={X(-margin)} y1={top - 14} y2={top + rows.length * rowH - 10} stroke="var(--teal)" stroke-width="1.5" />
     <line x1={X(margin)} x2={X(margin)} y1={top - 14} y2={top + rows.length * rowH - 10} stroke="var(--teal)" stroke-width="1.5" />
-    <text x={X(0)} y={top - 22} text-anchor="middle" class="t-band">เกณฑ์เทียบเท่า ±{(margin * 100).toFixed(1)} จุด ประกาศไว้ก่อนเก็บข้อมูล</text>
+    <text x={X(0)} y={top - 22} text-anchor="middle" class="t-band">{en ? `Equivalence margin ±${m} points, declared before data collection` : `เกณฑ์เทียบเท่า ±${m} จุด ประกาศไว้ก่อนเก็บข้อมูล`}</text>
     <line x1={X(0)} x2={X(0)} y1={top - 14} y2={top + rows.length * rowH - 10} stroke="var(--ink-3)" stroke-dasharray="4 5" />
     <line x1={X(ceiling)} x2={X(ceiling)} y1={top} y2={top + rows.length * rowH - 10} stroke="var(--ink-3)" stroke-dasharray="1 5" stroke-width="2" />
-    <text x={X(ceiling) + 6} y={top + rows.length * rowH - 16} class="t-ceil">เพดาน {pts(ceiling)}</text>
+    <text x={X(ceiling) + 6} y={top + rows.length * rowH - 16} class="t-ceil">{en ? 'Ceiling' : 'เพดาน'} {pts(ceiling)}</text>
     {rows.map((row, i) => {
       const y = top + i * rowH + 26;
       const main = i === 0;
@@ -48,16 +52,16 @@ const tickLabel = (t: number) => (t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0');
     {ticks.map((t) => (
       <g>
         <line x1={X(t / 100)} x2={X(t / 100)} y1={top + rows.length * rowH - 8} y2={top + rows.length * rowH - 2} stroke="var(--ink)" />
-        <text x={X(t / 100)} y={top + rows.length * rowH + 20} text-anchor="middle" class="t-tick">{t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0'}</text>
+        <text x={X(t / 100)} y={top + rows.length * rowH + 20} text-anchor="middle" class="t-tick">{tickLabel(t)}</text>
       </g>
     ))}
     <line x1={X(lo)} x2={X(hi)} y1={top + rows.length * rowH - 8} y2={top + rows.length * rowH - 8} stroke="var(--ink)" />
-    <text x={X(-0.13)} y={H - 12} class="t-dir">← ไฟล์เดียว (A1) ดีกว่า</text>
-    <text x={X(0.13)} y={H - 12} text-anchor="end" class="t-dir">Agent Skills (A2) ดีกว่า →</text>
+    <text x={X(-0.13)} y={H - 12} class="t-dir">{en ? 'Favours single file (A1)' : 'ไฟล์เดียว (A1) ดีกว่า'}</text>
+    <text x={X(0.13)} y={H - 12} text-anchor="end" class="t-dir">{en ? 'Favours Agent Skills (A2)' : 'Agent Skills (A2) ดีกว่า'}</text>
   </svg>
-  <svg class="narrow" viewBox={nViewBox} role="img" aria-label="ผลต่าง RCRc A2 ลบ A1 ทุกแบบการวิเคราะห์อยู่ในเกณฑ์เทียบเท่า">
+  <svg class="narrow" viewBox={nViewBox} role="img" aria-label={aria}>
     <rect x={N.X(-margin)} y="26" width={N.X(margin) - N.X(-margin)} height={rows.length * N.rowH} fill="var(--teal-wash)" />
-    <text x={N.X(0)} y="16" text-anchor="middle" class="n-band">เกณฑ์เทียบเท่า ±{(margin * 100).toFixed(1)} จุด</text>
+    <text x={N.X(0)} y="16" text-anchor="middle" class="n-band">{en ? `Equivalence margin ±${m} points` : `เกณฑ์เทียบเท่า ±${m} จุด`}</text>
     <line x1={N.X(0)} x2={N.X(0)} y1="26" y2={26 + rows.length * N.rowH} stroke="var(--ink-3)" stroke-dasharray="3 4" />
     {rows.map((row, i) => {
       const y = 26 + i * N.rowH;
@@ -72,9 +76,11 @@ const tickLabel = (t: number) => (t > 0 ? `+${t}` : t < 0 ? `−${-t}` : '0');
         </g>
       );
     })}
-    {[-15, -10, -5, 0, 5, 10, 15].map((t) => <text x={N.X(t / 100)} y={NH - 8} text-anchor="middle" class="n-sub">{tickLabel(t)}</text>)}
+    {ticks.map((t) => <text x={N.X(t / 100)} y={NH - 8} text-anchor="middle" class="n-sub">{tickLabel(t)}</text>)}
   </svg>
-  <figcaption><b>รูปที่ {n}</b> ทุกเส้นอยู่ในแถบเขียว แปลว่าไม่ว่าจะนับแบบไหน Skills กับไฟล์เดียวก็ต่างกันไม่เกินเกณฑ์ ±{(margin * 100).toFixed(1)} จุด สี่เหลี่ยมคือผลต่างที่วัดได้ เส้นหนาคือช่วงที่ค่าจริงน่าจะอยู่ (ความเชื่อมั่น 90% ใช้ตัดสินตามแผน) เส้นบางคือ 95% เส้นจุดคือเพดาน เพราะไฟล์เดียวได้ {(s3.primary.rateB * 100).toFixed(1)}% อยู่แล้ว Skills จึงนำได้ไม่เกินระยะนั้น</figcaption>
+  {en
+    ? <figcaption><b>Figure {n}</b> Every line sits inside the green band, so however we count, Skills and the single file differ by no more than the ±{m} point margin. The square is the measured difference. The thick line is the range where the true value probably lies (90% confidence, which the plan uses for the decision), and the thin line is 95%. The dotted line is the ceiling: the single file already scored {(s3.primary.rateB * 100).toFixed(1)}%, so Skills could not lead by more than that distance.</figcaption>
+    : <figcaption><b>รูปที่ {n}</b> ทุกเส้นอยู่ในแถบเขียว แปลว่าไม่ว่าจะนับแบบไหน Skills กับไฟล์เดียวก็ต่างกันไม่เกินเกณฑ์ ±{m} จุด สี่เหลี่ยมคือผลต่างที่วัดได้ เส้นหนาคือช่วงที่ค่าจริงน่าจะอยู่ (ความเชื่อมั่น 90% ใช้ตัดสินตามแผน) เส้นบางคือ 95% เส้นจุดคือเพดาน เพราะไฟล์เดียวได้ {(s3.primary.rateB * 100).toFixed(1)}% อยู่แล้ว Skills จึงนำได้ไม่เกินระยะนั้น</figcaption>}
 </figure>
 <style>
   .forest svg { width: 100%; font-family: var(--sans); overflow: visible; }

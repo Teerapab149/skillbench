@@ -1,17 +1,20 @@
 ---
 // small multiples: ตัวชี้วัดละหนึ่งแผง แท่งของทุกกลุ่มในชุดนั้น พร้อมค่าบนแท่ง
-import { ARM_INFO, type Study } from '../lib/data';
-interface Props { st: Study; n: number }
-const { st, n } = Astro.props;
+import { type Study } from '../lib/data';
+import { armT, type Lang } from '../lib/i18n';
+interface Props { st: Study; n: number; lang?: Lang }
+const { st, n, lang = 'th' } = Astro.props;
+const en = lang === 'en';
 const all = [
-  { key: 'taskDoneRate', label: 'ทำงานเสร็จ' },
-  { key: 'CRIT', label: 'ทำตามกฎสำคัญครบทุกข้อ' },
-  { key: 'SCOPE', label: 'แก้เฉพาะไฟล์ในงาน' },
-  { key: 'RCR', label: 'สัดส่วนกฎที่ทำตาม (RCR)' },
-  { key: 'RCRc', label: 'คะแนนหลัก (RCRc)' },
+  { key: 'taskDoneRate', label: en ? 'Task finished' : 'ทำงานเสร็จ' },
+  { key: 'CRIT', label: en ? 'Every critical rule followed' : 'ทำตามกฎสำคัญครบทุกข้อ' },
+  { key: 'SCOPE', label: en ? 'Edited only task files' : 'แก้เฉพาะไฟล์ในงาน' },
+  { key: 'RCR', label: en ? 'Share of rules followed (RCR)' : 'สัดส่วนกฎที่ทำตาม (RCR)' },
+  { key: 'RCRc', label: en ? 'Main score (RCRc)' : 'คะแนนหลัก (RCRc)' },
 ];
 const metrics = all.filter((m) => st.armIds.every((a) => typeof st.nums.perArm[a][m.key] === 'number'))
   .filter((m) => st.n === 1 ? m.key !== 'RCRc' : m.key !== 'RCR');
+const runsPer = st.nums.perArm[st.armIds[0]].n;
 ---
 <figure class="fig-wide bars">
   <div class="panels" style={`--n:${metrics.length}`}>
@@ -33,8 +36,10 @@ const metrics = all.filter((m) => st.armIds.every((a) => typeof st.nums.perArm[a
       </div>
     ))}
   </div>
-  <p class="legend">{st.armIds.map((a) => <span class={`arm arm-${a}`}>{a} {ARM_INFO[a].short}</span>)}</p>
-  <figcaption><b>รูปที่ {n}</b> คะแนนของแต่ละกลุ่มในชุดที่ {st.n} เป็นร้อยละ กลุ่มละ {st.nums.perArm[st.armIds[0]].n} ครั้ง</figcaption>
+  <p class="legend">{st.armIds.map((a) => <span class={`arm arm-${a}`}>{a} {armT(lang, a).short}</span>)}</p>
+  {en
+    ? <figcaption><b>Figure {n}</b> Scores of each group in Study {st.n}, in percent, {runsPer} runs per group</figcaption>
+    : <figcaption><b>รูปที่ {n}</b> คะแนนของแต่ละกลุ่มในชุดที่ {st.n} เป็นร้อยละ กลุ่มละ {runsPer} ครั้ง</figcaption>}
 </figure>
 <style>
   .panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem 2rem; }

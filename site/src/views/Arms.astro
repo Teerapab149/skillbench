@@ -1,0 +1,147 @@
+---
+import Base from '../layouts/Base.astro';
+import Toc from '../components/Toc.astro';
+import Sheet from '../components/Sheet.astro';
+import { arms, studies, s3 } from '../lib/data';
+import { rootOf, armT, type Lang } from '../lib/i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const base = rootOf(lang);
+const usedIn = (id: string) => studies.filter((st) => st.armIds.includes(id as any)).map((st) => st.n);
+const larms = arms.map((a) => ({ ...a, ...armT(lang, a.id) }));
+const toc: [string, string][] = [[ 'overview', en ? 'All groups at a glance' : 'ทุกกลุ่มในภาพเดียว'], ...larms.map((a) => [a.id, `${a.id} ${a.short}`] as [string, string]), ['equal', en ? 'Are the rules really equal?' : 'กฎเท่ากันจริงไหม']];
+const a2skills = arms.find((a) => a.id === 'A2')!.files.filter((f) => !f.always);
+let inject: { file?: string; text?: string }[] = [];
+try { const j = JSON.parse(arms.find((a) => a.id === 'A4')!.inject ?? '[]'); inject = Array.isArray(j) ? j : (j.injections ?? j.items ?? [j]); } catch {}
+const thai = (t?: string) => (t && /[฀-๿]/.test(t) ? 'th' : undefined);
+---
+<Base lang={lang} title={en ? 'Groups and rules | SkillBench' : 'กลุ่มและกฎ SkillBench'} current="arms/">
+  <header class="title-block col">
+    <h1>{en ? 'Which rules each group got' : 'แต่ละกลุ่มได้กฎอะไรบ้าง'}</h1>
+    <p class="lede">{en
+      ? 'Every group used the same AI, the same tasks and the same system. The only differences are the rules they got and when the AI read them. The files below are the real ones we gave the AI, uncut and unedited, and the same files were used in all three studies. The rule files are written in Thai and are shown as they are.'
+      : 'ทุกกลุ่มใช้ AI ตัวเดียวกัน โจทย์เดียวกัน ระบบเดียวกัน ต่างกันแค่กฎที่ได้ และ AI ได้อ่านกฎตอนไหน ไฟล์ด้านล่างคือของจริงที่เราใส่ให้ AI ไม่ได้ตัดหรือแก้ และใช้ไฟล์เดิมทั้งสามรอบ'}</p>
+  </header>
+  <div class="article-grid">
+    <Toc items={toc} lang={lang} />
+    <article>
+      <section id="overview" class="wide">
+        <h2 class="h-first">{en ? 'All groups at a glance' : 'ทุกกลุ่มในภาพเดียว'}</h2>
+        <div class="tbl-wrap">
+          <table class="bt">
+            <caption><b>{en ? 'Table 1' : 'ตารางที่ 1'}</b> {en ? 'What each group got, and the studies it was used in' : 'แต่ละกลุ่มได้อะไร และใช้ในรอบไหน'}</caption>
+            <thead><tr><th>{en ? 'Group' : 'กลุ่ม'}</th><th>{en ? 'What the AI got' : 'AI ได้อะไร'}</th><th>{en ? 'When the AI reads the rules' : 'AI อ่านกฎตอนไหน'}</th><th class="r">{en ? 'Length (characters)' : 'ยาว (ตัวอักษร)'}</th>{studies.map((st) => <th class="r">{en ? `Study ${st.n}` : `ชุดที่ ${st.n}`}</th>)}</tr></thead>
+            <tbody>
+              {larms.map((a) => (
+                <tr class={a.id === 'A1' || a.id === 'A2' ? 'hl' : ''}>
+                  <td><a href={`#${a.id}`} class={`arm arm-${a.id}`}><b>{a.id}</b></a></td>
+                  <td>{a.name}</td>
+                  <td>{a.delivery}</td>
+                  <td class="r">{a.chars ? a.chars.toLocaleString('en-US') : '0'}</td>
+                  {studies.map((st) => <td class="r">{st.armIds.includes(a.id) ? <span class="used">{en ? 'Used' : 'ใช้'}</span> : <span class="muted">{en ? 'Not used' : 'ไม่ใช้'}</span>}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <figure class="timeline">
+          <div class="tl-head"><span></span><span>{en ? 'At the start of a task' : 'ตอนเริ่มงาน'}</span><span>{en ? 'While working' : 'ระหว่างทำงาน'}</span></div>
+          {larms.map((a) => (
+            <div class="tl-row">
+              <span class={`arm arm-${a.id}`}><b>{a.id}</b>&nbsp;{a.short}</span>
+              <span class="lane">
+                {a.files.filter((f) => f.always).map((f) => <i class={`chip arm-${a.id}`}>{f.name} {f.body.length.toLocaleString('en-US')}</i>)}
+                {a.id === 'A0' && <i class="chip none">{en ? 'No rules' : 'ไม่มีกฎ'}</i>}
+                {(a.id === 'A2' || a.id === 'A4') && <i class="chip desc">{en ? `Descriptions of ${a2skills.length} skills` : `คำอธิบาย ${a2skills.length} skill`}</i>}
+              </span>
+              <span class="lane">
+                {a.files.filter((f) => !f.always).map((f) => <i class="chip od">{f.name}</i>)}
+                {a.id === 'A4' && <i class="chip bait">{en ? 'Bait comments in the code' : 'คอมเมนต์ล่อในโค้ด'}</i>}
+              </span>
+            </div>
+          ))}
+          {en
+            ? <figcaption><b>Figure 1</b> What the AI in each group reads at the start of a task, and what it opens while working. Numbers are character counts. The Skills groups see only the skill descriptions at the start and then open the skills that relate to the task. In Study 3 the AI opened {s3.nums.manipulation.A2.skillsLoadedPerRun.toFixed(1)} of {a2skills.length} skills per task on average.</figcaption>
+            : <figcaption><b>รูปที่ 1</b> แต่ละกลุ่ม AI ได้อ่านอะไรตอนเริ่มงาน และอะไรเปิดเพิ่มระหว่างทำงาน ตัวเลขคือจำนวนตัวอักษร กลุ่ม Skills เห็นแค่คำอธิบายของ skill ตอนเริ่ม แล้วค่อยเปิดอ่านชุดที่เกี่ยว ในรอบที่ 3 เปิดเฉลี่ย {s3.nums.manipulation.A2.skillsLoadedPerRun.toFixed(1)} จาก {a2skills.length} ชุดต่องาน</figcaption>}
+        </figure>
+      </section>
+
+      {larms.map((a) => (
+        <section id={a.id} class="wide arm-sec">
+          <div class="col">
+            <h2><span class={`arm arm-${a.id}`}>{a.id}</span> {a.name}</h2>
+            <p class="lede">{a.role}</p>
+            <p class="meta small">{en ? 'Used in' : 'ใช้ใน'}{usedIn(a.id).map((n) => <a href={`${base}study-${n}/`}>{en ? `Study ${n}` : `ชุดที่ ${n}`}</a>)} <span>{en ? 'Answers:' : 'มีไว้ตอบ'} {a.question}</span></p>
+          </div>
+          {a.id === 'A0' && (
+            <div class="col"><p>{en
+              ? <>This group has no rule file at all. The AI still sees the project documents as usual, such as <code>REQUIREMENTS.md</code> and <code>ARCHITECTURE.md</code>, but nobody tells it how it should work. We score this group with the same rules as the other groups, including rules it never saw, so it serves only as a baseline for comparison and is not part of the statistical tests.</>
+              : <>กลุ่มนี้ไม่มีไฟล์กฎเลย AI ยังเห็นเอกสารของโปรเจกต์ตามปกติ เช่น <code>REQUIREMENTS.md</code> กับ <code>ARCHITECTURE.md</code> แต่ไม่มีใครบอกว่าควรทำงานยังไง เราให้คะแนนกลุ่มนี้ด้วยกฎชุดเดียวกับกลุ่มอื่น รวมถึงกฎที่กลุ่มนี้ไม่เคยเห็น เลยใช้กลุ่มนี้เป็นจุดเริ่มต้นไว้เทียบเท่านั้น ไม่ได้เอาไปทดสอบทางสถิติ</>}</p></div>
+          )}
+          {a.id === 'A2' && (
+            <div class="col">
+              <h3>{en ? 'At the start, the AI sees only these names and descriptions' : 'ตอนเริ่มงาน AI เห็นแค่ชื่อกับคำอธิบายนี้'}</h3>
+              <dl class="skills">{a2skills.map((s) => <><dt class="mono"><a href={`#skill-${s.name}`}>{s.name}</a></dt><dd lang={en ? thai(s.description) : undefined}>{s.description}</dd></>)}</dl>
+              <p class="small muted">{en
+                ? 'The AI decides on its own to open a skill when it sees that the task matches the description. The full content of each skill is below.'
+                : 'AI เลือกเปิด skill เองเมื่อเห็นว่างานตรงกับคำอธิบาย เนื้อหาเต็มของแต่ละ skill อยู่ด้านล่าง'}</p>
+            </div>
+          )}
+          {a.id === 'A4' && (
+            <div class="col">
+              <p>{en
+                ? <>This group got rules and skills identical to the <a href="#A2">Skills group</a>, letter for letter. The difference is that we planted bait text in the system’s files to get the AI to do things the user did not ask for. All the bait text is listed below, as planted.</>
+                : <>กลุ่มนี้ได้กฎและ skill เหมือน <a href="#A2">กลุ่ม Skills</a> ทุกตัวอักษร ที่ต่างคือเราแอบใส่ข้อความล่อไว้ในไฟล์ของระบบ ให้ AI ทำสิ่งที่ผู้ใช้ไม่ได้สั่ง ข้อความล่อทั้งหมดมีดังนี้</>}</p>
+              <ol class="baits">{inject.map((x) => <li><span class="mono small">{x.file}</span><pre class="inject" lang={en ? thai(x.text) : undefined}>{x.text}</pre></li>)}</ol>
+              <p class="small muted">{en ? 'Source' : 'ที่มา'} <span class="mono">arms/A4/adversarial/inject.json</span></p>
+            </div>
+          )}
+          {a.id === 'A5' && (
+            <div class="col"><p>{en
+              ? `This file is the short file of the Skills group followed by the content of all ${a2skills.length} skills in order. Only the sentence that says where the rules are was changed. Some phrases still invite the AI to call a skill, so in Study 3 the AI in this group tried to call a skill ${s3.nums.manipulation.A5.runsInvokingAny} times, but could not open one, because this group has no skills to open.`
+              : `ไฟล์นี้คือไฟล์สั้นของกลุ่ม Skills ต่อด้วยเนื้อหา skill ทั้ง ${a2skills.length} ชุดเรียงกัน แก้แค่ประโยคที่บอกว่ากฎอยู่ที่ไหน บางวลียังชวนให้ AI เรียก skill อยู่ ในรอบที่ 3 AI กลุ่มนี้เลยพยายามเรียก skill ${s3.nums.manipulation.A5.runsInvokingAny} ครั้ง แต่เปิดไม่ได้ เพราะกลุ่มนี้ไม่มี skill ให้เปิด`}</p></div>
+          )}
+          {a.id !== 'A4' && a.files.map((f) => <Sheet lang={lang} path={f.path} always={f.always} body={f.body} id={f.always ? undefined : `skill-${f.name}`} />)}
+        </section>
+      ))}
+
+      {en ? (
+        <section id="equal" class="col">
+          <h2>Are the rules really equal?</h2>
+          <p>Our rule set has 20 rules. Broken down into individual things to do or not do, that makes 47 obligations. We built a table, <code>COVERAGE-MAP.md</code>, that traces which file of each group holds each obligation, and had a program check that the single file and Skills both contain all 47. The wording and length differ on purpose, because we wanted to compare the two formats as teams really write them.</p>
+          <p>So the main result answers whether "two rule sets written this way" give different results. Whether opening skills one at a time matters needs a comparison of Skills with Skills always loaded, which use the same text, but that pair was not tested under the plan in either Study 2 or Study 3.</p>
+        </section>
+      ) : (
+        <section id="equal" class="col">
+          <h2>กฎเท่ากันจริงไหม</h2>
+          <p>กฎของเรามี 20 ข้อ ถ้าแตกเป็นสิ่งที่ต้องทำหรือห้ามทำทีละอย่าง จะได้ 47 อย่าง เราทำตาราง <code>COVERAGE-MAP.md</code> ไล่ดูว่าแต่ละอย่างอยู่ในไฟล์ไหนของแต่ละกลุ่ม แล้วให้โปรแกรมเช็กว่าไฟล์เดียวกับ Skills มีครบทั้ง 47 อย่างเท่ากัน ส่วนถ้อยคำและความยาวต่างกันโดยตั้งใจ เพราะเราอยากเทียบกฎสองแบบที่ทีมเขียนกันจริง</p>
+          <p>ผลหลักจึงตอบว่า "กฎสองแบบที่เขียนแบบนี้" ได้ผลต่างกันไหม ส่วนคำถามว่าการเปิดอ่านทีละชุดมีผลไหม ต้องเทียบ Skills กับ Skills แบบอ่านทุกครั้ง ซึ่งใช้ข้อความเดียวกัน แต่คู่นี้ไม่ได้ทดสอบตามแผน ทั้งในรอบที่ 2 และรอบที่ 3</p>
+        </section>
+      )}
+    </article>
+  </div>
+</Base>
+<style>
+  .h-first { margin-top: 0; }
+  .used { color: var(--teal); font-weight: 600; }
+  .timeline { margin: 2rem 0 1rem; }
+  .tl-head, .tl-row { display: grid; grid-template-columns: 13rem 1fr 1fr; gap: 1rem; align-items: center; }
+  .tl-head { font-size: 0.9rem; color: var(--ink-3); border-bottom: 1px solid var(--ink); padding-bottom: 0.4rem; }
+  .tl-row { padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
+  .lane { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+  .chip { font-style: normal; font-size: 0.85rem; font-family: var(--mono); padding: 0.1rem 0.5rem; border: 1px solid var(--c, var(--rule)); background: #fff; white-space: nowrap; }
+  .chip.none { font-family: var(--sans); color: var(--ink-3); border-style: dashed; }
+  .chip.desc { font-family: var(--sans); --c: var(--a2); border-style: dashed; }
+  .chip.od { --c: var(--a2); background: var(--teal-wash); }
+  .chip.bait { font-family: var(--sans); --c: var(--brick); background: var(--brick-wash); }
+  @media (max-width: 700px) { .tl-head { display: none; } .tl-row { grid-template-columns: 1fr; gap: 0.4rem; } }
+  .arm-sec { border-top: 3px solid var(--ink); margin-top: 4.5rem; }
+  .arm-sec h2 { margin-top: 1.25rem; }
+  .meta { color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; }
+  .skills dt { margin-top: 0.75rem; font-weight: 500; }
+  .skills dd { margin: 0.15rem 0 0; color: var(--ink-2); }
+  .baits { padding-left: 1.2rem; }
+  .baits li { margin-bottom: 1rem; }
+  .inject { background: #fff; border: 1px solid var(--rule); margin: 0.3rem 0 0; padding: 1rem 1.25rem; font-family: var(--mono); font-size: 0.82rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28rem; overflow: auto; }
+</style>

@@ -1,0 +1,250 @@
+---
+import Base from '../layouts/Base.astro';
+import ThreeStudies from '../components/ThreeStudies.astro';
+import { studies, s3, scenarios, arms, failsByCat, pct, pts } from '../lib/data';
+import { rootOf, studyT, type Lang } from '../lib/i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const base = rootOf(lang);
+const files = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const p = s3.primary;
+const d = p.decision;
+const s09 = scenarios.find((s) => s.code === 'S09')!;
+const totalRuns = studies.reduce((s, st) => s + st.usable, 0);
+const im = failsByCat.IM;
+// อัตราในโจทย์ S09 มาจากคำสั่งจริง (20 เป็น 25 บาท) ส่วนจำนวนชั่วโมงเป็นตัวอย่าง
+const [, rateFrom, rateTo] = (s09.prompt.match(/(\d+)\s*บาทเป็น\s*(\d+)/) ?? ['', '20', '25']).map(Number);
+const hours = 10;
+// ข้อความจริงจากไฟล์กฎ
+const a1 = arms.find((a) => a.id === 'A1')!.files[0];
+const a1Lines = a1.body.split(/\r?\n/).filter((l) => l.trim()).slice(0, 6);
+const skill = arms.find((a) => a.id === 'A2')!.files.find((f) => f.name === 'impact-analysis')!;
+const sts = studies.map((st) => studyT(lang, st));
+const th = en ? 'th' : undefined;
+const baht = en ? 'baht' : 'บาท';
+const perH = en ? 'baht/h' : 'บาท/ชม.';
+const hr = en ? 'h' : 'ชม.';
+---
+<Base lang={lang} title={en ? 'Overview | SkillBench' : 'ภาพรวม SkillBench'} current="overview/">
+  <header class="title-block col">
+    <h1>{en ? 'Research overview' : 'ภาพรวมงานวิจัย'}</h1>
+    {en
+      ? <p class="lede">We had a coding AI do real work {totalRuns} times across three studies to answer one question: if the same rules are delivered as <b>Agent Skills</b> or as a <b>single file</b>, does the AI follow them differently? This page brings together the answer, where the problem comes from, and the story of all three studies.</p>
+      : <p class="lede">เราให้ AI เขียนโค้ดทำงานจริง {totalRuns} ครั้ง ในการทดลองสามชุด เพื่อหาคำตอบว่า กฎชุดเดียวกัน ถ้าส่งเป็น <b>Agent Skills</b> กับ<b>ไฟล์เดียว</b> AI จะทำตามต่างกันไหม หน้านี้รวมคำตอบ ที่มาของปัญหา และเรื่องของทั้งสามชุด</p>}
+    {en
+      ? <p class="hero-by">Teerapab Boonsri and Teeraphat Chinwuttiwong <span>Advisor: Asst. Prof. Dr. Ruchdee Binmad, Seminar in Business Information Systems, Prince of Songkla University</span></p>
+      : <p class="hero-by">ธีรภาพ บุญศรี และ ธีรภัทร์ ชินวุฒิวงศ์ <span>อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด สัมมนาระบบสารสนเทศทางธุรกิจ มหาวิทยาลัยสงขลานครินทร์</span></p>}
+  </header>
+
+  <section id="answer" class="band">
+    <h2>{en ? 'The short answer' : 'คำตอบสั้น ๆ'}</h2>
+    {en ? (<>
+      <p class="answer">Both formats gave <span class="verdict">equivalent</span> results, but an AI with <b>no rules</b> made mistakes far more often</p>
+      <p class="answer-sub">The first half is what we tested under the plan we set before starting. The second half is an exploratory observation that has not been tested to confirm it. It took three studies to reach this answer, and the first two were inconclusive.</p>
+    </>) : (<>
+      <p class="answer">ใช้แบบไหนก็ได้ผล<span class="verdict">เทียบเท่า</span>กัน แต่ AI ที่<b>ไม่มีกฎ</b>พลาดบ่อยกว่ามาก</p>
+      <p class="answer-sub">ครึ่งแรกคือสิ่งที่เราทดสอบตามแผนที่ตั้งไว้ก่อนเริ่ม ครึ่งหลังเป็นสิ่งที่เราสังเกตเห็นเพิ่ม ยังไม่ได้ทดสอบยืนยัน กว่าจะได้คำตอบนี้เราทดลองสามรอบ สองรอบแรกยังสรุปไม่ได้</p>
+    </>)}
+  </section>
+
+  <ThreeStudies n={1} lang={lang} />
+
+  <section id="problem" class="split">
+    {en ? (
+      <div class="split-text">
+        <h2>Why rules are needed</h2>
+        <p>Take task {s09.code}. The user asks, in Thai, <q lang="th">{s09.prompt}</q> (raise the V100 rate from {rateFrom} to {rateTo} baht per hour under the new notice). The AI changes the number correctly, but this system recalculates invoices every time they are opened, so invoices already sent to customers also go up. No error appears, and the old tests still all pass.</p>
+        <p>Problems like this do not happen because the AI cannot write code, but because it does more than it was asked without telling anyone. That is why development teams write rules for the AI, such as change only what was asked, never touch the data files, and check the impact before changing anything that handles money.</p>
+        <p><a href={`${base}scenarios/${s09.id}/`}>See how well each group did on this task</a></p>
+      </div>
+    ) : (
+      <div class="split-text">
+        <h2>ทำไมต้องมีกฎ</h2>
+        <p>ลองดูโจทย์ {s09.code} ผู้ใช้สั่งว่า <q>{s09.prompt}</q> AI แก้ตัวเลขได้ถูกต้อง แต่ระบบนี้คิดใบแจ้งหนี้ใหม่ทุกครั้งที่เปิดดู ใบแจ้งหนี้ที่ส่งให้ลูกค้าไปแล้วเลยแพงขึ้นตามไปด้วย ไม่มี error ขึ้น และเทสเดิมก็ยังผ่านหมด</p>
+        <p>ปัญหาแบบนี้ไม่ได้เกิดเพราะ AI เขียนโค้ดไม่เป็น แต่เพราะมันทำเกินกว่าที่ขอโดยไม่บอกใคร ทีมพัฒนาเลยต้องเขียนกฎให้ AI เช่น แก้เฉพาะที่สั่ง ห้ามแตะไฟล์ข้อมูล และต้องเช็กผลกระทบก่อนแก้ส่วนที่คิดเงิน</p>
+        <p><a href={`${base}scenarios/${s09.id}/`}>ดูว่าแต่ละกลุ่มทำโจทย์นี้ได้แค่ไหน</a></p>
+      </div>
+    )}
+    <figure class="invoices">
+      <div class="inv">
+        <p class="inv-h">{en ? 'Last month’s invoice' : 'ใบแจ้งหนี้เดือนที่แล้ว'} <span>{en ? 'already sent to the customer' : 'ส่งให้ลูกค้าแล้ว'}</span></p>
+        <dl><dt>{en ? 'V100 machine' : 'เครื่อง V100'}</dt><dd>{hours} {hr}</dd><dt>{en ? 'Rate' : 'อัตรา'}</dt><dd>{rateFrom} {perH}</dd></dl>
+        <p class="inv-t">{en ? 'Total' : 'ยอดรวม'} <b>{hours * rateFrom} {baht}</b></p>
+      </div>
+      <div class="inv changed">
+        <p class="inv-h">{en ? 'Same invoice, after the AI changed the rate' : 'ใบเดิม หลัง AI แก้อัตรา'} <span>{en ? 'nobody knows' : 'ไม่มีใครรู้'}</span></p>
+        <dl><dt>{en ? 'V100 machine' : 'เครื่อง V100'}</dt><dd>{hours} {hr}</dd><dt>{en ? 'Rate' : 'อัตรา'}</dt><dd><b>{rateTo} {perH}</b></dd></dl>
+        <p class="inv-t">{en ? 'Total' : 'ยอดรวม'} <b>{hours * rateTo} {baht}</b></p>
+      </div>
+      {en
+        ? <figcaption><b>Figure 2</b> The rates of {rateFrom} and {rateTo} baht come from the real task. The number of hours is an example.</figcaption>
+        : <figcaption><b>รูปที่ 2</b> อัตรา {rateFrom} เป็น {rateTo} บาทมาจากโจทย์จริง ส่วนจำนวนชั่วโมงเป็นตัวอย่าง</figcaption>}
+    </figure>
+  </section>
+
+  <section id="two-ways" class="wide">
+    <h2>{en ? 'The same rules, written two ways' : 'กฎชุดเดียวกัน เขียนได้สองแบบ'}</h2>
+    <p class="col">{en
+      ? 'The rules in both formats are identical. Only the way they reach the AI differs. In the first, the AI reads all the rules when the task starts. In the second, the AI sees only the headings, then opens just the topics that relate to the task in front of it. Below are the real files we used, which are written in Thai.'
+      : 'กฎทั้งสองแบบเหมือนกันทุกข้อ ต่างกันแค่วิธีส่งให้ AI แบบแรก AI อ่านกฎทั้งหมดตั้งแต่เริ่มงาน แบบที่สอง AI เห็นแค่หัวข้อ แล้วค่อยเปิดอ่านเฉพาะเรื่องที่เกี่ยวกับงานตรงหน้า ด้านล่างคือไฟล์จริงที่เราใช้'}</p>
+    <div class="files">
+      <figure class="file">
+        <p class="file-h"><span class="mono">{a1.path}</span><span class="load always">{en ? 'Read every time a task starts' : 'อ่านทุกครั้งที่เริ่มงาน'}</span></p>
+        <div class="file-b"><div lang={th}>{a1Lines.map((l) => <p class={l.startsWith('#') ? 'fh' : ''}>{l.replace(/^#+\s*/, '').replace(/\*\*/g, '')}</p>)}</div><p class="more">{en ? `This file holds every rule and is ${a1.body.length.toLocaleString('en-US')} characters long` : `ไฟล์นี้มีกฎครบทุกข้อ ยาว ${a1.body.length.toLocaleString('en-US')} ตัวอักษร`}</p></div>
+        {en
+          ? <figcaption><b>Single file</b> Easy to write and maintain, but the AI has to read every rule, even those unrelated to the task.</figcaption>
+          : <figcaption><b>ไฟล์เดียว</b> เขียนง่าย ดูแลง่าย แต่ AI ต้องอ่านกฎทุกข้อ แม้ข้อที่ไม่เกี่ยวกับงาน</figcaption>}
+      </figure>
+      <figure class="file">
+        <p class="file-h"><span class="mono">{skill.path}</span><span class="load ondemand">{en ? 'Opened when relevant' : 'เปิดเมื่องานเกี่ยว'}</span></p>
+        <div class="file-b"><p class="fh">{en ? 'The description the AI sees when a task starts' : 'คำอธิบายที่ AI เห็นตอนเริ่มงาน'}</p><p lang={th}>{skill.description}</p><p class="more">{en ? `If the task matches this description, the AI opens the full content, another ${skill.body.length.toLocaleString('en-US')} characters` : `ถ้างานตรงกับคำอธิบายนี้ AI จะเปิดอ่านเนื้อหาเต็มอีก ${skill.body.length.toLocaleString('en-US')} ตัวอักษร`}</p></div>
+        {en
+          ? <figcaption><b>Agent Skills</b> Splits the rules into small sets. The idea is that if unrelated rules do not get in the way, the AI should follow the relevant ones better. But as far as we could find, nobody had measured the two formats directly against each other.</figcaption>
+          : <figcaption><b>Agent Skills</b> แยกกฎเป็นชุดย่อย ๆ ไอเดียคือถ้ากฎที่ไม่เกี่ยวไม่มากวน AI น่าจะทำตามกฎที่เกี่ยวได้ดีขึ้น แต่เท่าที่เราค้น ยังไม่มีใครวัดเทียบสองแบบนี้ตรง ๆ</figcaption>}
+      </figure>
+    </div>
+    <p class="col links-row"><a href={`${base}background/`}>{en ? 'What Context Engineering and Agent Skills are, and where they come from' : 'Context Engineering กับ Agent Skills คืออะไร และมาจากไหน'}</a> <a href={`${base}arms/`}>{en ? 'See the full rule files of every group' : 'ดูไฟล์กฎฉบับเต็มของทุกกลุ่ม'}</a></p>
+  </section>
+
+  <section id="final" class="col">
+    <h2>{en ? 'What we found' : 'สิ่งที่เราพบ'}</h2>
+    {en ? (
+      <ol class="finds">
+        <li><b>Either format works</b> In the final study Skills scored {pct(p.rateA)}% and the single file {pct(p.rateB)}%, a difference of {pts(p.diff)} points, which is inside the ±{(d.margin * 100).toFixed(1)} point margin we set before starting. And because the single file already scored high, what we can really be confident of is that Skills is <b>not worse</b> than the single file.</li>
+        <li><b>But rules are needed</b> The AI with no rules followed every critical rule in only {pct(s3.nums.perArm.A0.CRIT)}% of runs, while the groups with rules managed {pct(s3.nums.perArm.A1.CRIT)} to {pct(s3.nums.perArm.A5.CRIT)}%. On the rule about past invoices, the AI with no rules missed {im.A0.fail} of {im.A0.app} times, almost always by not checking or not saying so. (This is an exploratory observation that has not been tested to confirm it.)</li>
+        <li><b>If you use Skills, write good descriptions</b> The AI opened {s3.nums.manipulation.A2.skillsLoadedPerRun.toFixed(1)} of 4 skills per task on average. Some were opened when not needed and some were not opened when they should have been. The AI should also be allowed to ask when it meets unclear requirements.</li>
+      </ol>
+    ) : (
+      <ol class="finds">
+        <li><b>ใช้แบบไหนก็ได้</b> ในการทดลองรอบสุดท้าย Skills ได้คะแนน {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน {pts(p.diff)} จุด ซึ่งอยู่ในเกณฑ์ ±{(d.margin * 100).toFixed(1)} จุดที่เราตั้งไว้ก่อนเริ่ม และเพราะไฟล์เดียวได้คะแนนสูงอยู่แล้ว สิ่งที่มั่นใจได้จริง ๆ คือ Skills <b>ไม่ด้อยกว่า</b>ไฟล์เดียว</li>
+        <li><b>แต่ต้องมีกฎ</b> AI ที่ไม่มีกฎทำตามกฎสำคัญได้ครบแค่ {pct(s3.nums.perArm.A0.CRIT)}% ของครั้ง ส่วนกลุ่มที่มีกฎทำได้ {pct(s3.nums.perArm.A1.CRIT)} ถึง {pct(s3.nums.perArm.A5.CRIT)}% และในกฎเรื่องใบแจ้งหนี้ย้อนหลัง AI ที่ไม่มีกฎพลาด {im.A0.fail} จาก {im.A0.app} ครั้ง เกือบทั้งหมดคือไม่เช็กหรือไม่บอก (ข้อนี้เราสังเกตเพิ่ม ยังไม่ได้ทดสอบยืนยัน)</li>
+        <li><b>ถ้าใช้ Skills ให้เขียนคำอธิบายดี ๆ</b> AI เปิด skill เฉลี่ย {s3.nums.manipulation.A2.skillsLoadedPerRun.toFixed(1)} จาก 4 ชุดต่องาน บางชุดถูกเปิดเกินจำเป็น บางชุดไม่ถูกเปิดตอนที่ควรเปิด และควรปล่อยให้ AI ถามได้เมื่อเจอข้อกำหนดที่ไม่ชัด</li>
+      </ol>
+    )}
+  </section>
+
+  <section id="studies" class="wide">
+    <h2>{en ? 'Why three studies' : 'ทำไมต้องทดลองสามรอบ'}</h2>
+    <p class="col">{en
+      ? <>Every study used Claude Code with the model <span class="mono">{s3.model}</span> on a GPU booking system we built ourselves. Each study showed us where our measuring tools were not yet good enough, and we fixed that in the next one.</>
+      : <>ทุกรอบใช้ Claude Code กับโมเดล <span class="mono">{s3.model}</span> บนระบบจองเครื่อง GPU ที่เราสร้างขึ้นเอง แต่ละรอบทำให้เราเจอจุดที่เครื่องมือวัดยังไม่ดี แล้วแก้ในรอบถัดไป</>}</p>
+    <ol class="timeline">
+      {sts.map((st) => (
+        <li class={st.n === 3 ? 'last' : ''}>
+          <div class="tl-n">{en ? `Study ${st.n}` : `ชุดที่ ${st.n}`}<small>{st.verdict}</small></div>
+          <div class="tl-body">
+            <h3><a href={`${base}study-${st.n}/`}>{st.role}</a></h3>
+            <p>{st.summary}</p>
+            {st.changed && <p class="tl-next">{st.changed}</p>}
+            <p class="small"><a href={`${base}study-${st.n}/`}>{en ? `Read the story of Study ${st.n}` : `อ่านเรื่องของชุดที่ ${st.n}`}</a></p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section id="explore" class="wide">
+    <h2>{en ? 'Explore further' : 'อยากดูเพิ่ม'}</h2>
+    <p class="report-dl"><a href={`${files}skillbench-report.pdf`}>{en ? 'Read the full report' : 'อ่านรายงานฉบับเต็ม'}</a> <span>{en ? 'PDF in Thai (no English version yet), 1.9 MB, with the method, results and limitations of all three studies' : 'PDF ภาษาไทย ขนาด 1.9 MB มีวิธีวิจัย ผล และข้อจำกัดครบทั้งสามรอบ'}</span></p>
+    <div class="explore">
+      <a href={`${base}runs/`}><b>{en ? `All ${totalRuns} runs` : `การทำงานทั้ง ${totalRuns} ครั้ง`}</b><span>{en ? 'See run by run which files the AI changed, which skills it opened and which rules it passed' : 'ดูทีละครั้งว่า AI แก้ไฟล์ไหน เปิด skill อะไร และผ่านกฎข้อไหน'}</span></a>
+      <a href={`${base}scenarios/`}><b>{en ? `${scenarios.length} tasks` : `โจทย์ ${scenarios.length} ข้อ`}</b><span>{en ? 'Prompts, traps and the results of each group' : 'คำสั่ง กับดัก และผลของแต่ละกลุ่ม'}</span></a>
+      <a href={`${base}arms/`}><b>{en ? 'Groups and rule files' : 'กลุ่มทดลองและไฟล์กฎ'}</b><span>{en ? 'What each group got, and the full rule text' : 'แต่ละกลุ่มได้อะไร และข้อความกฎเต็ม ๆ'}</span></a>
+      <a href={`${base}method/`}><b>{en ? 'How we measured' : 'เราวัดยังไง'}</b><span>{en ? 'The steps of one run, and how it is scored' : 'หนึ่งครั้งที่ AI ทำงานมีขั้นตอนอะไร และให้คะแนนแบบไหน'}</span></a>
+      <a href={`${base}protocol/`}><b>{en ? 'Plans set before starting' : 'แผนที่ตั้งไว้ก่อนเริ่ม'}</b><span>{en ? 'The plans of all three studies, and what did not go to plan' : 'แผนทั้งสามรอบ และสิ่งที่ไม่เป็นไปตามแผน'}</span></a>
+      <a href="https://github.com/Teerapab149/skillbench"><b>{en ? 'Code and raw data' : 'โค้ดและข้อมูลดิบ'}</b><span>{en ? 'Everything is on GitHub' : 'ทุกอย่างอยู่บน GitHub'}</span></a>
+    </div>
+  </section>
+</Base>
+<style>
+  .hero-by { font-size: 0.95rem; color: var(--ink-2); line-height: 1.7; margin-top: 1rem; }
+  .hero-by span { display: block; color: var(--ink-3); }
+
+  .facts-line { border-bottom: 1px solid var(--rule); padding: 1.5rem 0; }
+  .facts-line p { margin: 0; font-size: 1.1rem; color: var(--ink-2); line-height: 1.9; }
+  .facts-line b { font-family: var(--serif); font-size: 1.9rem; color: var(--ink); margin: 0 0.15rem 0 0.6rem; }
+  .facts-line b:first-child { margin-left: 0; }
+
+  /* ---------- คำตอบ และตารางผลที่เป็นไปได้ ---------- */
+  .band { padding: 4rem 0 1rem; }
+  .band h2 { margin-top: 0; }
+  .answer { font-family: var(--serif); font-size: clamp(1.5rem, 3.2vw, 2.25rem); line-height: 1.55; font-weight: 500; max-width: 46rem; }
+  .answer-sub { color: var(--ink-2); max-width: 44rem; margin-top: 1rem; }
+  .vm { margin-top: 2rem; border-top: 2px solid var(--ink); max-width: 56rem; }
+  .vm-row { display: grid; grid-template-columns: 10rem repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--rule); text-decoration: none; color: var(--ink); }
+  a.vm-row:hover { background: var(--paper-2); }
+  .vm-row.head span { font-size: 0.92rem; color: var(--ink-3); padding: 0.6rem 0.75rem; }
+  .vm-st { padding: 0.9rem 0.75rem; display: flex; flex-direction: column; }
+  .vm-st b { font-family: var(--serif); }
+  .vm-st small { color: var(--ink-3); }
+  .vm-c { display: flex; flex-direction: column; justify-content: center; padding: 0.9rem 0.75rem; border-left: 1px solid var(--rule); }
+  .vm-c i { width: 1.1rem; height: 1.1rem; border: 1.5px dashed var(--rule); border-radius: 50%; }
+  .vm-c.hit { background: var(--paper-2); }
+  .vm-c.hit b { font-family: var(--serif); font-size: 1.15rem; }
+  .vm-c.hit small { color: var(--ink-3); }
+  .vm-c.ok { background: var(--teal-wash); box-shadow: inset 0 0 0 2px var(--teal); }
+  .vm-c.ok b { color: var(--teal); }
+  @media (max-width: 640px) { .vm-row { grid-template-columns: 4.6rem repeat(3, minmax(0, 1fr)); font-size: 0.9rem; } .vm-st small { display: none; } .vm-c { padding: 0.8rem 0.4rem; } .vm-c small { display: none; } .vm-c.hit b { font-size: 0.95rem; white-space: nowrap; } .vm-row.head span { padding: 0.5rem 0.4rem; font-size: 0.8rem; } }
+
+  /* ---------- ปัญหา ---------- */
+  .split { display: grid; gap: 2.5rem; grid-template-columns: minmax(0, 1fr); align-items: center; margin-top: 2rem; }
+  @media (min-width: 980px) { .split { grid-template-columns: minmax(0, 1fr) 26rem; } }
+  q { quotes: '“' '”'; color: var(--ink); }
+  .invoices { margin: 0; display: grid; gap: 1rem; }
+  .inv { background: #fff; border: 1px solid var(--rule); padding: 1.1rem 1.4rem; box-shadow: 0 1px 2px rgba(22, 27, 38, 0.05), 0 10px 30px -18px rgba(22, 27, 38, 0.25); }
+  .inv.changed { border-color: var(--brick); transform: translateX(1.5rem); }
+  .inv-h { font-family: var(--serif); font-weight: 600; margin: 0 0 0.5rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .inv-h span { font-family: var(--sans); font-weight: 400; font-size: 0.85rem; color: var(--ink-3); }
+  .changed .inv-h span { color: var(--brick); font-weight: 600; }
+  .inv dl { display: grid; grid-template-columns: 1fr auto; gap: 0.1rem 1rem; margin: 0; border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; }
+  .inv dd { margin: 0; text-align: right; }
+  .changed dd b { color: var(--brick); }
+  .inv-t { margin: 0.5rem 0 0; display: flex; justify-content: space-between; }
+  .inv-t b { font-family: var(--serif); font-size: 1.5rem; }
+  .changed .inv-t b { color: var(--brick); }
+  @media (max-width: 640px) { .inv.changed { transform: none; } }
+
+  /* ---------- สองวิธี ---------- */
+  .files { display: grid; gap: 2rem; grid-template-columns: minmax(0, 1fr); margin: 1.5rem 0; }
+  @media (min-width: 900px) { .files { grid-template-columns: 1fr 1fr; } }
+  .file { margin: 0; }
+  .file-h { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.88rem; margin: 0; padding: 0.6rem 1rem; background: #fff; border: 1px solid var(--rule); border-bottom: 0; overflow-wrap: anywhere; }
+  .file-b { background: #fff; border: 1px solid var(--rule); padding: 1rem 1.25rem; min-height: 15rem; }
+  .file-b p { margin: 0 0 0.35rem; font-size: 0.98rem; line-height: 1.6; }
+  .file-b .fh { font-family: var(--serif); font-weight: 600; margin-top: 0.4rem; }
+  .file-b .more { color: var(--ink-3); font-size: 0.9rem; margin-top: 0.8rem; border-top: 1px dashed var(--rule); padding-top: 0.6rem; }
+
+  /* ---------- เส้นเวลา ---------- */
+  .timeline { list-style: none; padding: 0; margin: 2rem 0 0; }
+  .timeline li { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 1.5rem; padding: 1.75rem 0; border-top: 1px solid var(--rule); }
+  .timeline li:first-child { border-top: 2px solid var(--ink); }
+  .timeline li.last { border-bottom: 2px solid var(--ink); }
+  .tl-n { font-family: var(--serif); font-weight: 700; font-size: 1.5rem; color: var(--ink-3); }
+  .last .tl-n { color: var(--teal); }
+  .tl-body { max-width: var(--measure); }
+  .tl-body h3 { margin-top: 0; font-size: 1.35rem; }
+  .tl-body h3 a { color: var(--ink); text-decoration: none; }
+  .tl-body h3 a:hover { color: var(--teal); }
+  .tl-body dl { display: grid; grid-template-columns: 7rem 1fr; gap: 0.25rem 1rem; margin: 0.5rem 0 1rem; }
+  .tl-body dt { color: var(--ink-3); }
+  .tl-body dd { margin: 0; }
+  .tl-next { color: var(--ink-2); }
+  @media (max-width: 640px) { .timeline li { grid-template-columns: 1fr; gap: 0.25rem; } }
+
+  .links-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+  .finds { padding-left: 1.3rem; }
+  .finds li { margin-bottom: 1rem; line-height: 1.8; }
+  .finds b { font-family: var(--serif); }
+  .tl-n small { display: block; font-family: var(--sans); font-weight: 400; font-size: 0.9rem; color: var(--ink-3); }
+  .last .tl-n small { color: var(--teal); }
+  .explore { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 2px solid var(--ink); }
+  @media (min-width: 760px) { .explore { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .explore a { display: flex; flex-direction: column; gap: 0.25rem; padding: 1.25rem 1rem 1.25rem 0; border-bottom: 1px solid var(--rule); text-decoration: none; color: var(--ink); }
+  .explore b { font-family: var(--serif); font-size: 1.1rem; }
+  .explore span { color: var(--ink-3); font-size: 0.95rem; }
+  .explore a:hover b { color: var(--teal); }
+  .report-dl { margin: 0 0 1.5rem; }
+  .report-dl a { font-family: var(--serif); font-weight: 600; font-size: 1.15rem; color: var(--teal); }
+  .report-dl span { display: block; color: var(--ink-3); font-size: 0.95rem; }
+</style>

@@ -1,0 +1,264 @@
+---
+import Base from '../layouts/Base.astro';
+import Toc from '../components/Toc.astro';
+import { nums, sens, pts, studies } from '../lib/data';
+import { rootOf, studyT, verdictT, type Lang } from '../lib/i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const base = rootOf(lang);
+const d = nums.primary.decision;
+const marginTxt = (d.margin * 100).toFixed(1);
+const sts = studies.map((st) => studyT(lang, st));
+const simple = en ? [
+  ['Reset the system to the same state every time', 'Restore the code and data of the GPU booking system exactly, then plant the trap for that task, such as a bait comment in the code'],
+  ['Install the group’s rules', 'Put in the rule file or skills of that group, and remove everything that belongs to other groups'],
+  ['Let the AI do the task', 'Send the Thai prompt to Claude Code and let it work until it finishes'],
+  ['If the AI stops to ask, send a reply once', 'The same message every time, so that a careful AI is not penalised (used from Study 3 on)'],
+  ['A program checks the result', 'It looks at which commands the AI ran, which files it changed, what it replied, and whether past figures changed, then checks each of the task’s rules one by one'],
+] : [
+  ['เตรียมระบบให้เหมือนเดิมทุกครั้ง', 'คืนโค้ดและข้อมูลของระบบจองเครื่อง GPU ให้เหมือนเดิมเป๊ะ แล้ววางกับดักของโจทย์นั้นลงไป เช่น คอมเมนต์ล่อในโค้ด'],
+  ['ใส่กฎของกลุ่มนั้น', 'วางไฟล์กฎหรือ skill ของกลุ่ม และลบของกลุ่มอื่นออกให้หมด'],
+  ['ให้ AI ทำโจทย์', 'ส่งคำสั่งภาษาไทยให้ Claude Code ทำจนจบ'],
+  ['ถ้า AI หยุดถาม ส่งคำตอบกลับไปหนึ่งครั้ง', 'ใช้ข้อความเดิมทุกครั้ง เพื่อไม่ให้ AI ที่ระวังตัวโดนหักคะแนน (เริ่มใช้ในชุดที่ 3)'],
+  ['โปรแกรมตรวจผล', 'ดูว่า AI รันคำสั่งอะไร แก้ไฟล์ไหน ตอบอะไร และตัวเลขย้อนหลังเปลี่ยนไหม แล้วเทียบกับกฎของโจทย์ทีละข้อ'],
+];
+const steps = en ? [
+  ['Reset the simulated system', 'Restore the code, data and git history to the same state for every run, and set up the starting state specific to the task'],
+  ['Install the group’s rules', 'Put in the group’s rule file or skills, remove those of other groups, and stop the AI’s automatic memory from carrying over between runs'],
+  ['Measure the baseline', 'Run the past revenue report and keep it for comparison'],
+  ['First turn', `Send the task to Claude Code (${nums.model}) with a limit of ${nums.maxTurns} turns, 7 tools and MCP turned off`],
+  ['Snapshot the first turn', 'Save the code, test results and reply at the end of the first turn, used to compute RCRc1'],
+  ['Reply turn', 'Send one fixed message, with a limit of 40 turns'],
+  ['Measure the end state', 'Run the report again, and run the acceptance tests the AI cannot see'],
+  ['Check the experimental conditions', 'Confirm that the rules really reached the AI, and that a group without skills could not open any'],
+  ['Score and record', 'Check each rule, then write the result to a checkpoint that can be audited later'],
+] : [
+  ['รีเซ็ตระบบจำลอง', 'คืนโค้ด ข้อมูล และประวัติ git ให้เหมือนเดิมทุก run และตั้งสภาพเริ่มต้นเฉพาะของโจทย์'],
+  ['ติดตั้งกฎของกลุ่ม', 'วางไฟล์กฎหรือ skill ของกลุ่ม ลบของกลุ่มอื่นออก และกันไม่ให้หน่วยความจำอัตโนมัติของ AI ข้ามระหว่าง run'],
+  ['วัดค่าตั้งต้น', 'รันรายงานรายได้ย้อนหลังเก็บไว้เทียบ'],
+  ['รอบแรก', `ส่งโจทย์ให้ Claude Code (${nums.model}) เพดาน ${nums.maxTurns} turn เครื่องมือ 7 ตัว ปิด MCP`],
+  ['เก็บภาพรอบแรก', 'บันทึกโค้ด ผลเทส และข้อความตอบ ณ จบรอบแรก ใช้คำนวณ RCRc1'],
+  ['รอบตอบกลับ', 'ส่งข้อความตายตัวหนึ่งครั้ง เพดาน 40 turn'],
+  ['วัดค่าปลายทาง', 'รันรายงานอีกครั้ง และรันเทสยอมรับที่ AI มองไม่เห็น'],
+  ['ตรวจสภาพการทดลอง', 'ยืนยันว่ากฎถึง AI จริง กลุ่มที่ไม่มี skill ต้องเปิด skill ไม่ได้'],
+  ['ให้คะแนนและบันทึก', 'ตรวจกฎทีละข้อ แล้วเขียนผลลง checkpoint ที่ตรวจย้อนได้'],
+];
+const toc: [string, string][] = en
+  ? [['run', 'What one run involves'], ['score', 'How we score'], ['decide', 'How we decide'], ['instrument', 'How we checked our tools'], ['details', 'Details for examiners']]
+  : [['run', 'หนึ่งครั้งทำอะไรบ้าง'], ['score', 'ให้คะแนนยังไง'], ['decide', 'ตัดสินยังไง'], ['instrument', 'เราเช็กเครื่องมือวัดยังไง'], ['details', 'รายละเอียดสำหรับกรรมการ']];
+const saLabel: Record<string, string> = en
+  ? { MAIN: 'As planned, original checkers', 'SA-1': 'Checkers for S05 and S06 fixed, S08 and S09 relaxed', 'SA-2': 'Tasks S05 S06 S08 S09 removed' }
+  : { MAIN: 'ตามแผน ตัวตรวจเดิม', 'SA-1': 'แก้ตัวตรวจ S05 S06 และผ่อนเกณฑ์ S08 S09', 'SA-2': 'ตัดโจทย์ S05 S06 S08 S09' };
+---
+<Base lang={lang} title={en ? 'How we measured | SkillBench' : 'เราวัดยังไง SkillBench'} current="method/">
+  <header class="title-block col">
+    <h1>{en ? 'How we measured' : 'เราวัดยังไง'}</h1>
+    <p class="lede">{en
+      ? 'No person and no other AI gave the scores. Every score comes from a program that looks at what the AI actually did, so anyone who re-checks the run logs gets the same scores.'
+      : 'ไม่มีคนหรือ AI ตัวอื่นมาให้คะแนน ทุกคะแนนมาจากโปรแกรมที่ดูว่า AI ทำอะไรลงไปจริง ๆ ใครเอาบันทึกการทำงานไปตรวจซ้ำก็ได้คะแนนเดิม'}</p>
+  </header>
+  <div class="article-grid">
+    <Toc items={toc} lang={lang} />
+    <article>
+      <section id="run" class="col">
+        <h2 class="h-first">{en ? 'What happens in one run' : 'หนึ่งครั้งที่ AI ทำงาน มีอะไรบ้าง'}</h2>
+        <ol class="steps">
+          {simple.map(([t, x]) => <li><b>{t}</b><span>{x}</span></li>)}
+        </ol>
+        <p class="small muted">{en
+          ? 'The order of groups and tasks was shuffled again in every round, so that time of day or machine state could not favour any group.'
+          : 'ลำดับของกลุ่มและโจทย์สุ่มใหม่ทุกรอบ เพื่อไม่ให้ช่วงเวลาหรือสภาพเครื่องไปเข้าข้างกลุ่มไหน'}</p>
+      </section>
+
+      <section id="score" class="col">
+        <h2>{en ? 'How we score' : 'ให้คะแนนยังไง'}</h2>
+        {en ? (<>
+          <p>Each task has about 8 critical rules the AI should follow, such as editing only the files in the task, or saying so if past figures change. Our main score (called RCRc) works like this:</p>
+          <div class="formula">score = critical rules followed ÷ critical rules that could be broken in that run <span>but if the task is not finished, the score is zero</span></div>
+          <p>"Could be broken" means the rule relates to something the AI actually did. For example, the rule against editing files outside the task only counts if the AI edited files. The zero for an unfinished task is there because an AI that does nothing breaks no rules, yet is of no use. Whether the task is finished is decided by tests the AI cannot see.</p>
+          <p>Because this score combines two things, whether the task was finished and how well the rules were followed, we always look at the two separately as well.</p>
+        </>) : (<>
+          <p>แต่ละโจทย์มีกฎสำคัญราว 8 ข้อที่ AI ควรทำตาม เช่น แก้เฉพาะไฟล์ในงาน หรือต้องบอกถ้าตัวเลขย้อนหลังเปลี่ยน คะแนนหลักของเรา (เรียกว่า RCRc) คิดง่าย ๆ แบบนี้</p>
+          <div class="formula">คะแนน = กฎสำคัญที่ทำตาม ÷ กฎสำคัญที่มีโอกาสพลาดในครั้งนั้น <span>แต่ถ้างานไม่เสร็จ ได้ศูนย์</span></div>
+          <p>"มีโอกาสพลาด" หมายความว่ากฎข้อนั้นเกี่ยวกับสิ่งที่ AI ทำจริง เช่น กฎห้ามแก้ไฟล์นอกงานจะนับก็ต่อเมื่อ AI แก้ไฟล์ ส่วนเงื่อนไขว่างานไม่เสร็จได้ศูนย์ มีไว้เพราะ AI ที่ไม่ทำอะไรเลยก็ไม่ผิดกฎสักข้อ แต่ก็ไม่มีประโยชน์ งานเสร็จหรือไม่ตัดสินด้วยเทสที่ AI มองไม่เห็น</p>
+          <p>เพราะคะแนนนี้รวมสองเรื่องไว้ด้วยกัน คืองานเสร็จไหม และทำตามกฎแค่ไหน เราเลยดูสองเรื่องนี้แยกกันด้วยเสมอ</p>
+        </>)}
+      </section>
+
+      <section id="decide" class="col">
+        <h2>{en ? 'How we decide' : 'ตัดสินยังไง'}</h2>
+        {en ? (<>
+          <p>We compare task by task, because running the same task ten times still gives data about one task only. So the scores of all repetitions of a task are averaged first, and then we look at whether Skills scored more or less than the single file on that task.</p>
+          <p>Before collecting Study 3 we wrote down that the result could come out one of three ways, and that we would decide as follows, with no changes afterwards.</p>
+        </>) : (<>
+          <p>เราเทียบกันทีละโจทย์ เพราะการรันโจทย์เดิมซ้ำสิบครั้งก็ยังเป็นข้อมูลของโจทย์ข้อเดียว เลยเอาคะแนนทุกรอบของแต่ละโจทย์มาเฉลี่ยก่อน แล้วดูว่าในโจทย์เดียวกัน Skills ได้มากหรือน้อยกว่าไฟล์เดียว</p>
+          <p>ก่อนเก็บข้อมูลชุดที่ 3 เราเขียนไว้แล้วว่าผลออกได้สามทาง และจะตัดสินตามนี้ ไม่ปรับทีหลัง</p>
+        </>)}
+        <div class="tbl-wrap">
+          <table class="bt">
+            <thead><tr><th>{en ? 'If' : 'ถ้า'}</th><th>{en ? 'We conclude' : 'สรุปว่า'}</th></tr></thead>
+            <tbody>
+              {en ? (<>
+                <tr><td>The difference is clear enough that chance is unlikely (p below 0.05)</td><td>Different</td></tr>
+                <tr class="hl"><td>No clear difference, and the whole range where the true value probably lies is inside ±{marginTxt} points</td><td><b>Equivalent</b>, the result we got</td></tr>
+                <tr><td>Neither of the above</td><td>Inconclusive</td></tr>
+              </>) : (<>
+                <tr><td>ต่างกันชัดจนไม่น่าใช่ความบังเอิญ (p ต่ำกว่า 0.05)</td><td>ต่างกัน</td></tr>
+                <tr class="hl"><td>ไม่ต่างชัด และช่วงที่ค่าจริงน่าจะอยู่ อยู่ใน ±{marginTxt} จุดทั้งช่วง</td><td><b>เทียบเท่า</b> ผลที่ได้จริง</td></tr>
+                <tr><td>ไม่เข้าทั้งสองแบบ</td><td>สรุปไม่ได้</td></tr>
+              </>)}
+            </tbody>
+          </table>
+        </div>
+        <p>{en
+          ? `The ±${marginTxt} point margin comes from the fact that a task has about 8 critical rules, so missing one is worth about 12.5 points. If the two formats differ by less than one missed rule per task, we treat them as interchangeable.`
+          : `เกณฑ์ ±${marginTxt} จุดมาจากว่าโจทย์หนึ่งข้อมีกฎสำคัญราว 8 ข้อ พลาดหนึ่งข้อเท่ากับราว 12.5 จุด ถ้าสองแบบต่างกันน้อยกว่าการพลาดกฎหนึ่งข้อต่องาน เราถือว่าใช้แทนกันได้`}</p>
+      </section>
+
+      <section id="instrument" class="col">
+        <h2>{en ? 'How we checked our measuring tools' : 'เราเช็กเครื่องมือวัดยังไง'}</h2>
+        <p>{en
+          ? 'Part of the reason the first two studies were inconclusive is that our own measuring tools were wrong without anything warning us. So in Study 3 we checked in several layers before the real collection: every task had to pass a 5 step review, we ran 4 trial rounds with the single file group only and without looking at group comparisons, and we sent the scoring system to outside reviewers.'
+          : 'สองรอบแรกสรุปไม่ได้ ส่วนหนึ่งเพราะเครื่องมือวัดของเราเองผิดโดยไม่มีอะไรเตือน รอบที่ 3 เราเลยเช็กหลายชั้นก่อนเก็บข้อมูลจริง ทุกโจทย์ต้องผ่านการตรวจ 5 ขั้น ลองรันจริง 4 รอบด้วยกลุ่มไฟล์เดียวกลุ่มเดียวโดยไม่ดูผลเทียบกลุ่ม และส่งระบบวัดผลให้ผู้รีวิวภายนอกตรวจ'}</p>
+        <div class="tbl-wrap">
+          <table class="bt">
+            <caption><b>{en ? 'Faults in our measuring tools found at each stage' : 'จุดผิดของเครื่องมือวัดที่เราเจอในแต่ละขั้น'}</b></caption>
+            <thead><tr><th>{en ? 'Stage' : 'ขั้น'}</th><th class="r">{en ? 'Found' : 'เจอ'}</th></tr></thead>
+            <tbody>
+              <tr><td>{en ? 'During development' : 'ตอนพัฒนา'}</td><td class="r">23</td></tr>
+              <tr><td>{en ? 'Outside review (confirmed)' : 'ผู้รีวิวภายนอกตรวจ (ยืนยันแล้ว)'}</td><td class="r">{en ? 'at least 6' : 'อย่างน้อย 6'}</td></tr>
+              <tr><td>{en ? '4 trial rounds' : 'ลองรันจริง 4 รอบ'}</td><td class="r">8</td></tr>
+              <tr class="hl-x"><td>{en ? 'Slipped through to the real collection' : 'หลุดไปถึงตอนเก็บข้อมูลจริง'}</td><td class="r">2</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted">{en
+          ? 'Figures from chapters 4 and 7 of the report. We did not throw away data for the two faults that slipped through. Instead we recounted both with the checkers fixed and with the problem tasks removed, and the result stayed the same.'
+          : 'ตัวเลขจากบทที่ 4 และ 7 ของเล่มรายงาน สองจุดที่หลุดไป เราไม่ได้ทิ้งข้อมูล แต่ลองนับใหม่ทั้งแบบแก้ตัวตรวจและแบบตัดโจทย์ที่มีปัญหาออก ผลยังเหมือนเดิม'}</p>
+      </section>
+
+      <section id="details" class="wide">
+        <details class="more-box">
+          <summary><span class="sm-t">{en ? 'Details for examiners' : 'รายละเอียดสำหรับกรรมการ'}</span><span class="sm-s">{en ? 'Measuring tools in the three studies, the full procedure, all metrics, statistics, sensitivity analyses and controlled factors' : 'เครื่องมือวัดในสามชุด ขั้นตอนเต็ม ตัวชี้วัดทั้งหมด สถิติ การวิเคราะห์ความไว และปัจจัยที่คุม'}</span></summary>
+
+          <h3>{en ? 'Measuring tools in the three studies' : 'เครื่องมือวัดในสามชุด'}</h3>
+          <div class="tbl-wrap">
+            <table class="bt">
+              <thead><tr><th></th>{sts.map((st) => <th>{en ? `Study ${st.n}` : `ชุดที่ ${st.n}`}</th>)}</tr></thead>
+              <tbody>
+                <tr><td>{en ? 'Main metric' : 'ตัวชี้วัดหลัก'}</td>{sts.map((st) => <td><b>{st.metricName}</b> {st.metricLabel}</td>)}</tr>
+                <tr><td>{en ? 'Tasks × repetitions' : 'โจทย์ × รอบ'}</td>{sts.map((st) => <td>{st.k} × {st.reps}</td>)}</tr>
+                {en ? (<>
+                  <tr><td>Reply turn</td><td>None</td><td>None, stopping to ask counted as not finished</td><td>Yes, once after the first turn</td></tr>
+                  <tr><td>Decision rule</td><td>p &lt; 0.05 only</td><td>p &lt; 0.05 only</td><td>Three outcomes: different, equivalent or inconclusive</td></tr>
+                  <tr><td>Tool checks before the real collection</td><td>Pilot round and a system check gate</td><td>Metric revised after the lessons of Study 1</td><td>5 step acceptance gate and 4 pilot rounds with A1</td></tr>
+                </>) : (<>
+                  <tr><td>รอบตอบกลับ</td><td>ไม่มี</td><td>ไม่มี การหยุดถามนับว่าไม่เสร็จ</td><td>มี หนึ่งครั้งหลังรอบแรก</td></tr>
+                  <tr><td>เกณฑ์ตัดสิน</td><td>p &lt; 0.05 อย่างเดียว</td><td>p &lt; 0.05 อย่างเดียว</td><td>สามทาง ต่างกัน เทียบเท่า หรือสรุปไม่ได้</td></tr>
+                  <tr><td>เช็กเครื่องมือก่อนเก็บจริง</td><td>รอบนำร่องและ gate ตรวจระบบ</td><td>แก้ตัวชี้วัดตามบทเรียนชุดที่ 1</td><td>ด่านยอมรับ 5 ขั้น และรอบนำร่อง 4 รอบด้วย A1</td></tr>
+                </>)}
+              </tbody>
+            </table>
+          </div>
+
+          <h3>{en ? 'Full procedure of one run (Study 3)' : 'ขั้นตอนเต็มของหนึ่ง run (ชุดที่ 3)'}</h3>
+          <p class="small muted">{en ? 'Studies 1 and 2 did not have steps 5 and 6.' : 'ชุดที่ 1 และ 2 ไม่มีขั้นที่ 5 และ 6'}</p>
+          <ol class="steps full">
+            {steps.map(([t, x]) => <li><b>{t}</b><span>{x}</span></li>)}
+          </ol>
+
+          <h3>{en ? 'All metrics' : 'ตัวชี้วัดทั้งหมด'}</h3>
+          <div class="tbl-wrap">
+            <table class="bt">
+              <thead><tr><th>{en ? 'Metric' : 'ตัวชี้วัด'}</th><th>{en ? 'What it measures' : 'วัดอะไร'}</th><th>{en ? 'Role in the plan' : 'ในแผน'}</th></tr></thead>
+              <tbody>
+                {en ? (<>
+                  <tr class="hl"><td><b>RCRc</b></td><td>Share of critical rules followed, 0 if the task is not finished</td><td>Primary</td></tr>
+                  <tr><td>Task finished rate</td><td>Share of runs that pass the acceptance tests</td><td>Supporting</td></tr>
+                  <tr><td>RCRc when finished</td><td>RCRc of finished runs only</td><td>Supporting</td></tr>
+                  <tr><td>CRIT</td><td>Share of runs that follow every critical rule</td><td>Supporting</td></tr>
+                  <tr><td>SCOPE</td><td>Share of runs that edit only files in the task</td><td>Supporting</td></tr>
+                  <tr><td>pass^k</td><td>Share of tasks where every critical rule was followed in every repetition</td><td>Supporting</td></tr>
+                  <tr><td>RCRc1</td><td>RCRc at the end of the first turn, before the reply turn</td><td>Secondary</td></tr>
+                  <tr><td>Cost</td><td>API-equivalent price, tokens, time</td><td>Supporting</td></tr>
+                  <tr><td>Trigger F1</td><td>How accurately A2 opens skills</td><td>Supporting</td></tr>
+                </>) : (<>
+                  <tr class="hl"><td><b>RCRc</b></td><td>สัดส่วนกฎสำคัญที่ทำตาม ได้ 0 ถ้างานไม่เสร็จ</td><td>ผลหลัก</td></tr>
+                  <tr><td>อัตราทำงานเสร็จ</td><td>สัดส่วน run ที่ผ่านเทสยอมรับ</td><td>ประกอบ</td></tr>
+                  <tr><td>RCRc เมื่องานเสร็จ</td><td>RCRc เฉพาะ run ที่งานเสร็จ</td><td>ประกอบ</td></tr>
+                  <tr><td>CRIT</td><td>สัดส่วน run ที่ทำตามกฎสำคัญครบทุกข้อ</td><td>ประกอบ</td></tr>
+                  <tr><td>SCOPE</td><td>สัดส่วน run ที่แก้เฉพาะไฟล์ในงาน</td><td>ประกอบ</td></tr>
+                  <tr><td>pass^k</td><td>สัดส่วนโจทย์ที่ทำตามกฎสำคัญครบทุกรอบ</td><td>ประกอบ</td></tr>
+                  <tr><td>RCRc1</td><td>RCRc ณ จบรอบแรก ก่อนรอบตอบกลับ</td><td>ผลรอง</td></tr>
+                  <tr><td>ต้นทุน</td><td>ราคาเทียบเท่า API, token, เวลา</td><td>ประกอบ</td></tr>
+                  <tr><td>Trigger F1</td><td>ความแม่นของการเปิด skill ใน A2</td><td>ประกอบ</td></tr>
+                </>)}
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted">{en
+            ? 'Before using RCRc for real we tried the formula on 3 simulated agents (one that does nothing, one that works but does not finish, and one that finishes) to make sure that doing nothing earns no points.'
+            : 'เราลองสูตร RCRc กับ AI จำลอง 3 แบบก่อนใช้จริง คือไม่ทำอะไร ทำแต่ไม่เสร็จ และทำเสร็จ เพื่อให้แน่ใจว่าการไม่ทำอะไรไม่ได้คะแนน'}</p>
+
+          <h3>{en ? 'Statistics' : 'สถิติ'}</h3>
+          {en ? (<>
+            <p><b>Exact paired sign-flip test</b> asks how often a mean difference as large as the one observed would appear if the A2 and A1 labels of each task were swapped in every possible way. It needs no assumption about the shape of the distribution. The confidence interval comes from inverting the same test. The unit of analysis is the task, giving {nums.primary.k} values of A2 minus A1.</p>
+            <p><b>TOST</b> tests equivalence and passes when the whole 90% confidence interval lies inside ±{marginTxt} points. The result was a 90% CI of [{pts(d.ci90[0])}, {pts(d.ci90[1])}], fully inside the margin. The p = {nums.primary.p.toFixed(3)} above comes from the test for a difference, which does not reach 0.05.</p>
+            <p><b>Fixed sequence</b> The comparison of A2 with A5 could only be tested if the main comparison found a difference, which keeps the overall chance of a false conclusion at 0.05. The main result was equivalent, so this pair is reported as an estimate only.</p>
+          </>) : (<>
+            <p><b>Exact paired sign-flip test</b> ถามว่าถ้าสลับป้าย A2 กับ A1 ของแต่ละโจทย์แบบสุ่มทุกแบบที่เป็นไปได้ จะได้ผลต่างเฉลี่ยมากเท่าที่เห็นบ่อยแค่ไหน ไม่ต้องสมมติรูปแบบการแจกแจง ช่วงความเชื่อมั่นได้จากการกลับด้านการทดสอบเดียวกัน หน่วยวิเคราะห์คือโจทย์ ได้ผลต่าง A2 − A1 ทั้งหมด {nums.primary.k} ค่า</p>
+            <p><b>TOST</b> ทดสอบความเทียบเท่า ผ่านเมื่อช่วงความเชื่อมั่น 90% อยู่ใน ±{marginTxt} จุดทั้งช่วง ผลที่ได้คือ CI 90% [{pts(d.ci90[0])}, {pts(d.ci90[1])}] อยู่ในเกณฑ์ทั้งช่วง ส่วน p = {nums.primary.p.toFixed(3)} มาจากการทดสอบความต่างด้านบน ซึ่งไม่ถึง 0.05</p>
+            <p><b>ลำดับตายตัว (fixed-sequence)</b> การเทียบ A2 กับ A5 ทดสอบได้ก็ต่อเมื่อผลหลักพบความต่าง เพื่อคุมโอกาสสรุปผิดรวมไว้ที่ 0.05 ผลหลักเทียบเท่า คู่นี้จึงรายงานเป็นค่าประมาณเท่านั้น</p>
+          </>)}
+
+          <h3>{en ? 'Sensitivity analyses' : 'การวิเคราะห์ความไว'}</h3>
+          <p>{en
+            ? 'During collection we found 3 suspicious checkers, 2 of which were really wrong (S05 GP1 and S06 FL1). We declared two sensitivity analyses before breaking the results down by group. The main result still uses the original checkers, as planned.'
+            : 'ระหว่างเก็บข้อมูลเจอตัวตรวจที่น่าสงสัย 3 จุด ผิดจริง 2 จุด (S05 GP1 และ S06 FL1) เราประกาศการวิเคราะห์ความไวสองแบบไว้ก่อนเปิดดูผลแยกกลุ่ม ผลหลักยังใช้ตัวตรวจเดิมตามแผน'}</p>
+          <div class="tbl-wrap">
+            <table class="bt">
+              <thead><tr><th>{en ? 'Analysis' : 'ชุด'}</th><th>{en ? 'Meaning' : 'ความหมาย'}</th><th class="r">k</th><th class="r">{en ? 'Difference' : 'ผลต่าง'}</th><th>CI 90%</th><th>{en ? 'Result' : 'ผล'}</th></tr></thead>
+              <tbody>
+                {(['MAIN', 'SA-1', 'SA-2'] as const).map((k) => {
+                  const r = sens.results[k].primary_A2_vs_A1;
+                  return <tr class={k === 'MAIN' ? 'hl' : ''}><td><b>{k}</b></td><td>{saLabel[k]}</td><td class="r">{r.k}</td><td class="r">{pts(r.meanDiff)}</td><td>[{pts(r.ci90[0])}, {pts(r.ci90[1])}]</td><td>{verdictT(lang, r.verdict)}</td></tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <h3>{en ? 'Controlled factors' : 'ปัจจัยที่คุม'}</h3>
+          {en ? (
+            <ul>
+              <li>Model <span class="mono">{nums.model}</span> through the same version of the Claude Code CLI in every run</li>
+              <li>7 tools (Read, Write, Edit, Bash, Glob, Grep, Skill), MCP turned off, prompts in Thai</li>
+              <li>A limit of {nums.maxTurns} turns in the first turn and 40 turns in the reply turn. No run hit the limit.</li>
+              <li>The same starting state of the system in every run, master seed <span class="mono">{nums.masterSeed}</span></li>
+              <li>The AI’s automatic memory was isolated and did not carry over between runs</li>
+            </ul>
+          ) : (
+            <ul>
+              <li>โมเดล <span class="mono">{nums.model}</span> ผ่าน Claude Code CLI รุ่นเดียวกันทุก run</li>
+              <li>เครื่องมือ 7 ตัว (Read, Write, Edit, Bash, Glob, Grep, Skill) ปิด MCP คำสั่งภาษาไทย</li>
+              <li>เพดาน {nums.maxTurns} turn ในรอบแรก และ 40 turn ในรอบตอบกลับ ไม่มี run ใดชนเพดาน</li>
+              <li>สภาพเริ่มต้นของระบบเหมือนกันทุก run master seed <span class="mono">{nums.masterSeed}</span></li>
+              <li>หน่วยความจำอัตโนมัติของ AI ถูกกักแยก ไม่ข้ามระหว่าง run</li>
+            </ul>
+          )}
+          <p><a href={`${base}protocol/`}>{en ? 'Read the full plans written before starting' : 'อ่านแผนฉบับเต็มที่ตั้งไว้ก่อนเริ่ม'}</a></p>
+        </details>
+      </section>
+    </article>
+  </div>
+</Base>
+<style>
+  .h-first { margin-top: 0; }
+  .steps { list-style: none; counter-reset: s; padding: 0; margin: 0; border-top: 2px solid var(--ink); }
+  .steps li { counter-increment: s; display: grid; grid-template-columns: 2rem 14rem 1fr; gap: 0.5rem 1rem; padding: 0.8rem 0; border-bottom: 1px solid var(--rule); }
+  .steps li::before { content: counter(s); font-family: var(--serif); color: var(--ink-3); }
+  .steps b { font-family: var(--serif); font-weight: 600; }
+  @media (max-width: 640px) { .steps li { grid-template-columns: 1.5rem 1fr; } .steps li span { grid-column: 2; } }
+  .formula { font-family: var(--serif); font-size: 1.2rem; line-height: 1.6; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); padding: 1rem 0; margin: 1rem 0 1.5rem; }
+  .formula span { display: block; font-family: var(--sans); font-size: 0.98rem; color: var(--ink-2); }
+</style>

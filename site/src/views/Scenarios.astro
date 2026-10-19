@@ -1,0 +1,76 @@
+---
+import Base from '../layouts/Base.astro';
+import { scenarios, studies, FAMILIES, pts, tie } from '../lib/data';
+import { rootOf, famT, diffT, type Lang } from '../lib/i18n';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const base = rootOf(lang);
+const fams = Object.keys(FAMILIES).filter((f) => scenarios.some((s) => s.family === f));
+const old = scenarios.filter((s) => s.usedIn.length === 3).length;
+---
+<Base lang={lang} title={en ? 'All tasks | SkillBench' : 'โจทย์ทั้งหมด SkillBench'} current="scenarios/">
+  <header class="title-block col">
+    <h1>{en ? `All ${scenarios.length} tasks` : `โจทย์ทั้ง ${scenarios.length} ข้อ`}</h1>
+    <p class="lede">{en
+      ? `Every task is a short request of the kind a user really types to an AI, on a GPU booking system we built. Each one has work that must be finished, and almost every one hides a trap. The first ${old} tasks were used in all three studies, and the other ${scenarios.length - old} were added in Study 3. The prompts are shown as the AI received them, in Thai. Click a task to see how well each group did.`
+      : `ทุกโจทย์เป็นคำขอสั้น ๆ แบบที่ผู้ใช้พิมพ์สั่ง AI จริง บนระบบจองเครื่อง GPU ที่เราสร้างขึ้น แต่ละข้อมีงานที่ต้องทำให้เสร็จ และเกือบทุกข้อมีกับดักซ่อนอยู่ ${old} ข้อแรกใช้ทั้งสามรอบ อีก ${scenarios.length - old} ข้อเพิ่มเข้ามาในรอบที่ 3 กดที่โจทย์เพื่อดูว่าแต่ละกลุ่มทำได้แค่ไหน`}</p>
+  </header>
+
+  <div class="filters" role="group" aria-label={en ? 'Filter by trap family' : 'กรองตามตระกูลกับดัก'}>
+    <div class="seg">
+      <button type="button" aria-pressed="true" data-fam="">{en ? 'All' : 'ทั้งหมด'} {scenarios.length}</button>
+      {fams.map((f) => <button type="button" aria-pressed="false" data-fam={f}>{famT(lang, f).name} {scenarios.filter((s) => s.family === f).length}</button>)}
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="bt sc-table">
+      <caption>{en
+        ? 'The number on the right is how many points more Skills scored than the single file on that task (negative means the single file scored more). An empty cell means the task was not used in that study.'
+        : 'ตัวเลขทางขวาคือ Skills ได้มากกว่าไฟล์เดียวกี่จุดในโจทย์นั้น (ติดลบคือไฟล์เดียวได้มากกว่า) ช่องว่างคือรอบที่ไม่ได้ใช้โจทย์นี้'}</caption>
+      <thead><tr><th>{en ? 'Task' : 'โจทย์'}</th><th>{en ? 'User prompt (Thai, as given)' : 'คำสั่งของผู้ใช้'}</th>{studies.map((st) => <th class="r st">{en ? `Study ${st.n}` : `ชุดที่ ${st.n}`}</th>)}</tr></thead>
+      <tbody>
+        {scenarios.map((s) => (
+          <tr data-fam={s.family}>
+            <td class="code"><a href={`${base}scenarios/${s.id}/`} class="mono">{s.code}</a></td>
+            <td>
+              <a class="prompt" href={`${base}scenarios/${s.id}/`} lang="th">{s.prompt}</a>
+              <span class="meta small">{en
+                ? `${famT(lang, s.family).name}, ${diffT(lang, s.difficulty)}, refers to ${s.reqs.join(' ')}`
+                : `${s.familyName} ระดับ${diffT(lang, s.difficulty)} อ้าง ${s.reqs.join(' ')}`}</span>
+            </td>
+            {studies.map((st) => {
+              const ps = s.perStudy.find((x) => x.study.n === st.n)?.ps;
+              if (!ps) return <td class="r st"></td>;
+              const d = ps.diff;
+              return <td class={`r st ${tie(d) ? 'eq' : d > 0 ? 'up' : 'down'}`}>{tie(d) ? (en ? 'Tie' : 'เท่ากัน') : pts(d)}</td>;
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Base>
+<style>
+  .filters { margin-bottom: 0.5rem; position: sticky; top: 3.3rem; background: var(--paper); z-index: 5; padding: 0.75rem 0; border-bottom: 1px solid var(--rule); }
+  .sc-table caption { color: var(--ink-3); font-size: 0.95rem; caption-side: top; text-align: left; padding: 0.5rem 0 0.75rem; }
+  .sc-table tr[hidden] { display: none; }
+  .sc-table td { padding-top: 0.9rem; padding-bottom: 0.9rem; }
+  .code a { color: var(--ink-3); text-decoration: none; font-weight: 500; }
+  .prompt { display: block; color: var(--ink); text-decoration: none; font-size: 1.05rem; line-height: 1.6; }
+  .prompt:hover { color: var(--teal); }
+  .meta { color: var(--ink-3); }
+  .st { white-space: nowrap; width: 5.5rem; font-size: 0.95rem; }
+  .st.up { color: var(--a2); font-weight: 600; } .st.down { color: var(--a1); font-weight: 600; } .st.eq { color: var(--ink-3); }
+  @media (max-width: 700px) { .st { width: auto; font-size: 0.82rem; padding-left: 0.3rem !important; padding-right: 0.3rem !important; } }
+</style>
+<script>
+  const btns = [...document.querySelectorAll<HTMLButtonElement>('button[data-fam]')];
+  const rows = [...document.querySelectorAll<HTMLTableRowElement>('.sc-table tbody tr')];
+  btns.forEach((b) => b.addEventListener('click', () => {
+    btns.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const f = b.dataset.fam;
+    rows.forEach((r) => { r.hidden = !!f && r.dataset.fam !== f; });
+  }));
+</script>

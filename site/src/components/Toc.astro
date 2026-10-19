@@ -1,6 +1,6 @@
 ---
-interface Props { items: [string, string][]; title?: string }
-const { items, title = 'ในหน้านี้' } = Astro.props;
+interface Props { items: [string, string][]; title?: string; lang?: 'th' | 'en' }
+const { items, lang = 'th', title = lang === 'en' ? 'On this page' : 'ในหน้านี้' } = Astro.props;
 ---
 <nav class="toc" aria-label={title}>
   <p>{title}</p>

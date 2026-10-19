@@ -73,7 +73,7 @@ p { margin: 0 0 1.1em; }
 .brand span { color: var(--ink-3); font-weight: 500; }
 .nav { display: flex; gap: 0.25rem; overflow-x: auto; scrollbar-width: none; margin-left: auto; }
 .nav::-webkit-scrollbar { display: none; }
-.nav a { color: var(--ink-2); text-decoration: none; padding: 0.35rem 0.7rem; border-radius: 4px; white-space: nowrap; font-size: 0.98rem; }
+.nav a { color: var(--ink-2); text-decoration: none; padding: 0.35rem 0.5rem; border-radius: 4px; white-space: nowrap; font-size: 0.98rem; }
 .nav a:hover { background: var(--paper-2); color: var(--ink); }
 .nav a[aria-current='page'] { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--teal); border-radius: 0; }
 
@@ -200,7 +200,7 @@ article, section { min-width: 0; }
 .mnav nav a { padding: 0.8rem 0; border-bottom: 1px solid var(--rule); color: var(--ink); text-decoration: none; font-size: 1.05rem; }
 .mnav nav a:last-child { border-bottom: 0; }
 .mnav nav a[aria-current='page'] { color: var(--teal); font-weight: 600; }
-@media (max-width: 860px) {
+@media (max-width: 1100px) {
   .nav { display: none; }
   .mnav { display: block; }
   .masthead-in { position: relative; }
@@ -246,3 +246,17 @@ body.story .story-nav a:focus-visible { outline: 2px solid #3fb3a6; outline-offs
 body.story .footer { position: relative; z-index: 2; background: #0a0e15; color: #8b95a7; border-top-color: #2a3344; margin-top: 0; }
 body.story .footer strong { color: #ecedf0; }
 body.story .footer a { color: #3fb3a6; }
+
+/* ---------- ปุ่มสลับภาษา TH และ EN ---------- */
+.lang-sw { display: flex; flex: none; border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; font-family: var(--mono); font-size: 0.82rem; }
+.lang-sw a { display: inline-flex; align-items: center; justify-content: center; min-width: 2.6rem; min-height: 40px; padding: 0 0.55rem; color: var(--ink-2); text-decoration: none; }
+.lang-sw a + a { border-left: 1px solid var(--rule); }
+.lang-sw a:hover { background: var(--paper-2); color: var(--ink); }
+.lang-sw a[aria-current='true'] { background: var(--ink); color: var(--paper); font-weight: 600; }
+.masthead-in { gap: 1rem; }
+body.story .lang-sw { border-color: #3a4558; }
+body.story .lang-sw a { color: #b4bccb; }
+body.story .lang-sw a + a { border-left-color: #3a4558; }
+body.story .lang-sw a:hover { background: #1b2331; color: #fff; }
+body.story .lang-sw a[aria-current='true'] { background: #ecedf0; color: #0e131c; }
+@media (max-width: 1100px) { .masthead-in { gap: 0.6rem; } .lang-sw a { min-height: 44px; } }

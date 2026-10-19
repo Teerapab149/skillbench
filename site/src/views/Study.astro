@@ -1,0 +1,312 @@
+---
+import Base from '../layouts/Base.astro';
+import Toc from '../components/Toc.astro';
+import Consort from '../components/Consort.astro';
+import ArmBars from '../components/ArmBars.astro';
+import DiffStrip from '../components/DiffStrip.astro';
+import ForestPlot from '../components/ForestPlot.astro';
+import { studies, failsByCat, costByArm, pct, pts, tie, fmtP, type Study } from '../lib/data';
+import { rootOf, studyT, armT, ruleCatsT, dateT, type Lang } from '../lib/i18n';
+interface Props { lang: Lang; st: Study; prev: Study | null; next: Study | null }
+const { lang } = Astro.props;
+const en = lang === 'en';
+const st = studyT(lang, Astro.props.st);
+const prev = Astro.props.prev && studyT(lang, Astro.props.prev);
+const next = Astro.props.next && studyT(lang, Astro.props.next);
+const base = rootOf(lang);
+const p = st.primary;
+const sorted = [...st.perScenario].sort((a, b) => a.code.localeCompare(b.code));
+const isS3 = st.n === 3;
+const sec = st.secondary;
+const cost = costByArm(st);
+const rescue = st.nums.study3?.rescue;
+const one = st.nums.study3?.oneShot;
+const ruled = st.armIds.filter((a) => a !== 'A0');
+const margin = isS3 ? (p.decision.margin as number) : 0;
+const f1 = isS3 ? (Object.values(st.nums.triggerF1.primary.A2) as number[]) : [];
+const short = (a: string) => armT(lang, a as any).short;
+
+const toc: [string, string][] = en ? [
+  ['result', 'Result'],
+  ...(isS3 ? [['seen', 'What else we saw']] as [string, string][] : [['why', 'Why this study was inconclusive']] as [string, string][]),
+  ...(st.changed ? [['next-study', 'What changed next']] as [string, string][] : []),
+  ['details', 'Full numbers for examiners'],
+] : [
+  ['result', 'ผล'],
+  ...(isS3 ? [['seen', 'สิ่งที่เราเห็นเพิ่ม']] as [string, string][] : [['why', 'ทำไมรอบนี้สรุปไม่ได้']] as [string, string][]),
+  ...(st.changed ? [['next-study', 'รอบต่อไปเปลี่ยนอะไร']] as [string, string][] : []),
+  ['details', 'ตัวเลขเต็มสำหรับกรรมการ'],
+];
+let fig = 0;
+const nf = () => ++fig;
+let tab = 0;
+const nt = () => ++tab;
+const T = en ? 'Table' : 'ตารางที่';
+const F = en ? 'Figure' : 'รูปที่';
+const costPct = Math.round((1 - cost.A2.usd / cost.A1.usd) * 20) * 5;
+const secFaster = Math.round((cost.A1.sec - cost.A2.sec) / 5) * 5;
+const imMaxRuled = isS3 ? Math.max(...ruled.map((a) => failsByCat.IM[a].fail)) : 0;
+---
+<Base lang={lang} title={en ? `Study ${st.n} | SkillBench` : `การทดลองชุดที่ ${st.n} SkillBench`} current={`study-${st.n}/`}>
+  <header class="title-block col">
+    <p class="kicker">{en ? `Study ${st.n} of ${studies.length}` : `การทดลองชุดที่ ${st.n} จาก ${studies.length}`}</p>
+    <h1>{st.role}</h1>
+    <p class="lede">{st.summary}</p>
+    <p class="meta"><span class={`verdict ${isS3 ? '' : 'nc'}`}>{st.verdict}</span> <span>{en
+      ? `${st.k} tasks, ${st.reps} repetitions each, ${st.usable} runs in total, data collection finished ${dateT(lang, st.stamp)}`
+      : `โจทย์ ${st.k} ข้อ ข้อละ ${st.reps} รอบ รวม ${st.usable} ครั้ง เก็บข้อมูลเสร็จ ${dateT(lang, st.stamp)}`}</span></p>
+  </header>
+
+  <div class="article-grid">
+    <Toc items={toc} lang={lang} />
+    <article>
+      <section id="result" class="wide">
+        <h2 class="h-first">{en ? 'Result' : 'ผล'}</h2>
+        {isS3 ? (
+          <>
+            {en ? (
+              <div class="col">
+                <p class="big">Skills scored {pct(p.rateA)}% and the single file {pct(p.rateB)}%, a difference of {pts(p.diff)} points</p>
+                <p>Before starting, we set the rule that if the two formats differ by no more than ±{(margin * 100).toFixed(1)} points, which is roughly one missed critical rule per task, they count as equivalent. The whole range of the result fell inside that margin, so we concluded <span class="verdict">Equivalent</span></p>
+              </div>
+            ) : (
+              <div class="col">
+                <p class="big">Skills ได้คะแนน {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน {pts(p.diff)} จุด</p>
+                <p>ก่อนเริ่ม เราตั้งเกณฑ์ไว้ว่าถ้าสองแบบต่างกันไม่เกิน ±{(margin * 100).toFixed(1)} จุด ซึ่งประมาณเท่ากับพลาดกฎสำคัญหนึ่งข้อต่องาน จะถือว่าเทียบเท่า ผลออกมาอยู่ในเกณฑ์ทั้งช่วง เราเลยสรุปว่า<span class="verdict">เทียบเท่า</span></p>
+              </div>
+            )}
+            <ForestPlot n={nf()} lang={lang} />
+            {en ? (
+              <div class="col">
+                <p><b>How to read this</b> Equivalent does not mean exactly the same. And because the single file already scored {pct(p.rateB)}%, Skills could lead by at most {((1 - p.rateB) * 100).toFixed(1)} points. What we can really be confident of is that <b>Skills is not worse than the single file</b>.</p>
+                <p>We also recounted in two other ways, fixing the checkers we found to be wrong and removing the problem tasks. The result was still equivalent (rows SA-1 and SA-2 in the figure).</p>
+                <p>Whether "opening one skill at a time" matters needs a comparison of Skills with Skills always loaded. Our plan allowed that test only if the main question found a difference. Since the main result was equivalent, it was not tested. The figure you see, {pts(sec.rateA - sec.rateB)} points, is for reference only and supports no conclusion.</p>
+              </div>
+            ) : (
+              <div class="col">
+                <p><b>อ่านให้ถูก</b> เทียบเท่าไม่ได้แปลว่าเหมือนกันเป๊ะ และเพราะไฟล์เดียวได้ {pct(p.rateB)}% อยู่แล้ว Skills จะนำได้มากสุดแค่ {((1 - p.rateB) * 100).toFixed(1)} จุด สิ่งที่เรามั่นใจได้จริง ๆ คือ <b>Skills ไม่ด้อยกว่าไฟล์เดียว</b></p>
+                <p>เราลองนับใหม่อีกสองแบบ คือแก้ตัวตรวจที่เจอว่าผิด และตัดโจทย์ที่มีปัญหาออก ผลก็ยังเทียบเท่าเหมือนเดิม (แถว SA-1 และ SA-2 ในรูป)</p>
+                <p>ส่วนคำถามว่า "การเปิดอ่านทีละชุด" มีผลไหม ต้องเทียบ Skills กับ Skills แบบอ่านทุกครั้ง แผนของเราให้ทดสอบข้อนี้ได้ก็ต่อเมื่อคำถามหลักพบความต่าง พอผลหลักออกมาเทียบเท่า ข้อนี้เลยไม่ได้ทดสอบ ตัวเลขที่เห็นคือ {pts(sec.rateA - sec.rateB)} จุด ใช้ดูเฉย ๆ ยังสรุปไม่ได้</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <div class="col">
+            {en ? (<>
+              <p class="big">Skills scored {pct(p.rateA)}% and the single file {pct(p.rateB)}%, a difference of {pts(p.diff)} points</p>
+              <p>Skills scored higher, but there is too little data to tell whether the difference is real or just chance (p = {fmtP(p.p)}). So the result is <b>inconclusive</b>, which does not mean the two formats are equal.</p>
+            </>) : (<>
+              <p class="big">Skills ได้ {pct(p.rateA)}% ไฟล์เดียวได้ {pct(p.rateB)}% ต่างกัน {pts(p.diff)} จุด</p>
+              <p>Skills ได้สูงกว่า แต่ข้อมูลยังน้อยเกินกว่าจะบอกได้ว่าเป็นของจริงหรือแค่บังเอิญ (p = {fmtP(p.p)}) เราเลย<b>สรุปไม่ได้</b> ซึ่งไม่ได้แปลว่าสองแบบเท่ากัน</p>
+            </>)}
+            <figure class="pfloor">
+              <div class="sq-row">
+                {sorted.map((s) => <a href={`${base}scenarios/${s.id}/#study-${st.n}`} class={`sq ${tie(s.diff) ? 'tie' : s.diff > 0 ? 'win' : 'loss'}`} title={`${s.code} ${tie(s.diff) ? (en ? 'tie' : 'เท่ากัน') : pts(s.diff) + (en ? ' points' : ' จุด')}`}><span>{s.code}</span></a>)}
+              </div>
+              {en
+                ? <p class="sq-key small"><i class="sq win"></i> Skills scored more <i class="sq loss"></i> Single file scored more <i class="sq tie"></i> Tie</p>
+                : <p class="sq-key small"><i class="sq win"></i> Skills ได้มากกว่า <i class="sq loss"></i> ไฟล์เดียวได้มากกว่า <i class="sq tie"></i> ได้เท่ากัน</p>}
+              {en
+                ? <figcaption><b>{F} {nf()}</b> Of {st.k} tasks, {p.ties} were ties between the two formats. These tasks cannot decide the result, which leaves only {st.informative}.{st.pFloor > 0.05 ? ` Even if Skills had won all of them, the result still could not be statistically significant, because the smallest possible p value is ${st.pFloor.toFixed(4)} and it has to be below 0.05.` : ''}</figcaption>
+                : <figcaption><b>{F} {nf()}</b> จาก {st.k} โจทย์ มี {p.ties} ข้อที่สองแบบได้เท่ากัน โจทย์พวกนี้ใช้ตัดสินไม่ได้ เหลือแค่ {st.informative} ข้อ{st.pFloor > 0.05 ? ` ต่อให้ Skills ชนะครบทุกข้อ ทางสถิติก็ยังสรุปไม่ได้อยู่ดี เพราะค่า p ต่ำสุดที่ทำได้คือ ${st.pFloor.toFixed(4)} แต่ต้องต่ำกว่า 0.05` : ''}</figcaption>}
+            </figure>
+            {sec && (en
+              ? <p class="small muted">{st.n === 1 ? `Another number we looked at is the share of rules followed (RCR), where Skills was ${pts(sec.diff)} points higher.` : `Skills always loaded differs from Skills by ${pts(sec.diff)} points.`} But the plan allowed this to be tested only if the main result passed, so it was not tested.</p>
+              : <p class="small muted">{st.n === 1 ? `อีกตัวเลขที่เราดู คือสัดส่วนกฎที่ทำตาม (RCR) Skills ได้สูงกว่า ${pts(sec.diff)} จุด` : `Skills แบบอ่านทุกครั้งต่างจาก Skills ${pts(sec.diff)} จุด`} แต่แผนให้ทดสอบข้อนี้ได้ก็ต่อเมื่อผลหลักผ่าน เลยไม่ได้ทดสอบ</p>
+            )}
+          </div>
+        )}
+      </section>
+
+      {isS3 && (en ? (
+        <section id="seen" class="col">
+          <h2>What else we saw</h2>
+          <p class="small muted">Everything in this section is exploratory: things we observed that are not part of the main question tested under the plan.</p>
+          <h3>Having rules or not made a bigger difference</h3>
+          <p>The largest difference was not between the two formats but between having rules and having none. The AI with no rules followed every critical rule in only {pct(st.nums.perArm.A0.CRIT)}% of runs, edited files outside the task more often, and missed the rule about past invoices {failsByCat.IM.A0.fail} of {failsByCat.IM.A0.app} times, almost always by not checking or not saying so. The groups with rules missed it no more than {imMaxRuled} times.</p>
+          <p>But we cannot yet tell whether the improvement comes from what the rules say or just from giving the AI more text to read, because this study had no group that got text of the same length that was not rules.</p>
+          <h3>Skills cost a little less</h3>
+          <p>Skills cost ${(cost.A1.usd - cost.A2.usd).toFixed(3)} less per task than the single file on average, about {costPct}%, and was about {secFaster} seconds faster. But the Skills runs were also shorter, so we cannot yet say whether it was cheaper because skills are opened one at a time.</p>
+          <h3>Skill descriptions matter a lot</h3>
+          <p>The AI opened {st.nums.manipulation.A2.skillsLoadedPerRun.toFixed(1)} of 4 skills per task on average, and opened all of them in only {st.nums.manipulation.A2.runsLoadingAll} runs. Some skills were opened when not needed and some were not opened when they should have been (accuracy between {Math.min(...f1).toFixed(2)} and {Math.max(...f1).toFixed(2)} out of 1). If the descriptions are poorly written, the rules do not reach the AI.</p>
+          <h3>Why we sent a reply to an AI that stopped to ask</h3>
+          <p>The AI with rules often stopped to ask before acting, which is a good thing. But counting only the first turn, these tasks would be marked as not finished. So we sent the same message back every time, letting it carry on once. {rescue.A1.rescued + rescue.A2.rescued + rescue.A5.rescued} of {rescue.A1.notDone1 + rescue.A2.notDone1 + rescue.A5.notDone1} runs went on to finish. The AI with no rules did not finish {rescue.A0.notDone1} times, and none of those came back to finish. Counting only the first turn, the difference would be {pts(one.diff)} points, but the range where the true value probably lies is very wide, from {pts(one.ci95[0])} to {pts(one.ci95[1])}.</p>
+        </section>
+      ) : (
+        <section id="seen" class="col">
+          <h2>สิ่งที่เราเห็นเพิ่ม</h2>
+          <p class="small muted">ทั้งหมดในหัวข้อนี้เป็นสิ่งที่เราสังเกตเห็น ไม่ได้อยู่ในคำถามหลักที่ทดสอบตามแผน</p>
+          <h3>มีกฎกับไม่มีกฎต่างกันมากกว่า</h3>
+          <p>ความต่างที่ใหญ่ที่สุดไม่ได้อยู่ระหว่างสองแบบ แต่อยู่ระหว่างมีกฎกับไม่มีกฎ AI ที่ไม่มีกฎทำตามกฎสำคัญได้ครบแค่ {pct(st.nums.perArm.A0.CRIT)}% ของครั้ง แก้ไฟล์นอกงานบ่อยกว่า และพลาดกฎเรื่องใบแจ้งหนี้ย้อนหลัง {failsByCat.IM.A0.fail} จาก {failsByCat.IM.A0.app} ครั้ง เกือบทั้งหมดคือไม่เช็กหรือไม่บอก ส่วนกลุ่มที่มีกฎพลาดไม่เกิน {imMaxRuled} ครั้ง</p>
+          <p>แต่เรายังแยกไม่ได้ว่าที่ดีขึ้นเป็นเพราะเนื้อหาของกฎ หรือแค่เพราะมีข้อความให้ AI อ่านมากขึ้น เพราะรอบนี้ไม่มีกลุ่มที่ได้ข้อความยาวเท่ากันแต่ไม่ใช่กฎ</p>
+          <h3>Skills ถูกกว่านิดหน่อย</h3>
+          <p>Skills ใช้เงินน้อยกว่าไฟล์เดียวเฉลี่ย ${(cost.A1.usd - cost.A2.usd).toFixed(3)} ต่องาน หรือราว {costPct}% และเร็วกว่าราว {secFaster} วินาที แต่งานของ Skills ก็สั้นกว่าด้วย เลยยังบอกไม่ได้ว่าถูกกว่าเพราะเปิดอ่านทีละชุดหรือเปล่า</p>
+          <h3>คำอธิบายของ skill สำคัญมาก</h3>
+          <p>AI เปิด skill เฉลี่ย {st.nums.manipulation.A2.skillsLoadedPerRun.toFixed(1)} จาก 4 ชุดต่องาน มีแค่ {st.nums.manipulation.A2.runsLoadingAll} ครั้งที่เปิดครบ บางชุดถูกเปิดเกินจำเป็น บางชุดไม่ถูกเปิดตอนที่ควรเปิด (ความแม่นอยู่ระหว่าง {Math.min(...f1).toFixed(2)} ถึง {Math.max(...f1).toFixed(2)} จากเต็ม 1) ถ้าเขียนคำอธิบายไม่ดี กฎก็ไปไม่ถึง AI</p>
+          <h3>ทำไมเราส่งคำตอบให้ AI ที่หยุดถาม</h3>
+          <p>AI ที่มีกฎหลายครั้งหยุดถามก่อนลงมือ ซึ่งเป็นเรื่องดี แต่ถ้านับแค่รอบแรก งานพวกนี้จะถูกนับว่าไม่เสร็จ เราเลยส่งข้อความเดิมทุกครั้งกลับไปให้ทำต่อหนึ่งครั้ง ปรากฏว่า {rescue.A1.rescued + rescue.A2.rescued + rescue.A5.rescued} จาก {rescue.A1.notDone1 + rescue.A2.notDone1 + rescue.A5.notDone1} ครั้งทำต่อจนเสร็จ ส่วน AI ที่ไม่มีกฎซึ่งทำไม่เสร็จ {rescue.A0.notDone1} ครั้ง ไม่มีครั้งไหนกลับมาเสร็จ ถ้านับแค่รอบแรก ผลต่างจะเป็น {pts(one.diff)} จุด แต่ช่วงที่ค่าจริงน่าจะอยู่กว้างมาก ตั้งแต่ {pts(one.ci95[0])} ถึง {pts(one.ci95[1])}</p>
+        </section>
+      ))}
+
+      {st.why.length > 0 && (
+        <section id="why" class="col">
+          <h2>{en ? 'Why this study was inconclusive' : 'ทำไมรอบนี้สรุปไม่ได้'}</h2>
+          <ol class="why">{st.why.map((w) => <li>{w}</li>)}</ol>
+        </section>
+      )}
+      {st.changed && (
+        <section id="next-study" class="col">
+          <h2>{en ? 'What changed in the next study' : 'รอบต่อไปเปลี่ยนอะไร'}</h2>
+          <p class="lede">{st.changed}</p>
+        </section>
+      )}
+
+      <section id="details" class="wide">
+        <details class="more-box">
+          <summary><span class="sm-t">{en ? 'Full numbers for examiners' : 'ตัวเลขเต็มสำหรับกรรมการ'}</span><span class="sm-s">{en ? 'Design, results table, statistics, results by task and by group' : 'การออกแบบ ตารางผล สถิติ ผลรายโจทย์ และผลรายกลุ่ม'}</span></summary>
+
+          <h3>{en ? 'Design' : 'การออกแบบ'}</h3>
+          <div class="tbl-wrap">
+            <table class="bt">
+              <caption><b>{T} {nt()}</b> {en ? `Groups in Study ${st.n}` : `กลุ่มทดลองในชุดที่ ${st.n}`} <a href={`${base}arms/`}>{en ? 'See the rule files of every group' : 'ดูไฟล์กฎของทุกกลุ่ม'}</a></caption>
+              <thead><tr><th>{en ? 'Group' : 'กลุ่ม'}</th><th>{en ? 'What the AI got' : 'AI ได้อะไร'}</th><th>{en ? 'What it answers' : 'มีไว้ตอบอะไร'}</th></tr></thead>
+              <tbody>
+                {st.armIds.map((a) => (
+                  <tr class={a === 'A1' || a === 'A2' ? 'hl' : ''}><td><span class={`arm arm-${a}`}><b>{a}</b></span></td><td>{armT(lang, a).name}</td><td>{armT(lang, a).question}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Consort st={Astro.props.st} n={nf()} lang={lang} />
+          <p class="small muted">{en ? 'Scoring:' : 'วิธีให้คะแนน:'} {st.metricName} {st.metricLabel}{en ? '. The plan written before starting is in' : ' แผนที่ตั้งไว้ก่อนเริ่มอยู่ใน'} <a href={`${base}protocol/#prereg-${st.n}`}>{st.prereg}</a></p>
+
+          <h3>{en ? 'Full main result' : 'ผลหลักแบบเต็ม'}</h3>
+          <div class="tbl-wrap">
+            <table class="bt">
+              <caption><b>{T} {nt()}</b> {en ? 'Main result as planned, tested with an exact paired sign-flip test comparing task by task' : 'ผลหลักตามแผน ทดสอบด้วย exact paired sign-flip โดยเทียบกันทีละโจทย์'}</caption>
+              <thead><tr><th class="r">A2</th><th class="r">A1</th><th class="r">{en ? 'Difference' : 'ผลต่าง'}</th><th>CI 95%</th>{st.ci90 && <th>CI 90%</th>}<th class="r">{en ? 'Wins, losses, ties' : 'ชนะ แพ้ เสมอ'}</th><th class="r">p</th><th>{en ? 'Conclusion' : 'ข้อสรุป'}</th></tr></thead>
+              <tbody>
+                <tr class={isS3 ? 'hl' : ''}>
+                  <td class="r">{pct(p.rateA)}%</td><td class="r">{pct(p.rateB)}%</td><td class="r"><b>{pts(p.diff)} {en ? 'points' : 'จุด'}</b></td>
+                  <td class="nw">[{pts(st.ci95[0])}, {pts(st.ci95[1])}]</td>{st.ci90 && <td class="nw">[{pts(st.ci90[0])}, {pts(st.ci90[1])}]</td>}
+                  <td class="r">{p.wins} / {p.losses} / {p.ties}</td><td class="r">{fmtP(p.p)}</td><td><b>{st.verdict}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>{en ? 'Results by task' : 'ผลรายโจทย์'}</h3>
+          <DiffStrip st={st} n={nf()} lang={lang} />
+
+          <h3>{en ? 'Results by group' : 'ผลรายกลุ่ม'}</h3>
+          <ArmBars st={st} n={nf()} lang={lang} />
+          <div class="tbl-wrap">
+            <table class="bt">
+              <caption><b>{T} {nt()}</b> {en ? 'Metrics by group' : 'ตัวชี้วัดรายกลุ่ม'}</caption>
+              <thead><tr><th>{en ? 'Group' : 'กลุ่ม'}</th>{st.n > 1 && <th class="r">RCRc</th>}{st.n > 1 && <th class="r">{en ? 'Task finished' : 'ทำงานเสร็จ'}</th>}<th class="r">CRIT</th><th class="r">SCOPE</th><th class="r">RCR</th><th class="r">pass^k</th><th class="r">{en ? 'Cost per run' : 'ต้นทุนต่อครั้ง'}</th></tr></thead>
+              <tbody>
+                {st.armIds.map((a) => { const m = st.nums.perArm[a]; return (
+                  <tr><td><span class={`arm arm-${a}`}>{a} {short(a)}</span></td>
+                    {st.n > 1 && <td class="r">{pct(m.RCRc)}%</td>}{st.n > 1 && <td class="r">{pct(m.taskDoneRate)}%</td>}
+                    <td class="r">{pct(m.CRIT)}%</td><td class="r">{pct(m.SCOPE)}%</td><td class="r">{pct(m.RCR)}%</td><td class="r">{pct(m.passHatK)}%</td><td class="r">${cost[a].usd.toFixed(2)}</td></tr>
+                ); })}
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted">{en
+            ? 'CRIT is the share of runs that follow every critical rule. SCOPE is the share of runs that edit only files in the task. RCR is the share of rules followed. pass^k is the share of tasks where every critical rule was followed in every repetition.'
+            : 'CRIT คือสัดส่วนครั้งที่ทำตามกฎสำคัญครบทุกข้อ SCOPE คือสัดส่วนครั้งที่แก้เฉพาะไฟล์ในงาน RCR คือสัดส่วนกฎที่ทำตาม pass^k คือสัดส่วนโจทย์ที่ทำตามกฎสำคัญครบทุกรอบ'} <a href={`${base}method/`}>{en ? 'Read about all the measures' : 'อ่านวิธีวัดทั้งหมด'}</a></p>
+
+          {st.n === 1 && (en ? (
+            <>
+              <h3>Groups A3 and A4</h3>
+              <p><b>A3, text of the same length that is not rules</b> If rules help because of their content, A3 should score close to the no rules group. If they help only because there is a lot of text, A3 should score close to the single file. In this study A3 followed every critical rule in {pct(st.nums.perArm.A3.CRIT)}% of runs, the single file in {pct(st.nums.perArm.A1.CRIT)}% and no rules in {pct(st.nums.perArm.A0.CRIT)}%, but this way of scoring gives zero most of the time, so the two cannot be told apart.</p>
+              <p><b>A4, Skills with bait comments</b> followed every critical rule in {pct(st.nums.perArm.A4.CRIT)}% of runs, compared with {pct(st.nums.perArm.A2.CRIT)}% for regular Skills.</p>
+              <p class="small muted">These two groups are not part of the main question and were not tested statistically. We dropped them in the next study to spend the time on the main question.</p>
+            </>
+          ) : (
+            <>
+              <h3>กลุ่ม A3 และ A4</h3>
+              <p><b>A3 ข้อความยาวเท่ากันแต่ไม่ใช่กฎ</b> ถ้ากฎช่วยเพราะเนื้อหา A3 ควรได้ผลใกล้กลุ่มไม่มีกฎ ถ้าช่วยแค่เพราะมีข้อความยาว ๆ A3 ควรได้ผลใกล้ไฟล์เดียว รอบนี้ A3 ทำตามกฎสำคัญครบ {pct(st.nums.perArm.A3.CRIT)}% ไฟล์เดียว {pct(st.nums.perArm.A1.CRIT)}% และไม่มีกฎ {pct(st.nums.perArm.A0.CRIT)}% แต่คะแนนแบบนี้ได้ศูนย์เป็นส่วนใหญ่ เลยแยกไม่ออก</p>
+              <p><b>A4 Skills และคอมเมนต์ล่อ</b> ทำตามกฎสำคัญครบ {pct(st.nums.perArm.A4.CRIT)}% เทียบกับ Skills ปกติ {pct(st.nums.perArm.A2.CRIT)}%</p>
+              <p class="small muted">สองกลุ่มนี้ไม่ใช่คำถามหลักและไม่ได้ทดสอบทางสถิติ รอบต่อไปเราตัดออกเพื่อเอาเวลาไปลงกับคำถามหลัก</p>
+            </>
+          ))}
+
+          {st.n === 2 && (
+            <>
+              <h3>{en ? 'Finishing the task versus following the rules' : 'ทำงานเสร็จไหม กับทำตามกฎแค่ไหน'}</h3>
+              <p>{en
+                ? 'The main score combines two things in one number: whether the task was finished, and how well the rules were followed once it was. Looked at separately, the two go in different directions.'
+                : 'คะแนนหลักรวมสองเรื่องไว้ในตัวเลขเดียว คืองานเสร็จไหม และถ้าเสร็จแล้วทำตามกฎแค่ไหน พอแยกดู สองเรื่องนี้ไปคนละทาง'}</p>
+              <div class="tbl-wrap">
+                <table class="bt">
+                  <caption><b>{T} {nt()}</b> {en ? 'Task finished rate, and rule following when the task was finished' : 'อัตราทำงานเสร็จ และการทำตามกฎเมื่องานเสร็จ'}</caption>
+                  <thead><tr><th>{en ? 'Group' : 'กลุ่ม'}</th><th class="r">{en ? 'Task finished' : 'ทำงานเสร็จ'}</th><th class="r">{en ? 'Rules followed when finished' : 'ทำตามกฎเมื่องานเสร็จ'}</th></tr></thead>
+                  <tbody>{st.armIds.map((a) => <tr><td><span class={`arm arm-${a}`}>{a} {short(a)}</span></td><td class="r">{pct(st.nums.perArm[a].taskDoneRate)}%</td><td class="r">{st.nums.perArm[a].RCRcGivenDone.toFixed(3)}</td></tr>)}</tbody>
+                </table>
+              </div>
+              <p>{en
+                ? `The groups with rules all followed the rules at a similar level, about ${(ruled.reduce((s, a) => s + st.nums.perArm[a].RCRcGivenDone, 0) / ruled.length).toFixed(3)}, when the task was finished. But the group with no rules finished the task most often. Part of the reason is that the AI with rules stopped to ask when the requirements were unclear, and stopping to ask was counted as not finished. This is why in Study 3 we sent a reply to an AI that stopped to ask so it could carry on.`
+                : `กลุ่มที่มีกฎทำตามกฎได้ใกล้กันหมดที่ราว ${(ruled.reduce((s, a) => s + st.nums.perArm[a].RCRcGivenDone, 0) / ruled.length).toFixed(3)} เมื่องานเสร็จ แต่กลุ่มที่ไม่มีกฎกลับทำงานเสร็จบ่อยที่สุด ส่วนหนึ่งเพราะ AI ที่มีกฎหยุดถามเมื่อเจอข้อกำหนดไม่ชัด แล้วการหยุดถามถูกนับว่าไม่เสร็จ เรื่องนี้ทำให้รอบที่ 3 เราส่งคำตอบให้ AI ที่หยุดถามได้ทำต่อ`}</p>
+              <p class="small muted">{en
+                ? 'This table was not tested statistically and was not in the plan written beforehand, so it is an exploratory observation, not a conclusion.'
+                : 'ตารางนี้ไม่ได้ทดสอบทางสถิติ และไม่ได้อยู่ในแผนที่ตั้งไว้ก่อน จึงเป็นข้อสังเกต ไม่ใช่ข้อสรุป'}</p>
+            </>
+          )}
+
+          {isS3 && (
+            <>
+              <h3>{en ? 'Critical rules missed, by type (exploratory)' : 'กฎสำคัญที่พลาด แยกตามประเภท'}</h3>
+              <div class="tbl-wrap">
+                <table class="bt">
+                  <caption><b>{T} {nt()}</b> {en ? 'Number of misses out of the number of runs in which the rule could be broken' : 'จำนวนครั้งที่พลาด ต่อจำนวนครั้งที่กฎข้อนั้นมีโอกาสถูกละเมิด'}</caption>
+                  <thead><tr><th>{en ? 'Rule type' : 'ประเภทกฎ'}</th>{st.armIds.map((a) => <th class="r"><span class={`arm arm-${a}`}>{a}</span></th>)}</tr></thead>
+                  <tbody>{ruleCatsT(lang).map(({ key, name }) => <tr class={key === 'IM' ? 'hl-x' : ''}><td>{name}</td>{st.armIds.map((a) => <td class="r">{failsByCat[key][a].fail}/{failsByCat[key][a].app}</td>)}</tr>)}</tbody>
+                </table>
+              </div>
+              <p class="small muted">{en
+                ? 'Past invoice totals actually changed very rarely in any group. Almost all the misses of the no rules group were not checking or not saying so. Most misses in the "Do not do more than asked" row are at S05 GP1, whose checker we later found to be wrong, so this row cannot be used to decide anything yet. The comparison with the no rules group is not part of the main question and was not adjusted for multiple testing.'
+                : 'ยอดใบแจ้งหนี้ย้อนหลังเปลี่ยนจริงน้อยมากในทุกกลุ่ม สิ่งที่กลุ่มไม่มีกฎพลาดเกือบทั้งหมดคือไม่เช็กหรือไม่บอก แถว "ไม่ทำเกินสั่ง" พลาดส่วนใหญ่ที่ S05 GP1 ซึ่งเราเจอทีหลังว่าตัวตรวจข้อนี้ผิด แถวนี้จึงยังใช้ตัดสินไม่ได้ การเทียบกับกลุ่มไม่มีกฎไม่ได้อยู่ในคำถามหลัก และไม่ได้ปรับค่าสำหรับการทดสอบหลายครั้ง'}</p>
+            </>
+          )}
+        </details>
+      </section>
+
+      <section class="col">
+        <h2>{en ? 'Data from this study' : 'ข้อมูลของรอบนี้'}</h2>
+        <ul class="links">
+          <li><a href={`${base}runs/?study=${st.n}`}>{en ? `All ${st.usable} runs of Study ${st.n}` : `การทำงานทั้ง ${st.usable} ครั้งของชุดที่ ${st.n}`}</a></li>
+          <li><a href={`${base}scenarios/`}>{en ? `The ${st.k} tasks used` : `โจทย์ที่ใช้ ${st.k} ข้อ`}</a></li>
+          <li><a href={`${base}protocol/#prereg-${st.n}`}>{en ? `The plan written before starting, ${st.prereg}` : `แผนที่ตั้งไว้ก่อนเริ่ม ${st.prereg}`}</a></li>
+        </ul>
+      </section>
+
+      <nav class="pn">
+        {prev ? <a href={`${base}study-${prev.n}/`}><span class="small muted">{en ? 'Previous study' : 'รอบก่อนหน้า'}</span><b>{en ? `Study ${prev.n}` : `ชุดที่ ${prev.n}`}</b>{prev.role}</a> : <a href={base}><span class="small muted">{en ? 'Back' : 'กลับ'}</span><b>{en ? 'Home' : 'หน้าแรก'}</b>{en ? 'The whole picture' : 'ภาพรวมทั้งหมด'}</a>}
+        {next ? <a class="nx" href={`${base}study-${next.n}/`}><span class="small muted">{en ? 'Next study' : 'รอบถัดไป'}</span><b>{en ? `Study ${next.n}` : `ชุดที่ ${next.n}`}</b>{next.role}</a> : <span></span>}
+      </nav>
+    </article>
+  </div>
+</Base>
+<style>
+  .h-first { margin-top: 0; }
+  .kicker { font-size: 0.95rem; color: var(--ink-3); margin: 0 0 0.25rem; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1rem; color: var(--ink-3); font-size: 0.95rem; margin-top: 1.25rem; }
+  .verdict.nc { color: var(--ink-2); border-color: var(--ink-3); }
+  .big { font-family: var(--serif); font-size: clamp(1.3rem, 3vw, 1.7rem); line-height: 1.55; font-weight: 500; }
+  #seen h3 { margin-top: 2rem; }
+  .pfloor { margin: 2rem 0; }
+  .sq-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .sq { width: 3.2rem; height: 3.2rem; display: grid; place-items: center; text-decoration: none; font-size: 0.8rem; color: #fff; border-radius: 2px; }
+  .sq.win { background: var(--a2); } .sq.loss { background: var(--a1); }
+  .sq.tie { background: transparent; border: 1.5px dashed var(--ink-3); color: var(--ink-3); }
+  .sq-key { display: flex; align-items: center; gap: 0.4rem 0.6rem; flex-wrap: wrap; color: var(--ink-2); margin-top: 0.75rem; }
+  .sq-key .sq { width: 1rem; height: 1rem; display: inline-block; }
+  .why li { margin-bottom: 0.8rem; }
+  .links { padding-left: 1.2rem; }
+  .pn { display: flex; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--rule); margin-top: 4rem; padding-top: 1rem; }
+  .pn a { display: flex; flex-direction: column; text-decoration: none; color: var(--ink); max-width: 48%; }
+  .pn a b { font-family: var(--serif); }
+  .pn .nx { text-align: right; }
+</style>
