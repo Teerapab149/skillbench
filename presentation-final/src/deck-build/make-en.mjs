@@ -59,7 +59,7 @@ const T = {
     ['จุดเริ่มต้นไว้เทียบ', 'Baseline'],
     ['กฎ 20 ข้อในไฟล์เดียว', '20 rules in one file'],
     ['คู่หลักที่เราเทียบ', 'Main comparison'],
-    ['กฎชุดเดียวกัน แยกเป็น 4 ชุด', 'Same rules, split into 4 skills'],
+    ['ข้อกำหนด 47 ข้อเท่ากัน แยกเป็น 4 ชุด', 'Same 47 obligations, split into 4 skills'],
     ['ข้อความของ Skills รวมเป็นไฟล์เดียว', 'Skills text in one file'],
     ['ดูว่าการเปิดอ่านทีละชุดมีผลไหม', 'Does loading on demand matter?'],
     ['ทุกกลุ่มเป็น AI ตัวเดียวกัน (Claude Sonnet 5 ผ่าน Claude Code) ต่างกันแค่วิธีให้กฎ', 'Every group is the same AI (Claude Sonnet 5 in Claude Code). Only the way the rules are given differs'],
@@ -124,7 +124,7 @@ const T = {
     ['ตั้งเส้นไว้ก่อนเริ่ม', 'Line set in advance'],
     ['ถ้าต่างกันไม่เกิน 12.5 คะแนน ถือว่าพอ ๆ กัน ราวพลาดกฎสำคัญ 1 ข้อต่องาน', 'A gap within 12.5 points counts as equivalent, about one critical rule per task'],
     ['ผลจริงต่างกัน 2.8 คะแนน', 'The real gap is 2.8 points'],
-    ['แม้คิดเผื่อกรณีแย่สุด ก็ยังอยู่ในเส้นทั้งสองด้าน', 'Even with uncertainty, it stays inside the line on both sides'],
+    ['ช่วงความเชื่อมั่น 90% อยู่ในเส้นทั้งช่วง ขอบล่าง −0.1 แปลว่า Skills ไม่แย่กว่า', 'The 90% confidence interval stays inside the line. Its low end, −0.1, means Skills is not worse'],
     ['ตรงกับที่คาดไว้', 'As predicted'],
     ['ก่อนเก็บข้อมูล เราเขียนไว้ว่าผลต่างน่าจะใกล้ศูนย์', 'Before collecting data, we wrote that the gap would be near zero'],
     ['เทียบเท่า คือต่างกันไม่เกิน 12.5 คะแนน ไม่ได้แปลว่าเหมือนกันทุกอย่าง นับใหม่อีก 2 แบบก็ยังได้ผลเดิม (ตารางที่ 11 และ 12 ในเล่ม)', 'Equivalent means a gap within 12.5 points, not identical. Two re-analyses give the same conclusion (report Tables 11 and 12)'],
@@ -296,7 +296,7 @@ enDeck.sections = {
   s2: { description: 'Method: system, tasks, scoring and the three studies', start: 'arena' },
   s3: { description: 'Results: equivalence, and rules versus no rules', start: 'result' },
   s4: { description: 'Limits, takeaways and close', start: 'limits' },
-  s5: { description: 'Backup slides for Q&A', start: 'b1-sensitivity' },
+  s5: { description: 'Backup slides for Q&A', start: 'cost' },
 };
 fs.writeFileSync(EN + '/deck.json', JSON.stringify(enDeck));
 console.log(bad ? `${bad} problems` : `ok ${deck.order.length} slides`);

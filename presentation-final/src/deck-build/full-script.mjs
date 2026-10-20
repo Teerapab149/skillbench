@@ -13,7 +13,7 @@ const toSec = (t) => { const m = t.match(/(\d+):(\d+)/); return m ? +m[1] * 60 +
 // ประโยคอังกฤษ [ประโยค, คำอ่าน]
 const OPEN = [
   ['Good afternoon, everyone.', 'กู๊ด อาฟเตอร์นูน, เอฟวรีวัน'],
-  ['Welcome to our guests from Malaysia.', 'เวลคัม ทู อาวเวอร์ เกสต์ส ฟรอม มาเลเชีย'],
+  ['We would like to welcome our guests from Malaysia and Indonesia.', 'วี วุด ไลค์ ทู เวลคัม อาวเวอร์ เกสต์ส ฟรอม มาเลเชีย แอนด์ อินโดนีเซีย'],
   ['Our study has many technical details.', 'อาวเวอร์ สตัดดี้ แฮส เมนี่ เทคนิคอล ดีเทลส์'],
   ['To explain them clearly, we will speak in Thai.', 'ทู เอ็กซ์เพลน เดม เคลียร์ลี่, วี วิล สปีค อิน ไท'],
   ['The slides are in English, so you can follow along.', 'เดอะ สไลด์ส อาร์ อิน อิงลิช, โซ ยู แคน ฟอลโล อะลอง'],
@@ -35,9 +35,10 @@ const BACKUP = [
   ['ใช้ Claude ทำวิจัยที่ทดลอง Claude ลำเอียงไหม', 'B4'],
   ['AI เลือกเปิด skill ถูกไหม', 'B5'],
   ['ทำไมต้องมีข้อความตอบกลับหลังรอบแรก', 'B6'],
+  ['Skills ถูกกว่าหรือเร็วกว่าไหม', 'หน้าต้นทุน (สำรองหน้าแรก)'],
 ];
 
-const main = deck.order.filter((id) => !id.startsWith('b'));
+const main = deck.order.filter((id) => !id.startsWith('b') && id !== 'cost');
 let total = 0;
 const slides = main.map((id, i) => {
   const th = fs.readFileSync(`${P}/deck-th/slides/${id}.html`, 'utf8');
@@ -55,7 +56,7 @@ const mm = Math.floor(total / 60), ss = String(total % 60).padStart(2, '0');
 // markdown
 const enMd = (rows) => rows.map(([e]) => `> **${e}**`).join('\n>\n');
 let md = `# สคริปต์นำเสนอฉบับเต็ม (พูดไทย ใช้สไลด์อังกฤษ)\n\nวันที่ 22 ต.ค. 2569 ช่วงบ่าย ใช้ไฟล์ SkillBench-final-EN.pptx\n\n`;
-md += `เวลาพูดรวมราว ${mm}:${ss} นาที บวกประโยคอังกฤษตอนเปิดและปิดราว 30 วินาที คนที่ 1 พูดหน้า 1 ถึง 8 คนที่ 2 พูดหน้า 9 ถึง 14\n\n`;
+md += `เวลาพูดรวมราว ${mm}:${ss} นาที บวกประโยคอังกฤษตอนเปิดและปิดราว 30 วินาที ธีรภาพพูดทุกหน้าและตอบคำถาม ธีรภัทร์เลื่อนสไลด์ที่คอม\n\n`;
 md += `บล็อกที่มีเส้นด้านซ้ายคือประโยคภาษาอังกฤษ ข้อความปกติคือบทพูดภาษาไทย คำตอบเตรียมไว้สำหรับช่วงถามตอบอยู่ใน SCRIPT-TH.md และ QA-COMMITTEE.md\n\n---\n\n`;
 for (const s of slides) {
   md += `## หน้า ${s.n} ${s.title}\n\n${s.meta}\n\n`;
@@ -73,10 +74,11 @@ const enHtml = (rows, cls = '') => `<div class="en ${cls}">${rows.map(([e, r, w]
 let pages = '';
 for (const s of slides) {
   const img = `file:///${S}/render-en/s${String(s.n).padStart(2, '0')}.png`;
-  pages += `<section><div class="top"><span class="num">หน้า ${s.n} จาก 14</span><span class="meta">${esc(s.meta)}</span></div><img src="${img}">${s.id === 'cover' ? '' : `<h2>${esc(s.title)}</h2>`}`;
+  pages += `<section><div class="top"><span class="num">หน้า ${s.n} จาก ${slides.length}</span><span class="meta">${esc(s.meta)}</span></div><img src="${img}">${s.id === 'cover' ? '' : `<h2>${esc(s.title)}</h2>`}`;
   if (s.id === 'cover') pages += `<div class="lbl">พูดภาษาอังกฤษก่อน</div>${enHtml(OPEN)}<div class="lbl">แล้วต่อด้วยภาษาไทย</div>`;
   pages += s.say.map((p) => `<p>${esc(p)}</p>`).join('');
   if (s.id === 'close') pages += `<div class="lbl">ปิดด้วยภาษาอังกฤษ</div>${enHtml(CLOSE)}`;
+  if (s.qa.length) pages += `<div class="qa"><div class="qh">เตรียมไว้ตอบ ไม่ต้องพูด</div>${s.qa.map((p) => `<p>${esc(p)}</p>`).join('')}</div>`;
   pages += '</section>';
 }
 pages += `<section><h2>ช่วงถามตอบ</h2><div class="lbl">ถ้าถูกถามเป็นภาษาอังกฤษ</div>${enHtml(QA_EN)}<div class="lbl">สไลด์สำรองที่เปิดตอบได้ทันที</div>${BACKUP.map(([q, b]) => `<p>${esc(q)}: <b>${b}</b></p>`).join('')}<div class="qa"><div class="qh">คำที่ห้ามหลุด</div><p>"เหมือนกัน" ใช้ "เทียบเท่า"</p><p>"Skills ดีกว่า" ใช้ "ไม่ด้อยกว่า"</p><p>"การเปิดอ่านทีละชุดไม่มีผล" ใช้ "ยังไม่ได้ทดสอบ"</p></div></section>`;
@@ -101,7 +103,7 @@ p{margin:0 0 3mm}
 .qa p{break-inside:avoid}
 .qh{font-weight:700;font-size:10pt;color:#5A6070;margin-bottom:2mm}
 </style></head><body>
-<div class="cover"><h1>สคริปต์นำเสนอฉบับเต็ม</h1><p>พูดภาษาไทย ใช้สไลด์ภาษาอังกฤษ (SkillBench-final-EN.pptx)</p><p>หน้าละหนึ่งสไลด์ กรอบสีแดงคือประโยคภาษาอังกฤษ ข้อความปกติคือบทพูดภาษาไทย</p><p>เวลาพูดรวมราว ${mm}:${ss} นาที บวกประโยคอังกฤษราว 30 วินาที คนที่ 1 พูดหน้า 1 ถึง 8 คนที่ 2 พูดหน้า 9 ถึง 14</p><p>ฉบับ 19 ต.ค. 2569</p></div>
+<div class="cover"><h1>สคริปต์นำเสนอฉบับเต็ม</h1><p>พูดภาษาไทย ใช้สไลด์ภาษาอังกฤษ (SkillBench-final-EN.pptx)</p><p>หน้าละหนึ่งสไลด์ กรอบสีแดงคือประโยคภาษาอังกฤษ ข้อความปกติคือบทพูดภาษาไทย</p><p>เวลาพูดรวมราว ${mm}:${ss} นาที บวกประโยคอังกฤษราว 30 วินาที ธีรภาพพูดทุกหน้าและตอบคำถาม ธีรภัทร์เลื่อนสไลด์ที่คอม</p><p>ฉบับ 21 ต.ค. 2569</p></div>
 ${pages}</body></html>`;
 fs.writeFileSync(S + '/script-full.html', html);
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';

@@ -30,7 +30,7 @@ const runsToText = (runs, base = {}) => {
   return out;
 };
 
-const sections = { cover: 'ปัญหาและคำถาม', arena: 'วิธีทดลอง', result: 'ผล', takeaways: 'สรุปและข้อจำกัด', 'b1-sensitivity': 'สไลด์สำรอง' };
+const sections = { cover: 'ปัญหาและคำถาม', arena: 'วิธีทดลอง', result: 'ผล', limits: 'ข้อจำกัดและสรุป', cost: 'สไลด์สำรอง' };
 let sec = '';
 
 for (const s of slides) {

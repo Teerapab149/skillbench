@@ -216,7 +216,7 @@ const figs = {};
   for (const v of [-10, -5, 0, 5, 10]) b += t(X(v / 100), bot + 46, tick(v), { size: 34, anchor: 'middle', fill: C.mute });
   b += t(X(lo) + 10, bot + 100, L('ไฟล์เดียวดีกว่าชัด', 'One file clearly better'), { size: 34, fill: C.mute });
   b += t(X(hi) - 10, bot + 100, L('Skills ดีกว่าชัด', 'Skills clearly better'), { size: 34, fill: C.mute, anchor: 'end' });
-  b += t(800, bot + 160, L(`Skills ได้มากกว่า ${(p.diff*100).toFixed(1)} คะแนน คิดเผื่อความคลาดเคลื่อนแล้วอยู่ระหว่าง ${pts(d.ci90[0])} ถึง ${pts(d.ci90[1])}`, `Skills scored ${(p.diff*100).toFixed(1)} points higher. With uncertainty: ${pts(d.ci90[0])} to ${pts(d.ci90[1])}`), { size: 34, anchor: 'middle', weight: 700 });
+  b += t(800, bot + 160, L(`Skills ได้มากกว่า ${(p.diff*100).toFixed(1)} คะแนน ช่วงความเชื่อมั่น 90% ${pts(d.ci90[0])} ถึง ${pts(d.ci90[1])}`, `Skills scored ${(p.diff*100).toFixed(1)} points higher. 90% confidence interval: ${pts(d.ci90[0])} to ${pts(d.ci90[1])}`), { size: 34, anchor: 'middle', weight: 700 });
   figs['fig-result-simple'] = svg(b, h);
 }
 

@@ -52,7 +52,7 @@
 <tr><th style="width:30%">กลุ่ม AI</th><th style="width:40%">ได้กฎแบบไหน</th><th style="width:30%">มีไว้ทำอะไร</th></tr>
 <tr><td>ไม่มีกฎ</td><td>ไม่ได้กฎเลย</td><td>จุดเริ่มต้นไว้เทียบ</td></tr>
 <tr style="background:#E8EDF5"><td><b>ไฟล์เดียว</b></td><td><b>กฎ 20 ข้อในไฟล์เดียว</b></td><td><b>คู่หลักที่เราเทียบ</b></td></tr>
-<tr style="background:#F3E3DF"><td><b>Agent Skills</b></td><td><b>กฎชุดเดียวกัน แยกเป็น 4 ชุด</b></td><td><b>คู่หลักที่เราเทียบ</b></td></tr>
+<tr style="background:#F3E3DF"><td><b>Agent Skills</b></td><td><b>ข้อกำหนด 47 ข้อเท่ากัน แยกเป็น 4 ชุด</b></td><td><b>คู่หลักที่เราเทียบ</b></td></tr>
 <tr><td>Skills แบบอ่านทุกครั้ง</td><td>ข้อความของ Skills รวมเป็นไฟล์เดียว</td><td>ดูว่าการเปิดอ่านทีละชุดมีผลไหม</td></tr>
 </table>
 <p style="font-size:30px;line-height:1.5;width:1560px">ทุกกลุ่มเป็น AI ตัวเดียวกัน (Claude Sonnet 5 ผ่าน Claude Code) ต่างกันแค่วิธีให้กฎ</p>
@@ -139,7 +139,7 @@
 <img src="../figures/fig-result-simple.png" alt="ไฟล์เดียว 94.5 Agent Skills 97.2 คะแนนเต็ม 100 Skills ได้มากกว่า 2.8 คะแนน ช่วงที่น่าจะเป็น −0.1 ถึง +5.8 อยู่ในโซนพอ ๆ กัน ต่างไม่เกิน 12.5 ที่ตั้งไว้ก่อนเริ่ม" style="width:1240px;height:496px;object-fit:contain">
 <div style="flex:1;display:flex;flex-direction:column;gap:30px;padding-top:16px">
 <div style="display:flex;flex-direction:column;gap:6px"><p style="font-size:30px;font-weight:700;color:#2F6B3A">ตั้งเส้นไว้ก่อนเริ่ม</p><p style="font-size:26px;line-height:1.45">ถ้าต่างกันไม่เกิน 12.5 คะแนน ถือว่าพอ ๆ กัน ราวพลาดกฎสำคัญ 1 ข้อต่องาน</p></div>
-<div style="display:flex;flex-direction:column;gap:6px"><p style="font-size:30px;font-weight:700">ผลจริงต่างกัน 2.8 คะแนน</p><p style="font-size:26px;line-height:1.45">แม้คิดเผื่อกรณีแย่สุด ก็ยังอยู่ในเส้นทั้งสองด้าน</p></div>
+<div style="display:flex;flex-direction:column;gap:6px"><p style="font-size:30px;font-weight:700">ผลจริงต่างกัน 2.8 คะแนน</p><p style="font-size:26px;line-height:1.45">ช่วงความเชื่อมั่น 90% อยู่ในเส้นทั้งช่วง ขอบล่าง −0.1 แปลว่า Skills ไม่แย่กว่า</p></div>
 <div style="display:flex;flex-direction:column;gap:6px"><p style="font-size:30px;font-weight:700">ตรงกับที่คาดไว้</p><p style="font-size:26px;line-height:1.45">ก่อนเก็บข้อมูล เราเขียนไว้ว่าผลต่างน่าจะใกล้ศูนย์</p></div>
 </div>
 </div>
@@ -163,25 +163,6 @@
 </div>
 </div>
 <p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">ตัวเลข 6 ครั้งนับจากกฎ IM1 ของ S08 และ S09 ใน results-study3/rules-long.csv ส่วน 53% และ 79 ถึง 83% อยู่ในตารางที่ 14 ไม่ใช่คำถามหลักที่ทดสอบตามแผน กลุ่มไม่มีกฎถูกตรวจด้วยกฎที่ตัวเองไม่เคยได้รับ และยังแยกไม่ได้ว่าดีขึ้นเพราะเนื้อหาของกฎหรือเพราะมีข้อความให้อ่านมากขึ้น</p>
-
-</section>
-</div><div class=f><div class=lab>cost</div><section data-id="cost" id="cost" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
-<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">Skills ใช้เงินและเวลาน้อยกว่าไฟล์เดียวเล็กน้อย <span style="color:#6B7180;white-space:nowrap">(ข้อสังเกตเพิ่ม)</span></h2>
-<div style="display:flex;gap:64px;align-items:start">
-<table style="font-size:32px;width:1000px;font-variant-numeric:tabular-nums">
-<tr><th style="width:44%">กลุ่ม</th><th style="width:28%;text-align:right">ค่าใช้จ่ายต่องาน</th><th style="width:28%;text-align:right">เวลาต่องาน</th></tr>
-<tr><td>ไม่มีกฎ</td><td style="text-align:right">$0.80</td><td style="text-align:right">160 วินาที</td></tr>
-<tr style="background:#E8EDF5"><td><b>ไฟล์เดียว</b></td><td style="text-align:right"><b>$1.01</b></td><td style="text-align:right"><b>220 วินาที</b></td></tr>
-<tr style="background:#F3E3DF"><td><b>Agent Skills</b></td><td style="text-align:right"><b>$0.91</b></td><td style="text-align:right"><b>189 วินาที</b></td></tr>
-<tr><td>Skills แบบอ่านทุกครั้ง</td><td style="text-align:right">$0.97</td><td style="text-align:right">206 วินาที</td></tr>
-</table>
-<div style="flex:1;display:flex;flex-direction:column;gap:28px">
-<p style="font-size:30px;line-height:1.5">ถูกกว่าราว 10% และเร็วกว่าราว 30 วินาทีต่องาน</p>
-<p style="font-size:30px;line-height:1.5">กลุ่มที่อ่าน Skills ทุกครั้งอยู่ตรงกลาง จึงยังบอกไม่ได้ว่าประหยัดเพราะเปิดอ่านทีละชุด</p>
-<p style="font-size:30px;line-height:1.5">กฎของเรายาวราว 4,500 ตัวอักษร ถ้ากฎยาวกว่านี้หลายเท่า ความต่างอาจชัดขึ้น แต่ยังไม่ได้ทดสอบ</p>
-</div>
-</div>
-<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">ราคาเทียบเท่า API ที่ Claude Code รายงาน AI เปิด skill เฉลี่ย 2.2 จาก 4 ชุดต่องาน (ตารางที่ 17 และ 20 ในเล่ม)</p>
 
 </section>
 </div><div class=f><div class=lab>limits</div><section data-id="limits" id="limits" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:44px">
@@ -219,6 +200,25 @@
 <img src="../figures/qr-site.png" alt="QR code ไปที่ teerapab149.github.io/skillbench" style="width:440px;height:440px;object-fit:contain;border-radius:24px">
 <p style="font-size:26px;color:#C9CFDD;text-align:center;width:480px">teerapab149.github.io/skillbench</p>
 </div>
+
+</section>
+</div><div class=f><div class=lab>cost</div><section data-id="cost" id="cost" data-transition="fade" style="background:#FAF9F5;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Anuphan', Tahoma, sans-serif;font-size:60px;font-weight:600;line-height:1.25;width:1600px">Skills ใช้เงินและเวลาน้อยกว่าไฟล์เดียวเล็กน้อย <span style="color:#6B7180;white-space:nowrap">(ข้อสังเกตเพิ่ม)</span></h2>
+<div style="display:flex;gap:64px;align-items:start">
+<table style="font-size:32px;width:1000px;font-variant-numeric:tabular-nums">
+<tr><th style="width:44%">กลุ่ม</th><th style="width:28%;text-align:right">ค่าใช้จ่ายต่องาน</th><th style="width:28%;text-align:right">เวลาต่องาน</th></tr>
+<tr><td>ไม่มีกฎ</td><td style="text-align:right">$0.80</td><td style="text-align:right">160 วินาที</td></tr>
+<tr style="background:#E8EDF5"><td><b>ไฟล์เดียว</b></td><td style="text-align:right"><b>$1.01</b></td><td style="text-align:right"><b>220 วินาที</b></td></tr>
+<tr style="background:#F3E3DF"><td><b>Agent Skills</b></td><td style="text-align:right"><b>$0.91</b></td><td style="text-align:right"><b>189 วินาที</b></td></tr>
+<tr><td>Skills แบบอ่านทุกครั้ง</td><td style="text-align:right">$0.97</td><td style="text-align:right">206 วินาที</td></tr>
+</table>
+<div style="flex:1;display:flex;flex-direction:column;gap:28px">
+<p style="font-size:30px;line-height:1.5">ถูกกว่าราว 10% และเร็วกว่าราว 30 วินาทีต่องาน</p>
+<p style="font-size:30px;line-height:1.5">กลุ่มที่อ่าน Skills ทุกครั้งอยู่ตรงกลาง จึงยังบอกไม่ได้ว่าประหยัดเพราะเปิดอ่านทีละชุด</p>
+<p style="font-size:30px;line-height:1.5">กฎของเรายาวราว 4,500 ตัวอักษร ถ้ากฎยาวกว่านี้หลายเท่า ความต่างอาจชัดขึ้น แต่ยังไม่ได้ทดสอบ</p>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7180">ราคาเทียบเท่า API ที่ Claude Code รายงาน AI เปิด skill เฉลี่ย 2.2 จาก 4 ชุดต่องาน (ตารางที่ 17 และ 20 ในเล่ม)</p>
 
 </section>
 </div><div class=f><div class=lab>b1-sensitivity</div><section data-id="b1-sensitivity" id="b1-sensitivity" data-transition="fade" style="background:#EEF1F6;color:#1B1F2A;font-family:'Sarabun', Tahoma, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:32px">

@@ -3,7 +3,7 @@
 ## ตอนเปิด (หน้า 1 ก่อนแนะนำตัวเป็นภาษาไทย)
 
 Good afternoon, everyone.
-Welcome to our guests from Malaysia.
+We would like to welcome our guests from Malaysia and Indonesia.
 Our study has many technical details.
 To explain them clearly, we will speak in Thai.
 The slides are in English, so you can follow along.
