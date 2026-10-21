@@ -89,7 +89,7 @@ But equivalent does not mean identical. What we can say most confidently is: **S
 
 If asked why a 90% interval: an equivalence test checks both the upper and the lower limit, at 5% each side. So the 90% interval is the standard choice. With 95% it is minus 0.6 to plus 6.4, still inside the zone.
 If asked why 12.5: it is about one critical rule per task, and it was set before data collection. We admit it is wide, wider than the gap between no rules and one file on the same score (9.5). So we do not claim the format has no effect. The stronger evidence is the lower limit, minus 0.1.
-If asked where 2.8 comes from: almost all of it comes from two unfinished runs in the one-file group, which score zero by definition. In finished work, both ways followed the rules almost equally (backup slide B2).
+If asked where 2.8 comes from: almost all of it comes from two unfinished runs in the one-file group, which score zero by definition. In finished work, both ways followed the rules almost equally (Table 15 in the report).
 
 ## 10. Rules versus no rules  [Speaker 2, 0:50]
 
@@ -138,13 +138,13 @@ We are Thai students and our users would write in Thai. Testing English is our f
 Time and budget. The tool is built so another agent can be added. That is future work.
 
 **Why did you stop at three rounds?**
-The plan allowed two to four rounds. We stopped after three because of usage limits. A fourth round would only make the interval about 6% narrower. We decided this before looking at results by group, and we report it as a deviation (backup slide B3).
+The plan allowed two to four rounds. We stopped after three because of usage limits. A fourth round would only make the interval about 6% narrower. We decided this before looking at results by group, and we report it as a deviation (Table 10 in the report).
 
 **You used Claude to study Claude. Is that biased?**
-It is a real risk, and we list it as a limitation. Scoring is done by a program, the plan was locked with a git tag before data collection, and every step is in the history (backup slide B4).
+It is a real risk, and we list it as a limitation. Scoring is done by a program, the plan was locked with a git tag before data collection, and every step is in the history (Section 6.4, item 3 in the report).
 
 **You found checker bugs after locking the plan. Can we trust the result?**
-We found two real bugs. The main result uses the original checkers, as planned. Two re-analyses declared in advance give the same conclusion (backup slide B1).
+We found two real bugs. The main result uses the original checkers, as planned. Two re-analyses declared in advance give the same conclusion (Table 12 in the report).
 
 **Does this apply to a real company?**
 Only to similar conditions: one model, short rules, one system. The safest message for a company is the practical one: give the AI rules, and protect important files with permissions too.
