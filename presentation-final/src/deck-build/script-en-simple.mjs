@@ -10,7 +10,7 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const SLIDES = [
   ['cover', '0:40', [
     'Good afternoon, everyone. We would like to welcome our guests from Malaysia and Indonesia.',
-    'My name is Teerapab Boonsri, and this is Teeraphat Chinwuttiwong.',
+    'My name is Teerapab Boonsri, and this is Teerapat Chinwuttiwong.',
     'Today, we want to answer one question. How should we write rules for an AI, so that the AI follows them?',
   ], [['Indonesia', 'อินโดนีเซีย']]],
   ['ai-today', '0:35', [

@@ -52,12 +52,12 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 - How should we write rules
 - so an AI agent follows them?
 - Controlling LLM Agent Behavior in Software Development via Context Engineering and Agent Skills
-- Teerapab Boonsri and Teeraphat Chinwuttiwong
+- Teerapab Boonsri and Teerapat Chinwuttiwong
 - Advisor: Asst. Prof. Dr. Ruchdee Binmad, Faculty of Management Sciences, Prince of Songkla University
 
 **Speaker notes**
 
-> [Speaker 1, 0:20] Good morning. I am Teerapab, and this is Teeraphat. Our project asks one question. If a team writes rules for an AI coding agent, how should they write them so the agent actually follows them?
+> [Speaker 1, 0:20] Good morning. I am Teerapab, and this is Teerapat. Our project asks one question. If a team writes rules for an AI coding agent, how should they write them so the agent actually follows them?
 
 ---
 
@@ -187,7 +187,7 @@ Slides on claude.ai: https://claude.ai/artifact/7ixEe1DRmC4R7cLqwCkSBs (private 
 
 > [Speaker 1, 1:00, then hand over to Speaker 2] To be honest, we ran three studies. The first two could not reach a conclusion. In study 1, the score was all-or-nothing, so almost every run scored zero. In study 2, an agent that stopped to ask was counted as failing, and three tasks had faulty graders.
 >
-> These studies were not wasted. They showed us where our instrument was broken. Study 3 fixed everything: twice as many tasks, the instrument checked before real data, and the plan locked again. Teeraphat will show you the result.
+> These studies were not wasted. They showed us where our instrument was broken. Study 3 fixed everything: twice as many tasks, the instrument checked before real data, and the plan locked again. Teerapat will show you the result.
 >
 > Do not say the effect "shrank" from 11 to 2.8. The metrics and tasks are different.
 

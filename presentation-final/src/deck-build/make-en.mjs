@@ -26,7 +26,7 @@ const T = {
     ['477-401 สัมมนาระบบสารสนเทศทางธุรกิจ ภาคเรียนที่ 1/2569', '477-401 Seminar in Business Information Systems, Semester 1/2026'],
     ['เขียนกฎให้ AI แบบไหน<br>AI ถึงจะทำตาม?', 'How should we write rules<br>so that AI follows them?'],
     ['การควบคุมพฤติกรรม LLM Agent ในงานพัฒนาระบบด้วย Context Engineering และระบบทักษะเอเจนต์', 'Controlling LLM Agent Behavior in Software Development via Context Engineering and Agent Skills'],
-    ['นายธีรภาพ บุญศรี และนายธีรภัทร์ ชินวุฒิวงศ์', 'Teerapab Boonsri and Teeraphat Chinwuttiwong'],
+    ['นายธีรภาพ บุญศรี และนายธีรภัทร์ ชินวุฒิวงศ์', 'Teerapab Boonsri and Teerapat Chinwuttiwong'],
     ['อาจารย์ที่ปรึกษา ผศ. ดร.รุชดี บิลหมัด คณะวิทยาการจัดการ มหาวิทยาลัยสงขลานครินทร์', 'Advisor: Asst. Prof. Dr. Ruchdee Binmad, Faculty of Management Sciences, Prince of Songkla University'],
   ],
   'ai-today': [
